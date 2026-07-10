@@ -5,7 +5,8 @@ import {
   upsertPreference,
 } from '../db/repositories/user-preference-repository.js';
 
-const LEAGUE_CODES = ['PL', 'PD', 'BL1', 'SA', 'FL1', 'CL'];
+import { LEAGUE_CODES } from '../constants/league-codes.js';
+
 const AGENT_IDS = ['news', 'stats', 'scout', 'tactical', 'fan', 'content'];
 
 const updatePreferenceSchema = z.object({

@@ -1,6 +1,6 @@
 import { getDb } from '../connection.js';
 
-export const ALLOWED_LEAGUES = ['PL', 'PD', 'BL1', 'SA', 'FL1', 'CL'];
+export { ALLOWED_LEAGUES } from '../../constants/league-codes.js';
 
 export function mapMatchSyncMetaRow(row) {
   return {

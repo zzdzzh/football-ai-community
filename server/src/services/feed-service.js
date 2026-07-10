@@ -1,5 +1,5 @@
 import { AppError } from '../middleware/error.js';
-import { isDuplicateArticle } from './news-dedup.js';
+import { findDuplicateParent } from './news-dedup.js';
 import {
   createFeedItem,
   findFeedItemById,
@@ -89,9 +89,15 @@ export async function runNewsIngestion({ aiContentService, rssAdapter = new News
 
   const newsAgent = new NewsAgent({ aiContentService, rssAdapter });
   const sourceResults = await newsAgent.fetchSourceArticles();
-  const existingArticles = findRecentFeedItemsForDedup({ hours: 48 });
+  const existingArticles = findRecentFeedItemsForDedup({ hours: 48 }).map((item) => ({
+    id: item.id,
+    title: item.title,
+    source_url: item.source_url,
+    event_key: item.event_key,
+  }));
   const createdItems = [];
   let skippedCount = 0;
+  let relatedCount = 0;
 
   for (const sourceResult of sourceResults) {
     upsertNewsCacheMeta({
@@ -108,16 +114,36 @@ export async function runNewsIngestion({ aiContentService, rssAdapter = new News
         skippedCount += 1;
         continue;
       }
-      if (isDuplicateArticle(article, existingArticles)) {
-        skippedCount += 1;
+
+      const duplicateParent = findDuplicateParent(article, existingArticles);
+      if (duplicateParent) {
+        const aiResult = await newsAgent.summarizeArticle(article);
+        const feedItem = buildFeedItemFromArticle(article, aiResult, { relatedTo: duplicateParent.id });
+        const created = createFeedItem(feedItem);
+        if (!created) {
+          skippedCount += 1;
+          continue;
+        }
+        relatedCount += 1;
+        existingArticles.push({
+          id: created.id,
+          title: created.title,
+          source_url: created.sourceUrl,
+          event_key: created.eventKey,
+        });
         continue;
       }
 
       const aiResult = await newsAgent.summarizeArticle(article);
       const feedItem = buildFeedItemFromArticle(article, aiResult);
       const created = createFeedItem(feedItem);
+      if (!created) {
+        skippedCount += 1;
+        continue;
+      }
       createdItems.push(created);
       existingArticles.push({
+        id: created.id,
         title: created.title,
         source_url: created.sourceUrl,
         event_key: created.eventKey,
@@ -127,6 +153,7 @@ export async function runNewsIngestion({ aiContentService, rssAdapter = new News
 
   return {
     createdCount: createdItems.length,
+    relatedCount,
     skippedCount,
     sourceCount: sourceResults.length,
   };

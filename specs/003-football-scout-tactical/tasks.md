@@ -66,15 +66,15 @@
 ### Tests for User Story 1
 
 - [x] T010 [P] [US1] Contract tests for GET /players and POST /internal/jobs/player-sync in server/tests/contract/players.test.js and server/tests/contract/player-sync.test.js
-- [ ] T011 [P] [US1] Contract tests for Scout conversations and message feedback in server/tests/contract/scout-conversations.test.js
-- [ ] T012 [P] [US1] Unit tests for scout-context-builder and scout-agent with 100% branch coverage in server/tests/unit/scout-context-builder.test.js and server/tests/unit/scout-agent.test.js
+- [x] T011 [P] [US1] Contract tests for Scout conversations and message feedback in server/tests/contract/scout-conversations.test.js
+- [x] T012 [P] [US1] Unit tests for scout-context-builder and scout-agent with 100% branch coverage in server/tests/unit/scout-context-builder.test.js and server/tests/unit/scout-agent.test.js
 
 ### Implementation for User Story 1
 
-- [ ] T013 [P] [US1] Create scout-recommend prompt and AiScoutService in server/prompts/scout-recommend.md and server/src/ai/ai-scout-service.js
-- [ ] T014 [US1] Implement scout-context-builder with league filter and candidate cap in server/src/services/scout-context-builder.js
-- [ ] T015 [US1] Implement scout-agent orchestration with recommendations_json persistence in server/src/agents/scout-agent.js
-- [ ] T016 [US1] Extend conversation-service and conversations API for agentId=scout and feedback endpoint in server/src/services/conversation-service.js and server/src/api/conversations.js
+- [x] T013 [P] [US1] Create scout-recommend prompt and AiScoutService in server/prompts/scout-recommend.md and server/src/ai/ai-scout-service.js
+- [x] T014 [US1] Implement scout-context-builder with league filter and candidate cap in server/src/services/scout-context-builder.js
+- [x] T015 [US1] Implement scout-agent orchestration with recommendations_json persistence in server/src/agents/scout-agent.js
+- [x] T016 [US1] Extend conversation-service and conversations API for agentId=scout and feedback endpoint in server/src/services/conversation-service.js and server/src/api/conversations.js
 - [ ] T017 [P] [US1] Extend web API clients for players and scout conversations in web/src/api/players.ts and web/src/api/conversations.ts
 - [ ] T018 [P] [US1] Implement ScoutStartView and scout components in web/src/views/ScoutStartView.vue, web/src/components/scout/ScoutFilterForm.vue and web/src/components/scout/PlayerRecommendationCard.vue
 - [ ] T019 [US1] Extend ConversationView for scout recommendations and register /scout route in web/src/views/ConversationView.vue and web/src/router/index.ts

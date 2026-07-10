@@ -26,6 +26,9 @@ async function syncLeague(adapter, leagueCode) {
         upsertTeam({ ...team, updatedAt: now });
       }
       for (const match of matchList) {
+        if (!match.homeTeamId || !match.awayTeamId) continue;
+        upsertTeam({ ...match.homeTeam, leagueCode: match.leagueCode, updatedAt: now });
+        upsertTeam({ ...match.awayTeam, leagueCode: match.leagueCode, updatedAt: now });
         upsertMatch({
           id: match.id,
           leagueCode: match.leagueCode,

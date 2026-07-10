@@ -1,4 +1,5 @@
 import {
+  findDuplicateParent,
   isDuplicateArticle,
   levenshteinDistance,
   titleSimilarity,
@@ -48,5 +49,28 @@ describe('news dedup', () => {
       eventKey: 'city-cl-final',
     };
     expect(isDuplicateArticle(candidate, existing)).toBe(false);
+  });
+
+  it('finds duplicate parent by event key', () => {
+    const candidate = {
+      title: 'Different headline',
+      sourceUrl: 'https://example.com/f',
+      eventKey: 'arsenal-chelsea-2-1',
+    };
+    const parent = findDuplicateParent(candidate, [
+      { id: 'parent-1', title: 'Arsenal beat Chelsea 2-1', event_key: 'arsenal-chelsea-2-1' },
+    ]);
+    expect(parent).toEqual(expect.objectContaining({ id: 'parent-1' }));
+  });
+
+  it('finds duplicate parent by similar title', () => {
+    const candidate = {
+      title: 'Arsenal beats Chelsea 2-1',
+      sourceUrl: 'https://example.com/g',
+    };
+    const parent = findDuplicateParent(candidate, [
+      { id: 'parent-2', title: 'Arsenal beat Chelsea 2-1', event_key: 'arsenal-chelsea-2-1' },
+    ]);
+    expect(parent).toEqual(expect.objectContaining({ id: 'parent-2' }));
   });
 });

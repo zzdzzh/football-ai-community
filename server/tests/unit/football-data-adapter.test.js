@@ -5,6 +5,7 @@ import {
   FootballDataAdapter,
   ALLOWED_LEAGUES,
   createFootballDataAdapter,
+  normalizeMatchStatus,
   resetRateLimiterForTest,
 } from '../../src/adapters/football-data-adapter.js';
 
@@ -40,7 +41,7 @@ describe('FootballDataAdapter', () => {
   });
 
   it('exports ALLOWED_LEAGUES whitelist', () => {
-    expect(ALLOWED_LEAGUES).toEqual(['PL', 'PD', 'BL1', 'SA', 'FL1', 'CL']);
+    expect(ALLOWED_LEAGUES).toEqual(['PL', 'PD', 'BL1', 'SA', 'FL1', 'CL', 'WC']);
   });
 
   it('throws when API key is missing', async () => {
@@ -263,5 +264,75 @@ describe('FootballDataAdapter', () => {
     const adapter = new FootballDataAdapter({ apiKey: 'key', baseUrl: 'https://api.test/v4', fetchImpl });
     const matches = await adapter.getCompetitionMatches('PL', { status: 'FINISHED' });
     expect(matches).toEqual([]);
+  });
+
+  it('appends season query for World Cup competitions', async () => {
+    const fetchImpl = jest.fn(async (url) => {
+      expect(url).toContain('/competitions/WC/matches?season=');
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({ matches: [] }),
+      };
+    });
+    const adapter = new FootballDataAdapter({ apiKey: 'key', baseUrl: 'https://api.test/v4', fetchImpl });
+    await adapter.getCompetitionMatches('WC');
+    expect(fetchImpl).toHaveBeenCalled();
+  });
+
+  it('normalizes football-data TIMED status to SCHEDULED', () => {
+    expect(normalizeMatchStatus('TIMED')).toBe('SCHEDULED');
+    expect(normalizeMatchStatus('IN_PLAY')).toBe('LIVE');
+    expect(normalizeMatchStatus('FINISHED')).toBe('FINISHED');
+  });
+
+  it('maps World Cup TIMED matches without CHECK constraint errors', async () => {
+    const fetchImpl = mockFetch({
+      '/competitions/WC/matches?season=2026': {
+        ok: true,
+        body: {
+          matches: [{
+            id: 3001,
+            utcDate: '2026-07-15T18:00:00.000Z',
+            status: 'TIMED',
+            homeTeam: { id: 1, name: 'Mexico' },
+            awayTeam: { id: 2, name: 'South Africa' },
+          }],
+        },
+      },
+    });
+    const adapter = new FootballDataAdapter({ apiKey: 'key', baseUrl: 'https://api.test/v4', fetchImpl });
+    const matches = await adapter.getCompetitionMatches('WC', { season: 2026 });
+    expect(matches[0]).toMatchObject({ id: '3001', status: 'SCHEDULED', leagueCode: 'WC' });
+  });
+
+  it('skips knockout placeholder matches without both teams', async () => {
+    const fetchImpl = mockFetch({
+      '/competitions/WC/matches?season=2026': {
+        ok: true,
+        body: {
+          matches: [
+            {
+              id: 3002,
+              utcDate: '2026-07-20T18:00:00.000Z',
+              status: 'TIMED',
+              homeTeam: { id: 1, name: 'Mexico' },
+              awayTeam: { id: 2, name: 'South Africa' },
+            },
+            {
+              id: 3003,
+              utcDate: '2026-07-21T18:00:00.000Z',
+              status: 'TIMED',
+              homeTeam: null,
+              awayTeam: null,
+            },
+          ],
+        },
+      },
+    });
+    const adapter = new FootballDataAdapter({ apiKey: 'key', baseUrl: 'https://api.test/v4', fetchImpl });
+    const matches = await adapter.getCompetitionMatches('WC', { season: 2026 });
+    expect(matches).toHaveLength(1);
+    expect(matches[0].id).toBe('3002');
   });
 });

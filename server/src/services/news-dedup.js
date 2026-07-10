@@ -48,3 +48,18 @@ export function isDuplicateArticle(candidate, existingArticles, { titleThreshold
   const title = candidate.title ?? '';
   return existingArticles.some((item) => titleSimilarity(item.title, title) > titleThreshold);
 }
+
+export function findDuplicateParent(candidate, existingArticles, { titleThreshold = 0.85 } = {}) {
+  if (!candidate || !existingArticles?.length) return null;
+
+  const eventKey = candidate.eventKey ?? candidate.event_key;
+  if (eventKey) {
+    const byEventKey = existingArticles.find(
+      (item) => item.event_key === eventKey || item.eventKey === eventKey,
+    );
+    if (byEventKey?.id) return byEventKey;
+  }
+
+  const title = candidate.title ?? '';
+  return existingArticles.find((item) => titleSimilarity(item.title, title) > titleThreshold) ?? null;
+}

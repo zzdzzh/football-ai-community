@@ -10,6 +10,7 @@ const MIGRATION_FILES = [
   '004_add_wc_league.sql',
   '005_feed_source_url_unique.sql',
   '006_scout_tactical.sql',
+  '007_scout_conversation_context.sql',
 ];
 
 function ensureMigrationTable(db) {

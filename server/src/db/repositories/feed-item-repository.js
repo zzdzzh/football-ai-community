@@ -45,30 +45,37 @@ export function createFeedItem(item) {
   const id = item.id ?? randomUUID();
   const now = new Date().toISOString();
 
-  db.prepare(`
-    INSERT INTO feed_items (
-      id, agent_id, type, title, summary, source_url, source_name,
-      key_points, event_key, related_to, visibility, published_at, created_at,
-      match_id, body_json, data_sources_json
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(
-    id,
-    item.agentId,
-    item.type,
-    item.title,
-    item.summary ?? null,
-    item.sourceUrl ?? null,
-    item.sourceName ?? null,
-    item.keyPoints ? JSON.stringify(item.keyPoints) : null,
-    item.eventKey ?? null,
-    item.relatedTo ?? null,
-    item.visibility ?? 'public',
-    item.publishedAt ?? now,
-    now,
-    item.matchId ?? null,
-    item.body ? JSON.stringify(item.body) : null,
-    item.dataSources ? JSON.stringify(item.dataSources) : null,
-  );
+  try {
+    db.prepare(`
+      INSERT INTO feed_items (
+        id, agent_id, type, title, summary, source_url, source_name,
+        key_points, event_key, related_to, visibility, published_at, created_at,
+        match_id, body_json, data_sources_json
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      id,
+      item.agentId,
+      item.type,
+      item.title,
+      item.summary ?? null,
+      item.sourceUrl ?? null,
+      item.sourceName ?? null,
+      item.keyPoints ? JSON.stringify(item.keyPoints) : null,
+      item.eventKey ?? null,
+      item.relatedTo ?? null,
+      item.visibility ?? 'public',
+      item.publishedAt ?? now,
+      now,
+      item.matchId ?? null,
+      item.body ? JSON.stringify(item.body) : null,
+      item.dataSources ? JSON.stringify(item.dataSources) : null,
+    );
+  } catch (err) {
+    if (err.code === 'SQLITE_CONSTRAINT_UNIQUE') {
+      return null;
+    }
+    throw err;
+  }
 
   return findFeedItemById(id);
 }
@@ -129,7 +136,7 @@ export function listFeedItems({ page = 1, pageSize = 20, agentId = null } = {}) 
   const safePageSize = Math.min(50, Math.max(1, pageSize));
   const offset = (safePage - 1) * safePageSize;
 
-  const conditions = ["fi.visibility = 'public'"];
+  const conditions = ["fi.visibility = 'public'", 'fi.related_to IS NULL'];
   const params = [];
 
   if (agentId) {

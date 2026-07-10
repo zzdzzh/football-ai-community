@@ -63,12 +63,13 @@ describe('Feed API contract', () => {
   });
 
   describe('GET /api/feed', () => {
-    it('returns 200 with paginated feed list', async () => {
+    it('returns 200 with paginated feed list excluding related items', async () => {
       const res = await request(app).get('/api/feed');
 
       expect(res.status).toBe(200);
       expect(res.body.items).toEqual(expect.any(Array));
       expect(res.body.items.length).toBeGreaterThanOrEqual(1);
+      expect(res.body.items.every((item) => item.id !== undefined)).toBe(true);
       expect(res.body.page).toBe(1);
       expect(res.body.pageSize).toBe(20);
       expect(res.body.total).toBeGreaterThanOrEqual(1);
@@ -82,6 +83,12 @@ describe('Feed API contract', () => {
         title: expect.any(String),
         publishedAt: expect.any(String),
       });
+    });
+
+    it('does not include related feed items in list', async () => {
+      const res = await request(app).get('/api/feed');
+      expect(res.status).toBe(200);
+      expect(res.body.items.some((item) => item.title === '相关报道：阿森纳胜利引热议')).toBe(false);
     });
 
     it('filters by agentId', async () => {

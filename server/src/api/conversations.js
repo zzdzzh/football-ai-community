@@ -5,6 +5,7 @@ import {
   getConversationDetail,
   createUserConversation,
   sendConversationMessage,
+  submitMessageFeedback,
 } from '../services/conversation-service.js';
 
 const router = Router();
@@ -66,6 +67,24 @@ router.post('/:conversationId/messages', async (req, res, next) => {
       conversationId: req.params.conversationId,
       userId: req.user.id,
       content: content.trim(),
+    });
+    res.status(200).json(result);
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.post('/:conversationId/messages/:messageId/feedback', (req, res, next) => {
+  try {
+    const { helpful } = req.body ?? {};
+    if (typeof helpful !== 'boolean') {
+      return res.status(400).json({ error: 'bad_request', message: 'helpful 必须为布尔值' });
+    }
+    const result = submitMessageFeedback({
+      conversationId: req.params.conversationId,
+      messageId: req.params.messageId,
+      userId: req.user.id,
+      helpful,
     });
     res.status(200).json(result);
   } catch (err) {
