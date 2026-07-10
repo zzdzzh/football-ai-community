@@ -5,6 +5,7 @@ import { getDb, getMigrationsDir } from './connection.js';
 const MIGRATION_FILES = [
   '001_initial.sql',
   '002_seed_agents.sql',
+  '003_stats_content.sql',
 ];
 
 function ensureMigrationTable(db) {

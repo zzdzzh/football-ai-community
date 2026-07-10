@@ -12,9 +12,12 @@ import { optionalAuth } from './middleware/auth.js';
 import authRouter from './api/auth.js';
 import feedRouter from './api/feed.js';
 import preferencesRouter from './api/preferences.js';
+import matchesRouter from './api/matches.js';
+import teamsRouter from './api/teams.js';
 import { config } from './config/index.js';
 import { getHealthNewsMeta } from './services/feed-service.js';
 import { createInternalRouter } from './jobs/news-fetch.js';
+import { createMatchSyncRouter } from './jobs/match-sync.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -47,7 +50,10 @@ export function createApp() {
   app.use('/api/auth', authRouter);
   app.use('/api/feed', feedRouter);
   app.use('/api/users', preferencesRouter);
+  app.use('/api/matches', matchesRouter);
+  app.use('/api/teams', teamsRouter);
   app.use('/api/internal', createInternalRouter());
+  app.use('/api/internal', createMatchSyncRouter());
   app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(openApiSpec));
 
   app.use(errorMiddleware);

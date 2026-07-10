@@ -11,6 +11,15 @@ function parseKeyPoints(value) {
   }
 }
 
+function parseJson(value) {
+  if (!value) return undefined;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return undefined;
+  }
+}
+
 export function mapFeedItemRow(row) {
   return {
     id: row.id,
@@ -25,6 +34,9 @@ export function mapFeedItemRow(row) {
     keyPoints: parseKeyPoints(row.key_points),
     eventKey: row.event_key ?? undefined,
     relatedTo: row.related_to ?? undefined,
+    matchId: row.match_id ?? undefined,
+    body: parseJson(row.body_json),
+    dataSources: parseJson(row.data_sources_json),
   };
 }
 
@@ -36,8 +48,9 @@ export function createFeedItem(item) {
   db.prepare(`
     INSERT INTO feed_items (
       id, agent_id, type, title, summary, source_url, source_name,
-      key_points, event_key, related_to, visibility, published_at, created_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      key_points, event_key, related_to, visibility, published_at, created_at,
+      match_id, body_json, data_sources_json
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
     id,
     item.agentId,
@@ -52,6 +65,9 @@ export function createFeedItem(item) {
     item.visibility ?? 'public',
     item.publishedAt ?? now,
     now,
+    item.matchId ?? null,
+    item.body ? JSON.stringify(item.body) : null,
+    item.dataSources ? JSON.stringify(item.dataSources) : null,
   );
 
   return findFeedItemById(id);
@@ -71,6 +87,30 @@ export function findFeedItemById(id) {
 export function findFeedItemBySourceUrl(sourceUrl) {
   const db = getDb();
   return db.prepare('SELECT * FROM feed_items WHERE source_url = ?').get(sourceUrl) ?? null;
+}
+
+export function findFeedItemByEventKey(eventKey) {
+  const db = getDb();
+  const row = db.prepare(`
+    SELECT fi.*, ap.display_name AS agent_display_name
+    FROM feed_items fi
+    JOIN agent_profiles ap ON ap.id = fi.agent_id
+    WHERE fi.event_key = ?
+  `).get(eventKey);
+  return row ? mapFeedItemRow(row) : null;
+}
+
+export function findFeedItemByMatchIdAndType(matchId, type) {
+  const db = getDb();
+  const row = db.prepare(`
+    SELECT fi.*, ap.display_name AS agent_display_name
+    FROM feed_items fi
+    JOIN agent_profiles ap ON ap.id = fi.agent_id
+    WHERE fi.match_id = ? AND fi.type = ?
+    ORDER BY fi.published_at DESC
+    LIMIT 1
+  `).get(matchId, type);
+  return row ? mapFeedItemRow(row) : null;
 }
 
 export function findRecentFeedItemsForDedup({ hours = 48 } = {}) {
