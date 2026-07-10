@@ -29,6 +29,10 @@ class RateLimiter {
 
 const globalRateLimiter = new RateLimiter();
 
+export function resetRateLimiterForTest() {
+  globalRateLimiter.timestamps = [];
+}
+
 function mapTeamFromApi(team, leagueCode) {
   return {
     id: String(team.id),
