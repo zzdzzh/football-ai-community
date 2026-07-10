@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router';
 import AppLayout from '@/components/layout/AppLayout.vue';
+import { useAuthStore } from '@/stores/auth';
 
 const routes: RouteRecordRaw[] = [
   {
@@ -15,6 +16,18 @@ const routes: RouteRecordRaw[] = [
         path: 'feed/:feedId',
         name: 'feed-detail',
         component: () => import('@/views/FeedDetailView.vue'),
+      },
+      {
+        path: 'stats',
+        name: 'stats-start',
+        meta: { requiresAuth: true },
+        component: () => import('@/views/StatsStartView.vue'),
+      },
+      {
+        path: 'conversations/:conversationId',
+        name: 'conversation',
+        meta: { requiresAuth: true },
+        component: () => import('@/views/ConversationView.vue'),
       },
       {
         path: 'login',
@@ -38,6 +51,16 @@ const routes: RouteRecordRaw[] = [
 const router = createRouter({
   history: createWebHistory(),
   routes,
+});
+
+router.beforeEach((to) => {
+  if (!to.meta.requiresAuth) return true;
+  const authStore = useAuthStore();
+  if (authStore.isAuthenticated) return true;
+  return {
+    path: '/login',
+    query: { redirect: to.fullPath },
+  };
 });
 
 export default router;

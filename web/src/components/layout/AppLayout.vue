@@ -9,6 +9,7 @@ const authStore = useAuthStore();
 
 const baseNavItems = [
   { label: '首页', path: '/' },
+  { label: '数据问答', path: '/stats' },
   { label: '偏好设置', path: '/settings/preferences' },
 ];
 
@@ -26,8 +27,8 @@ const navItems = computed(() => {
 const activePath = computed(() => route.path);
 
 function navigate(path: string) {
-  if (path === '/settings/preferences' && !authStore.isAuthenticated) {
-    router.push({ path: '/login', query: { redirect: '/settings/preferences' } });
+  if ((path === '/settings/preferences' || path === '/stats') && !authStore.isAuthenticated) {
+    router.push({ path: '/login', query: { redirect: path } });
     return;
   }
   router.push(path);
@@ -59,7 +60,7 @@ onMounted(() => {
               :key="item.path"
               type="button"
               class="nav-link"
-              :class="{ active: activePath === item.path }"
+              :class="{ active: activePath === item.path || (item.path === '/stats' && activePath.startsWith('/conversations/')) }"
               @click="navigate(item.path)"
             >
               {{ item.label }}
@@ -82,7 +83,7 @@ onMounted(() => {
 
     <footer class="app-footer">
       <div class="page-container footer-inner">
-        <span>足球 Multi-Agent 社区 · MVP-1</span>
+        <span>足球 Multi-Agent 社区 · MVP-2</span>
       </div>
     </footer>
   </div>
