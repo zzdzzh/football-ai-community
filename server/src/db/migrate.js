@@ -1,11 +1,15 @@
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { getDb, getMigrationsDir } from './connection.js';
+import { dedupeFeedItemsBySourceUrl } from '../services/feed-dedup-cleanup.js';
 
 const MIGRATION_FILES = [
   '001_initial.sql',
   '002_seed_agents.sql',
   '003_stats_content.sql',
+  '004_add_wc_league.sql',
+  '005_feed_source_url_unique.sql',
+  '006_scout_tactical.sql',
 ];
 
 function ensureMigrationTable(db) {
@@ -43,6 +47,9 @@ export function runMigrations() {
     const migrationId = file.replace('.sql', '');
     if (isMigrationApplied(db, migrationId)) {
       continue;
+    }
+    if (migrationId === '005_feed_source_url_unique') {
+      dedupeFeedItemsBySourceUrl();
     }
     const sql = readFileSync(join(migrationsDir, file), 'utf8');
     db.exec(sql);

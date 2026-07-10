@@ -11,6 +11,16 @@ function parseJsonArray(value) {
   }
 }
 
+function parseJsonObject(value) {
+  if (!value) return undefined;
+  try {
+    const parsed = JSON.parse(value);
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 export function mapMessageRow(row) {
   return {
     id: row.id,
@@ -20,6 +30,8 @@ export function mapMessageRow(row) {
     metrics: parseJsonArray(row.metrics_json),
     confidence: row.confidence ?? undefined,
     missingFields: parseJsonArray(row.missing_fields_json),
+    recommendations: parseJsonArray(row.recommendations_json),
+    tacticalAnalysis: parseJsonObject(row.tactical_json),
     createdAt: row.created_at,
   };
 }
@@ -30,8 +42,9 @@ export function createMessage(message) {
   const now = new Date().toISOString();
   db.prepare(`
     INSERT INTO messages (
-      id, conversation_id, role, content, metrics_json, confidence, missing_fields_json, created_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      id, conversation_id, role, content, metrics_json, confidence, missing_fields_json,
+      recommendations_json, tactical_json, created_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
     id,
     message.conversationId,
@@ -40,6 +53,8 @@ export function createMessage(message) {
     message.metrics ? JSON.stringify(message.metrics) : null,
     message.confidence ?? null,
     message.missingFields ? JSON.stringify(message.missingFields) : null,
+    message.recommendations ? JSON.stringify(message.recommendations) : null,
+    message.tacticalAnalysis ? JSON.stringify(message.tacticalAnalysis) : null,
     message.createdAt ?? now,
   );
   return findMessageById(id);

@@ -1,11 +1,32 @@
 import { config } from '../config/index.js';
 import {
   ALLOWED_LEAGUES,
+  SEASON_REQUIRED_LEAGUES,
+} from '../constants/league-codes.js';
+import {
   updateRateLimitWindow,
   findMatchSyncMetaByLeague,
 } from '../db/repositories/match-sync-meta-repository.js';
 
-export { ALLOWED_LEAGUES };
+export { ALLOWED_LEAGUES } from '../constants/league-codes.js';
+
+const CANONICAL_MATCH_STATUSES = new Set(['SCHEDULED', 'LIVE', 'FINISHED', 'POSTPONED', 'CANCELLED']);
+
+const API_STATUS_MAP = {
+  TIMED: 'SCHEDULED',
+  IN_PLAY: 'LIVE',
+  PAUSED: 'LIVE',
+  AWARDED: 'FINISHED',
+  SUSPENDED: 'POSTPONED',
+};
+
+export function normalizeMatchStatus(apiStatus) {
+  const upper = (apiStatus ?? 'SCHEDULED').toUpperCase();
+  if (CANONICAL_MATCH_STATUSES.has(upper)) {
+    return upper;
+  }
+  return API_STATUS_MAP[upper] ?? 'SCHEDULED';
+}
 
 const MAX_REQUESTS_PER_MINUTE = 8;
 const WINDOW_MS = 60_000;
@@ -33,10 +54,40 @@ export function resetRateLimiterForTest() {
   globalRateLimiter.timestamps = [];
 }
 
+function mapPlayerFromSquad(player, teamId, leagueCode) {
+  if (!player?.id) return null;
+  return {
+    id: String(player.id),
+    name: player.name ?? 'Unknown',
+    teamId: String(teamId),
+    position: player.position ?? undefined,
+    dateOfBirth: player.dateOfBirth ?? undefined,
+    nationality: player.nationality ?? undefined,
+    leagueCode,
+  };
+}
+
+function mapScorerFromApi(scorer, leagueCode, season) {
+  const playerId = scorer.player?.id;
+  if (!playerId) return null;
+  return {
+    playerId: String(playerId),
+    leagueCode,
+    season,
+    goals: scorer.goals ?? 0,
+    assists: scorer.assists ?? 0,
+    penalties: scorer.penalties ?? 0,
+    appearances: scorer.playedMatches ?? scorer.appearances ?? null,
+    playerName: scorer.player?.name ?? undefined,
+    teamId: scorer.team?.id ? String(scorer.team.id) : undefined,
+  };
+}
+
 function mapTeamFromApi(team, leagueCode) {
+  if (!team?.id) return null;
   return {
     id: String(team.id),
-    name: team.name,
+    name: team.name ?? 'TBD',
     shortName: team.shortName ?? undefined,
     tla: team.tla ?? undefined,
     crestUrl: team.crest ?? undefined,
@@ -127,13 +178,21 @@ function mapEventsFromApi(goals, bookings, substitutions) {
 }
 
 function mapMatchFromApi(match, leagueCode) {
+  if (!match?.homeTeam?.id || !match?.awayTeam?.id) {
+    return null;
+  }
+
   const homeTeam = mapTeamFromApi(match.homeTeam, leagueCode);
   const awayTeam = mapTeamFromApi(match.awayTeam, leagueCode);
+  if (!homeTeam || !awayTeam) {
+    return null;
+  }
   const scores = mapScore(match.score);
   const stats = match.statistics ? mapStatsFromApi(match.statistics) : undefined;
   const events = match.goals || match.bookings || match.substitutions
     ? mapEventsFromApi(match.goals, match.bookings, match.substitutions)
     : undefined;
+  const status = normalizeMatchStatus(match.status);
 
   return {
     id: String(match.id),
@@ -141,7 +200,7 @@ function mapMatchFromApi(match, leagueCode) {
     season: match.season?.startDate?.slice(0, 4) ?? undefined,
     matchday: match.matchday ?? undefined,
     utcDate: match.utcDate,
-    status: match.status,
+    status,
     homeTeam,
     awayTeam,
     homeTeamId: homeTeam.id,
@@ -151,7 +210,7 @@ function mapMatchFromApi(match, leagueCode) {
     statsJson: stats,
     eventsJson: events,
     dataCompleteness: inferDataCompleteness({
-      status: match.status,
+      status,
       stats,
       events,
       homeScore: scores.home,
@@ -209,28 +268,67 @@ export class FootballDataAdapter {
     return response.json();
   }
 
-  async getCompetitionMatches(leagueCode, { status = null } = {}) {
+  async getCompetitionMatches(leagueCode, { status = null, season = null } = {}) {
     if (!ALLOWED_LEAGUES.includes(leagueCode)) {
       throw new Error(`联赛 ${leagueCode} 不在白名单内`);
     }
-    const statusQuery = status ? `?status=${status}` : '';
-    const data = await this.request(`/competitions/${leagueCode}/matches${statusQuery}`, { leagueCode });
-    return (data.matches ?? []).map((match) => mapMatchFromApi(match, leagueCode));
+    const query = buildCompetitionQuery({ status, season, leagueCode });
+    const data = await this.request(`/competitions/${leagueCode}/matches${query}`, { leagueCode });
+    return (data.matches ?? [])
+      .map((match) => mapMatchFromApi(match, leagueCode))
+      .filter(Boolean);
   }
 
   async getMatch(matchId) {
     const data = await this.request(`/matches/${matchId}`);
     const leagueCode = data.competition?.code ?? data.competition?.id ?? 'PL';
-    return mapMatchFromApi(data, leagueCode);
+    const mapped = mapMatchFromApi(data, leagueCode);
+    if (!mapped) {
+      const error = new Error('比赛球队信息不完整');
+      error.code = 'MATCH_TEAMS_INCOMPLETE';
+      throw error;
+    }
+    return mapped;
   }
 
-  async getCompetitionTeams(leagueCode) {
+  async getCompetitionTeams(leagueCode, { season = null } = {}) {
     if (!ALLOWED_LEAGUES.includes(leagueCode)) {
       throw new Error(`联赛 ${leagueCode} 不在白名单内`);
     }
-    const data = await this.request(`/competitions/${leagueCode}/teams`, { leagueCode });
+    const query = buildCompetitionQuery({ season, leagueCode });
+    const data = await this.request(`/competitions/${leagueCode}/teams${query}`, { leagueCode });
     return (data.teams ?? []).map((team) => mapTeamFromApi(team, leagueCode));
   }
+
+  async getTeamSquad(teamId, { leagueCode = null } = {}) {
+    const data = await this.request(`/teams/${teamId}`, { leagueCode });
+    const teamLeague = leagueCode ?? data.area?.code ?? 'PL';
+    return (data.squad ?? [])
+      .map((player) => mapPlayerFromSquad(player, teamId, teamLeague))
+      .filter(Boolean);
+  }
+
+  async getCompetitionScorers(leagueCode, { season = null } = {}) {
+    if (!ALLOWED_LEAGUES.includes(leagueCode)) {
+      throw new Error(`联赛 ${leagueCode} 不在白名单内`);
+    }
+    const query = buildCompetitionQuery({ season, leagueCode });
+    const data = await this.request(`/competitions/${leagueCode}/scorers${query}`, { leagueCode });
+    const resolvedSeason = season
+      ?? (SEASON_REQUIRED_LEAGUES.includes(leagueCode) ? String(config.footballData.wcSeason) : String(new Date().getFullYear()));
+    return (data.scorers ?? [])
+      .map((scorer) => mapScorerFromApi(scorer, leagueCode, resolvedSeason))
+      .filter(Boolean);
+  }
+}
+
+function buildCompetitionQuery({ status = null, season = null, leagueCode }) {
+  const params = [];
+  if (status) params.push(`status=${status}`);
+  const resolvedSeason = season
+    ?? (SEASON_REQUIRED_LEAGUES.includes(leagueCode) ? config.footballData.wcSeason : null);
+  if (resolvedSeason) params.push(`season=${resolvedSeason}`);
+  return params.length ? `?${params.join('&')}` : '';
 }
 
 export function createFootballDataAdapter(overrides = {}) {
