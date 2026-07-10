@@ -49,10 +49,10 @@
 
 ## 批次 2.5 · Day 4 · US1 前台 — Stats 对话 UI
 
-- [ ] T018 [P] [US1] Implement web API clients in web/src/api/matches.ts, web/src/api/teams.ts and web/src/api/conversations.ts | L1:- L2:- |
-- [ ] T019 [P] [US1] Implement StatsStartView, ConversationView and conversation components in web/src/views/StatsStartView.vue, web/src/views/ConversationView.vue and web/src/components/conversation/ | L1:- L2:- |
-- [ ] T020 [US1] Register /stats and /conversations/:conversationId routes in web/src/router/index.ts | L1:- L2:- |
-- [ ] 🚧 **批次2.5门禁: L1 Step4 + 👁 HV-1 (~5 min, 产品/用户)** | 结果: - |
+- [x] T018 [P] [US1] Implement web API clients in web/src/api/matches.ts, web/src/api/teams.ts and web/src/api/conversations.ts | L1:✅(119/119) L2:✅ typecheck:✅ |
+- [x] T019 [P] [US1] Implement StatsStartView, ConversationView and conversation components in web/src/views/StatsStartView.vue, web/src/views/ConversationView.vue and web/src/components/conversation/ | L1:✅ build:✅ L2:✅ |
+- [x] T020 [US1] Register /stats and /conversations/:conversationId routes in web/src/router/index.ts | L1:✅ build:✅ L2:✅ |
+- [ ] 🚧 **批次2.5门禁: L1 Step4 + 👁 HV-1 (~5 min, 产品/用户)** | 结果: L1:✅ typecheck+build · 👁 HV-1 待签收 |
 
 ---
 
