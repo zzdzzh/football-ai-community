@@ -17,6 +17,10 @@ const envSchema = z.object({
   INTERNAL_API_KEY: z.string().default('dev-internal-key'),
   ADMIN_EMAIL: z.string().email().optional(),
   ADMIN_PASSWORD: z.string().optional(),
+  FOOTBALL_DATA_API_KEY: z.string().default(''),
+  FOOTBALL_DATA_BASE_URL: z.string().url().default('https://api.football-data.org/v4'),
+  MATCH_SYNC_CRON: z.string().default('*/30 * * * *'),
+  MATCH_REPORT_CRON: z.string().default('*/5 * * * *'),
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
 });
 
@@ -42,6 +46,12 @@ export const config = {
   internalApiKey: env.INTERNAL_API_KEY,
   adminEmail: env.ADMIN_EMAIL,
   adminPassword: env.ADMIN_PASSWORD,
+  footballData: {
+    apiKey: env.FOOTBALL_DATA_API_KEY,
+    baseUrl: env.FOOTBALL_DATA_BASE_URL,
+  },
+  matchSyncCron: env.MATCH_SYNC_CRON,
+  matchReportCron: env.MATCH_REPORT_CRON,
   nodeEnv: env.NODE_ENV,
   isTest: env.NODE_ENV === 'test',
 };

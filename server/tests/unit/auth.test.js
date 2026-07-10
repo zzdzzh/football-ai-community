@@ -279,9 +279,9 @@ describe('MVP-1 scope boundary audit', () => {
     expect(apiBundle).not.toMatch(/createAgentProfile|updateAgentProfile|router\.post\(['"]\/agents/);
   });
 
-  it('does not implement football-data or deferred MVP-2 routes', () => {
+  it('allows football-data config but defers MVP-2 routes until implemented', () => {
     const bundle = readSrcBundle();
     expect(bundle).not.toMatch(/\/matches|match-sync|\/conversations|\/fan-discussions/);
-    expect(bundle).not.toMatch(/FOOTBALL_DATA_API_KEY/);
+    expect(bundle).toMatch(/FOOTBALL_DATA_API_KEY/);
   });
 });
