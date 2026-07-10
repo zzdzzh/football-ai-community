@@ -65,7 +65,7 @@
 
 ### Tests for User Story 1
 
-- [ ] T010 [P] [US1] Contract tests for GET /players and POST /internal/jobs/player-sync in server/tests/contract/players.test.js and server/tests/contract/player-sync.test.js
+- [x] T010 [P] [US1] Contract tests for GET /players and POST /internal/jobs/player-sync in server/tests/contract/players.test.js and server/tests/contract/player-sync.test.js
 - [ ] T011 [P] [US1] Contract tests for Scout conversations and message feedback in server/tests/contract/scout-conversations.test.js
 - [ ] T012 [P] [US1] Unit tests for scout-context-builder and scout-agent with 100% branch coverage in server/tests/unit/scout-context-builder.test.js and server/tests/unit/scout-agent.test.js
 
