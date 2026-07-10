@@ -29,7 +29,7 @@
 
 ## 批次 3.3 · Day 2 · US1 契约与单元测试
 
-- [ ] T010 [P] [US1] Contract tests for GET /players and POST /internal/jobs/player-sync in server/tests/contract/players.test.js and server/tests/contract/player-sync.test.js | L1:- L2:- |
+- [x] T010 [P] [US1] Contract tests for GET /players and POST /internal/jobs/player-sync in server/tests/contract/players.test.js and server/tests/contract/player-sync.test.js | L1:✅(9/9) L2:✅ |
 - [ ] T011 [P] [US1] Contract tests for Scout conversations and message feedback in server/tests/contract/scout-conversations.test.js | L1:- L2:- |
 - [ ] T012 [P] [US1] Unit tests for scout-context-builder and scout-agent with 100% branch coverage in server/tests/unit/scout-context-builder.test.js and server/tests/unit/scout-agent.test.js | L1:- L2:- |
 - [ ] 🚧 **批次3.3门禁: L1 Step4 (players/player-sync/scout-conversations 契约测试通过 + scout-agent/context-builder 100% 分支覆盖)** | 结果: - |
