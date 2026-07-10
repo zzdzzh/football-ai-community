@@ -1,0 +1,8 @@
+{
+  "toolkit_root": "/d/work/speckit-harness-toolkit/speckit-harness-toolkit",
+  "args": [
+    "--agent",
+    "all"
+  ],
+  "installed_at": "2026-07-10T09:54:40+08:00"
+}

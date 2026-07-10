@@ -1,0 +1,62 @@
+---
+description: 项目 Constitution 治理原则，所有实现与评审决策的最高约束
+alwaysApply: true
+---
+
+# 项目 Constitution
+
+本项目的最高级技术治理文件为 [`.specify/memory/constitution.md`](.specify/memory/constitution.md)。所有实现、重构、测试与 PR 决策必须与其保持一致。
+
+## 何时必读
+
+在以下场景开始前，先阅读 Constitution 相关章节：
+
+- 架构设计、新依赖引入、外部服务集成
+- 编写或修改测试（单元 / 集成 / 契约 / E2E）
+- 用户界面开发与视觉质量验收
+- Sprint 规划、模块边界与 scope 变更
+- Harness 验证失败后的 Corrector 修正
+
+## 执行要点
+
+- **Constitution 优先**：与 Constitution 冲突时，以 Constitution 为准；不得静默绕过。
+- **复杂度记录**：引入新依赖、架构模式或运行时组件，须在对应 `plan.md` 的 Complexity Tracking 中说明理由。
+- **测试纪律**：业务关键路径须有自动化测试；数据完整性、权限、计费等逻辑须满足 Constitution 中的覆盖要求。
+- **模块边界**：Sprint 范围以 `.harness/scope/sprint-<N>.yaml` 为准；不得新增 in_scope → out_of_scope 的反向依赖。
+- **UI 验证**：含 UI 交互的任务须按 Constitution 要求完成 E2E 截图、交互断言与视觉审查，不能仅以编译通过代替验收。
+- **修正回归**：Corrector 修正后须做完整交互路径回归，确认未引入新问题。
+
+## 修订
+
+Constitution 修订须走 PR 与团队评审。若发现 Constitution 与当前实现存在 gap，在 PR 中说明并提议修订，而非临时破例。
+
+
+# 附加要求
+- 文档全部生成中文版本，回答等也要用中文
+- 前台如果用vue 3（或vite），必须同步监听ipv4地址，尤其是0.0.0.0地址
+- 本项目的前台暂时不用playwright进行测试，E2E用人工测试
+- 多模块规约：相关的接口协议和数据模型，如果指示了参考其他模块，你必须参考这些模块下的相关文件，包括data-models.md，以及contracts目录下的东西，这些下面有的东西，你要直接用，如果要修改，你不能直接在你这个模块下做修改任务，而且在对端模块的任务文件里面增补相关的修改任务，然后给出提示，要求切换到该模块完成修改任务
+
+# 架构要求
+- 前台是vue3+Element Plus，后台使用node.js
+- 数据库采用sqlite，可以单独安装better-sqlite3，不要跟其他动作混在一起
+- 注意你的开发调试环境是windows，不要用bash脚本，尽量生成powershell脚本，注意powershell脚本用来隔开不同命令用的是分号而不是&&
+- 服务目录为server，后台测试、jest等应该在这个下面运行
+- 注意node_modules是永远不上库的，都加入.gitignore文件
+
+# 任务完成以后应该用checkbox语法进行标记，例如：
+- `- [ ] T020 [US2] **Step 1: Write the failing test**` → `- [x] T020 [US2] **Step 1: Write the failing test**`
+- 任务文件为目录在的tasks.md，其目录的plan.md是方案文件，执行里面的任务时务必要引用这个plan.md。其下的data-models.md是数据模型文件，contracts目录下的东西是契约文件
+
+# 任务执行和修改要求
+- 所有的BUG报告都要追溯到任务文件和任务ID，然后做之前检查是哪些任务有问题，然后打开这些任务（设置成未完成），修改后重新把该任务设置成完成。另外，此BUG修复好要自动提交，修改后的提交里面也要带上任务ID次。
+- 前台报告的bug修正后不要自动验证，停下来等人工验证
+- 如果需要重启后台，你也不要自己重启，跟我说在我来重启
+
+# 前台小tip
+- 前台组件布局的时候要注意验算一下宽度，避免出现宽度不够导致的布局问题
+- 前台的页面URL都要尽量带上决定该页面的核心ID，以便可以重入和进行面包屑处理
+- 多行的配置界面（如有多个配置行，可能增、删、改这些行），尽量使用label放在上面的方式，以便节约每列的宽度空间
+
+# 错误处理
+- Don't fight errors! Whenever you encounter the same error twice, research the web and find 3-5 possible ways to fix it. Then choose the most efficient solution and implement it.

@@ -1,0 +1,472 @@
+openapi: 3.0.3
+info:
+  title: 足球社区 Feed MVP API
+  description: |
+    MVP-1 REST API 契约（认证、Feed、偏好、News 抓取）。
+    认证：JWT Bearer Token。
+    完整平台 API 将在后续 spec（002–004）增量扩展。
+  version: 1.0.0-mvp1
+  contact:
+    name: Football AI Community
+
+servers:
+  - url: http://localhost:3000/api
+    description: 本地开发
+
+tags:
+  - name: Health
+  - name: Auth
+  - name: Feed
+  - name: Agents
+  - name: Preferences
+  - name: Internal
+
+paths:
+  /health:
+    get:
+      tags: [Health]
+      summary: 健康检查
+      operationId: getHealth
+      responses:
+        '200':
+          description: 服务正常
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+  /auth/register:
+    post:
+      tags: [Auth]
+      summary: 用户注册
+      operationId: registerUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: 注册成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          description: 邮箱已存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: 用户登录
+      operationId: loginUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: 登录成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /auth/me:
+    get:
+      tags: [Auth]
+      summary: 获取当前用户信息
+      operationId: getCurrentUser
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: 当前用户
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /feed:
+    get:
+      tags: [Feed]
+      summary: 获取社区动态列表
+      description: 按时间倒序；已登录用户按偏好加权排序
+      operationId: listFeedItems
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: pageSize
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 20
+        - name: agentId
+          in: query
+          schema:
+            type: string
+            enum: [news, stats, scout, tactical, fan, content]
+      responses:
+        '200':
+          description: 动态列表
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeedListResponse'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+
+  /feed/{feedId}:
+    get:
+      tags: [Feed]
+      summary: 获取动态详情
+      operationId: getFeedItem
+      parameters:
+        - $ref: '#/components/parameters/feedId'
+      responses:
+        '200':
+          description: 动态详情
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeedItemDetail'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /agents:
+    get:
+      tags: [Agents]
+      summary: 获取可用 Agent 列表（只读）
+      operationId: listAgents
+      responses:
+        '200':
+          description: Agent 配置列表
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AgentProfile'
+
+  /users/me/preferences:
+    get:
+      tags: [Preferences]
+      summary: 获取当前用户偏好
+      operationId: getUserPreferences
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: 用户偏好
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserPreference'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    put:
+      tags: [Preferences]
+      summary: 更新用户偏好
+      operationId: updateUserPreferences
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserPreferenceRequest'
+      responses:
+        '200':
+          description: 偏好已更新
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserPreference'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /internal/jobs/news-fetch:
+    post:
+      tags: [Internal]
+      summary: 手动触发新闻抓取
+      operationId: triggerNewsFetch
+      parameters:
+        - name: X-Internal-Key
+          in: header
+          required: true
+          schema:
+            type: string
+      responses:
+        '202':
+          description: 任务已接受
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  jobId:
+                    type: string
+                  status:
+                    type: string
+                    enum: [accepted]
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    feedId:
+      name: feedId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+  responses:
+    BadRequest:
+      description: 请求参数无效
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Unauthorized:
+      description: 未认证
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotFound:
+      description: 资源不存在
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    ServiceUnavailable:
+      description: 服务暂不可用
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+  schemas:
+    HealthResponse:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [ok]
+        newsSourcesStatus:
+          type: string
+          enum: [ok, degraded, down]
+        lastNewsFetchAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    ErrorResponse:
+      type: object
+      required: [error, message]
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+        traceId:
+          type: string
+
+    RegisterRequest:
+      type: object
+      required: [email, password, nickname]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+        nickname:
+          type: string
+          minLength: 2
+          maxLength: 32
+
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+
+    AuthResponse:
+      type: object
+      required: [token, user]
+      properties:
+        token:
+          type: string
+        user:
+          $ref: '#/components/schemas/User'
+
+    User:
+      type: object
+      required: [id, email, nickname, role, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        nickname:
+          type: string
+        role:
+          type: string
+          enum: [user, moderator, admin]
+        createdAt:
+          type: string
+          format: date-time
+
+    AgentProfile:
+      type: object
+      required: [id, displayName, description, enabled, timeoutMs]
+      properties:
+        id:
+          type: string
+          enum: [news, stats, scout, tactical, fan, content]
+        displayName:
+          type: string
+        description:
+          type: string
+        enabled:
+          type: boolean
+        timeoutMs:
+          type: integer
+
+    FeedItem:
+      type: object
+      required: [id, agentId, type, title, publishedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        agentId:
+          type: string
+        agentDisplayName:
+          type: string
+        type:
+          type: string
+          enum: [news_summary]
+        title:
+          type: string
+        summary:
+          type: string
+        publishedAt:
+          type: string
+          format: date-time
+
+    FeedItemDetail:
+      allOf:
+        - $ref: '#/components/schemas/FeedItem'
+        - type: object
+          properties:
+            sourceUrl:
+              type: string
+              format: uri
+            sourceName:
+              type: string
+            keyPoints:
+              type: array
+              items:
+                type: string
+            relatedItems:
+              type: array
+              items:
+                $ref: '#/components/schemas/FeedItem'
+
+    FeedListResponse:
+      type: object
+      required: [items, page, pageSize, total]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/FeedItem'
+        page:
+          type: integer
+        pageSize:
+          type: integer
+        total:
+          type: integer
+        warnings:
+          type: array
+          items:
+            type: string
+
+    UserPreference:
+      type: object
+      required: [followedTeams, followedLeagues, enabledAgents]
+      properties:
+        followedTeams:
+          type: array
+          items:
+            type: string
+        followedLeagues:
+          type: array
+          items:
+            type: string
+            enum: [PL, PD, BL1, SA, FL1, CL]
+        enabledAgents:
+          type: array
+          items:
+            type: string
+        notifyMatchReport:
+          type: boolean
+
+    UpdateUserPreferenceRequest:
+      type: object
+      properties:
+        followedTeams:
+          type: array
+          items:
+            type: string
+        followedLeagues:
+          type: array
+          items:
+            type: string
+        enabledAgents:
+          type: array
+          items:
+            type: string
+        notifyMatchReport:
+          type: boolean

@@ -1,0 +1,152 @@
+# =============================================================================
+# Sprint Scope Declaration · Harness Boundary Sensor 输入
+# =============================================================================
+#
+# 用途：
+#   - 在 Sprint 开始前，结构化声明本 Sprint 的"焦点模块"和"出范围模块"
+#   - 给 boundary-reviewer sub-agent 当输入，自动验证跨模块引用合规
+#   - 给 evaluator L2.4 当对照标的（boundary 检查），结果进入 L2.5 评分汇总
+#
+# 落地位置：
+#   每个 Sprint 一份，路径建议 `.harness/scope/sprint-<N>.yaml`
+#   也可以 feature 粒度：`.harness/scope/<feature-id>.yaml`
+#
+# 关联 Constitution 原则：
+#   原则 XI · 模块边界纪律 (Module Boundary Discipline)
+# =============================================================================
+
+# --- 标识 ---
+sprint: <N>                             # Sprint 编号，与 .harness/sprints/sprint-<N>.md 对齐
+feature: "[FEATURE_ID]"                 # 本 Sprint 主 feature（可空）
+ratified: "<YYYY-MM-DD>"                # 本文件批准日期，便于过期识别
+amended: "<YYYY-MM-DD>"                 # 上次修订日期
+
+# --- 模块路径约定 ---
+# 用于 boundary-reviewer 解析依赖图。所有 module 的 path 必须能映射到项目模块路径。
+# 可使用源码根、命名空间根、路径别名或项目约定的等价模块前缀。
+package_prefix: "[SOURCE_ROOT]"
+
+# --- 模块声明 ---
+modules:
+
+  # 焦点模块：本 Sprint 在这些模块里写代码、改代码、加测试。
+  # 之间互相依赖合法。允许引用 out_of_scope（受 dependency_rules 控制）。
+  in_scope:
+    - id: "[MODULE]-core"
+      path: "[SOURCE_ROOT]/[MODULE]/core"
+      role: core                        # core | integration | infra
+      note: 本 Sprint 主交付路径
+    - id: "[MODULE]-integration"
+      path: "[SOURCE_ROOT]/[MODULE]/integration"
+      role: integration
+      note: 整合层，所有跨 feature 新代码进这里
+    - id: common-exception
+      path: com.example.common.exception
+      role: cross-cutting               # 横切关注点：整个包享豁免，from 端引用任何模块都不阻断
+      note: GlobalExceptionHandler 等横切 infra · 引用各模块 Exception 是合理设计
+
+  # 出范围模块：本 Sprint **保留但不投入**。
+  # - 默认不允许 in_scope 依赖这些模块（dependency_rules.in_scope_to_out_of_scope.allow=false）
+  # - 默认不允许本 Sprint 内对这些模块的代码做任何修改（由 git pre-commit / CI 卡）
+  out_of_scope:
+    - id: "[MODULE]-legacy"
+      path: "[SOURCE_ROOT]/[MODULE_LEGACY]"
+      reason: 历史遗留，未来再决定是否清理
+      decision: freeze                  # freeze | decouple | delete-next-sprint
+    - id: "[MODULE]-experimental"
+      path: "[SOURCE_ROOT]/[MODULE_EXPERIMENTAL]"
+      reason: 实验性功能，本 Sprint 不投入
+      decision: freeze
+
+# --- 依赖方向规则 ---
+# boundary-reviewer 按这些规则扫模块依赖图。命中违规时按 severity 报告。
+dependency_rules:
+
+  # 焦点模块之间互相依赖：合法。
+  - from: in_scope
+    to: in_scope
+    allow: true
+
+  # 焦点模块 → 出范围模块：默认禁止。
+  # 这是发现"模块漏出范围"问题的核心 sensor。
+  - from: in_scope
+    to: out_of_scope
+    allow: false
+    severity: error
+    note: |
+      in-scope 不得反向依赖 out-of-scope。
+      如果触发，3 选 1 处理：
+        1. 解耦：拔掉 in-scope 对 out-of-scope 的引用（推荐）
+        2. 升级 scope：把 out-of-scope 模块改回 in-scope（说明本 Sprint 范围划错了）
+        3. 登记到 known_violations.freeze（仅当成本太高、决定推到下个 Sprint 处理）
+      绝不允许第 4 选项："不管它，让它继续漏"。
+
+  # 出范围模块 → 焦点模块：警告级别。
+  # 因为本 Sprint 不应该改 out-of-scope 代码，所以理论上不会新增此类引用。
+  # 历史已有的不阻断；本 Sprint 内新增视为违规。
+  - from: out_of_scope
+    to: in_scope
+    allow: false
+    severity: warning
+    note: 本 Sprint 内 out-of-scope 模块若新增对 in-scope 的引用，说明它正在被悄悄改动。
+
+  # 出范围模块之间：本 Sprint 不关心。
+  - from: out_of_scope
+    to: out_of_scope
+    allow: true
+
+# --- 横切豁免 ---
+# 横切关注点（cross-cutting concerns）天然需要跨模块引用：
+#   - 全局异常处理器（@RestControllerAdvice / @ExceptionHandler）引用各模块的 Exception
+#   - AOP 切面（@Aspect）跨模块拦截
+#   - Event Listener（@EventListener）跨模块订阅事件
+#   - 配置类（@Configuration）跨模块装配 Bean
+# 这些不是漂移、是合理设计。匹配以下规则的引用 sensor 报 INFO 不阻断。
+#
+# 评估顺序：
+#   1. 先 dependency_rules 判定违规
+#   2. 命中违规后再看 cross_cutting_exempt：
+#      a. from 端文件名匹配 class_patterns 中的 glob → 该 file 降级 INFO
+#      b. from 端模块的 role: cross-cutting → 该条 (from, to) 整边降级 INFO
+# 命中豁免后仍出现在报告里（INFO 段），但不计入 NEW_VIOLATION error 总数，不影响 L2 PASS/FAIL。
+# 长期看 INFO 列表越来越长是个 smell，要考虑收紧豁免规则或重新分包。
+
+cross_cutting_exempt:
+  # class-name 模式（matches against from 端的源文件名 stem · 不含路径不含 .java 后缀）
+  class_patterns:
+    - "*ExceptionHandler"               # @RestControllerAdvice / @ExceptionHandler 持有者
+    - "*Aspect"                         # AOP 切面
+    - "*EventListener"                  # @EventListener / Spring ApplicationListener
+    - "*Configurator"                   # 配置类
+    - "*Configuration"                  # @Configuration 持有者
+  # package-role 标签：modules.in_scope / out_of_scope 中给某模块标 role: cross-cutting
+  # 整个包享豁免，所有 from 端引用都不阻断（参见上方 modules 段示例 common-exception）。
+
+# --- 已知违规登记表 ---
+# 现实世界的 sensor 不能在引入第一天就把代码库炸成一片红。
+# 历史遗留的违规登记在这里：boundary-reviewer 会列出但不阻断 PR。
+# 但禁止"扩大"已知违规——同一对 (from, to) 文件清单只能减少不能增加。
+#
+# 每条记录至少包含：
+#   - from / to: 哪两个模块的违规
+#   - files: 触发的源文件路径（boundary-reviewer 用它做"扩大违规"的检测基线）
+#   - reason: 为什么暂时保留
+#   - decision: freeze | resolve-this-sprint | upgrade-scope
+known_violations: []
+# 示例：
+# - from: "[SOURCE_ROOT]/[MODULE]/core"
+#   to: "[SOURCE_ROOT]/[MODULE_LEGACY]"
+#   files:
+#     - "[SOURCE_ROOT]/[MODULE]/core/[FILE_1]"
+#     - "[SOURCE_ROOT]/[MODULE]/core/[FILE_2]"
+#   reason: |
+#     历史模块被当前 in_scope 模块直接引用。
+#     本 Sprint 决定先冻结，下 Sprint 解耦。
+#   decision: freeze
+
+# --- 元数据 ---
+metadata:
+  # boundary-reviewer 报告的输出位置（覆盖默认）
+  report_path: .harness/sprints/sprint-<N>-boundary-report.md
+  # 是否在 evaluator L2.4 阶段强制运行（默认 true）
+  enforce_in_l2: true

@@ -1,0 +1,1293 @@
+{
+  "schema_version": 2,
+  "project": {
+    "name": "本体图谱项目",
+    "path": "<project_path>",
+    "git_address": "<git_address>",
+    "description": null
+  },
+  "lifecycle_evaluation": {
+    "name": "default",
+    "is_active": true,
+    "spec_file": "specs/*/spec.md",
+    "tasks_file": "specs/*/tasks.md",
+    "sprints_dir": null,
+    "sprint_plan_pattern": "^sprint-(\\d+)\\.md$",
+    "sprint_progress_pattern": "^sprint-(\\d+)-progress\\.md$",
+    "require_foundational_for_us_complete": true
+  },
+  "config": {
+    "name": "QA智能体配置",
+    "version": "1.1",
+    "passing_score": 81,
+    "stage_must_all_pass": false
+  },
+  "stages": [
+    {
+      "stage_key": "Stage1",
+      "metric_key": "constitution",
+      "name": "阶段1",
+      "description": "检查宪法文件的质量",
+      "stage_order": 1,
+      "enabled": true,
+      "prompt_template": "prompts/stages/s1.md",
+      "report_dimensions": [
+        "完备性",
+        "可执行性",
+        "一致性"
+      ],
+      "thresholds": {},
+      "rules": [
+        {
+          "input_type": "pattern",
+          "pattern": ".specify/memory/constitution.md",
+          "file_list": [],
+          "recursive": false,
+          "extensions": [],
+          "required": true,
+          "min_count": 1,
+          "is_metric": false
+        }
+      ],
+      "criteria": [
+        {
+          "criterion_key": "S1-C1",
+          "description": "宪法是否标注 Version: X.Y.Z 形式的语义化版本号，且文档内明文规定 MAJOR/MINOR/PATCH 三档分别代表的修订类型？",
+          "weight": 20,
+          "blocking": true,
+          "sort_order": 1
+        },
+        {
+          "criterion_key": "S1-C2",
+          "description": "是否要求每次修订在文件顶部 HTML 注释块（<!-- ... -->）内提供 Sync Impact Report，覆盖版本变化、档位理由、原则改动清单、下游模板影响、TODO？",
+          "weight": 20,
+          "blocking": true,
+          "sort_order": 2
+        },
+        {
+          "criterion_key": "S1-C3",
+          "description": "每条原则是否有唯一编号 + 短标题？条文主体是否使用'必须 / 禁止 / 不得 / 仅允许'等祈使句？是否未通篇使用软词？",
+          "weight": 20,
+          "blocking": true,
+          "sort_order": 3
+        },
+        {
+          "criterion_key": "S1-C4",
+          "description": "宪法是否锁定一种具体的架构风格，并给出该风格下的硬约束？",
+          "weight": 20,
+          "blocking": true,
+          "sort_order": 4
+        },
+        {
+          "criterion_key": "S1-C5",
+          "description": "宪法是否要求所有对外 API 先定义 OpenAPI 规范、契约变更顺序为先规范后实现？是否要求每个 API 有契约测试？",
+          "weight": 20,
+          "blocking": true,
+          "sort_order": 5
+        },
+        {
+          "criterion_key": "S1-C6",
+          "description": "宪法是否明文禁止预防性引入'将来可能用得上'的复杂度？",
+          "weight": 20,
+          "blocking": true,
+          "sort_order": 6
+        },
+        {
+          "criterion_key": "S1-C10",
+          "description": "宪法是否穷举高风险关键路径清单，并明文要求 100% 分支覆盖？",
+          "weight": 20,
+          "blocking": true,
+          "sort_order": 10
+        },
+        {
+          "criterion_key": "S1-C11",
+          "description": "宪法是否规定测试在 CI 独立运行、外部服务用 Mock/Stub 替代？",
+          "weight": 20,
+          "blocking": true,
+          "sort_order": 11
+        },
+        {
+          "criterion_key": "S1-C12",
+          "description": "宪法是否禁止业务代码直接调用 LLM / 第三方 SDK？是否要求统一业务语义接口？",
+          "weight": 20,
+          "blocking": true,
+          "sort_order": 12
+        },
+        {
+          "criterion_key": "S1-C13",
+          "description": "宪法是否要求 Prompt 模板外置管理、外部调用有超时控制 + 降级返回？",
+          "weight": 20,
+          "blocking": true,
+          "sort_order": 13
+        },
+        {
+          "criterion_key": "S1-C14",
+          "description": "宪法是否规定每条 API 请求记录结构化日志，含请求 ID / 用户 ID / 耗时 / 状态码？",
+          "weight": 20,
+          "blocking": true,
+          "sort_order": 14
+        },
+        {
+          "criterion_key": "S1-C15",
+          "description": "宪法是否规定 AI 调用记录模型名 / token 数 / 耗时 / 成功失败状态？",
+          "weight": 20,
+          "blocking": true,
+          "sort_order": 15
+        },
+        {
+          "criterion_key": "S1-C16",
+          "description": "宪法是否给出业务指标清单，至少含 API 响应时间 / 错误率 / 外部服务成功率 / 关键事件计数？",
+          "weight": 20,
+          "blocking": true,
+          "sort_order": 16
+        },
+        {
+          "criterion_key": "S1-C17",
+          "description": "宪法是否锁定一种认证机制（SSO/LDAP/OAuth 等）？是否规定 RBAC + 角色清单？是否要求所有 API 进行身份验证 + 权限检查？",
+          "weight": 20,
+          "blocking": true,
+          "sort_order": 17
+        },
+        {
+          "criterion_key": "S1-C19",
+          "description": "宪法是否规定多租户/多组织/多 BU 的数据隔离机制？是否规定生产全链路 HTTPS？",
+          "weight": 20,
+          "blocking": true,
+          "sort_order": 19
+        },
+        {
+          "criterion_key": "S1-C20",
+          "description": "宪法是否规定含 UI 交互的前端任务必须 Playwright 截图 + 交互断言，不接受仅 type-check 通过？",
+          "weight": 20,
+          "blocking": true,
+          "sort_order": 20
+        },
+        {
+          "criterion_key": "S1-C21",
+          "description": "宪法是否原文含'断言通过但截图异常视为 FAIL'或语义等价表述？",
+          "weight": 20,
+          "blocking": true,
+          "sort_order": 21
+        },
+        {
+          "criterion_key": "S1-C22",
+          "description": "宪法是否规定内容区最大宽度、8px 基线网格、双断点响应式？",
+          "weight": 20,
+          "blocking": true,
+          "sort_order": 22
+        },
+        {
+          "criterion_key": "S1-C24",
+          "description": "宪法是否规定 hover/active 反馈、表单态、弹窗居中？",
+          "weight": 20,
+          "blocking": true,
+          "sort_order": 24
+        },
+        {
+          "criterion_key": "S1-C25",
+          "description": "宪法是否规定每轮 Corrector 修正后必须做完整交互路径回归？是否规定新引入问题视为同一轮 FAIL、不消耗额外轮次？",
+          "weight": 20,
+          "blocking": true,
+          "sort_order": 25
+        },
+        {
+          "criterion_key": "S1-C26",
+          "description": "宪法是否规定修改第三方组件前必须先理解 DOM 结构和事件传播？是否禁止盲目套用 .stop / preventDefault？",
+          "weight": 20,
+          "blocking": true,
+          "sort_order": 26
+        },
+        {
+          "criterion_key": "S1-C27",
+          "description": "宪法是否给出每个 Spec 的 User Story 数量上限和 Tasks 数量上限（具体阿拉伯数字）？是否规定超阈值或拆分或升级 justification？",
+          "weight": 20,
+          "blocking": true,
+          "sort_order": 27
+        },
+        {
+          "criterion_key": "S1-C28",
+          "description": "宪法是否规定主分支保护 + 仅 PR 合并 + CI 必跑项？",
+          "weight": 20,
+          "blocking": true,
+          "sort_order": 28
+        },
+        {
+          "criterion_key": "S1-C29",
+          "description": "宪法是否规定一般 PR ≥ 1 人、AI/认证/权限/数据一致性/scope.yaml ≥ 2 人？",
+          "weight": 20,
+          "blocking": true,
+          "sort_order": 29
+        },
+        {
+          "criterion_key": "S1-C30",
+          "description": "宪法是否规定修订须 PR + 影响分析？",
+          "weight": 20,
+          "blocking": true,
+          "sort_order": 30
+        }
+      ]
+    },
+    {
+      "stage_key": "Stage2",
+      "metric_key": "spec",
+      "name": "阶段2",
+      "description": "spec.md 规格质量（含 GWT 阻断项）",
+      "stage_order": 2,
+      "enabled": true,
+      "prompt_template": "prompts/stages/s2.md",
+      "report_dimensions": [
+        "可测试性",
+        "完备性",
+        "一致性"
+      ],
+      "thresholds": {},
+      "rules": [
+        {
+          "input_type": "pattern",
+          "pattern": "specs/spec.md",
+          "file_list": [],
+          "recursive": false,
+          "extensions": [],
+          "required": false,
+          "min_count": 1,
+          "is_metric": false
+        },
+        {
+          "input_type": "pattern",
+          "pattern": "specs/**/spec.md",
+          "file_list": [],
+          "recursive": false,
+          "extensions": [],
+          "required": true,
+          "min_count": 1,
+          "is_metric": false
+        }
+      ],
+      "criteria": [
+        {
+          "criterion_key": "S2-C1",
+          "description": "SPEC 是否明确说明项目或功能名称、创建或更新日期、当前状态、输入来源或需求来源？",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 1
+        },
+        {
+          "criterion_key": "S2-C2",
+          "description": "SPEC 是否能让审查者判断本次要解决的业务问题、目标用户和交付边界？",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 2
+        },
+        {
+          "criterion_key": "S2-C3",
+          "description": "SPEC 是否记录已澄清问题，或明确说明当前不存在待澄清问题？",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 3
+        },
+        {
+          "criterion_key": "S2-C4",
+          "description": "所有未确定事项是否使用 [NEEDS CLARIFICATION] 或等价标记显式标出，而不是用模糊表述带过？",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 4
+        },
+        {
+          "criterion_key": "S2-C5",
+          "description": "每个用户故事或用户场景是否标注 P0/P1/P2/P3/P4 等优先级？",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 5
+        },
+        {
+          "criterion_key": "S2-C6",
+          "description": "每个主要用户故事是否说明为什么该场景重要，或说明其对 MVP、核心闭环、业务价值的作用？",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 6
+        },
+        {
+          "criterion_key": "S2-C7",
+          "description": "每个主要用户故事是否包含可验收的 Given/When/Then 或等价结构？",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 7
+        },
+        {
+          "criterion_key": "S2-C8",
+          "description": "每个 P1/P2 用户故事是否说明如何独立验证该故事的价值交付？",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 8
+        },
+        {
+          "criterion_key": "S2-C9",
+          "description": "功能需求是否使用稳定编号，例如 FR-001、FR-002，便于后续 Plan、Task、测试追踪？",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 9
+        },
+        {
+          "criterion_key": "S2-C10",
+          "description": "每条功能需求是否使用“必须 / 应该 / 可以”或 MUST / SHOULD / MAY 等规范性措辞表达约束强度？",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 10
+        },
+        {
+          "criterion_key": "S2-C11",
+          "description": "功能需求是否主要描述系统需要提供的用户可观察能力，而不是描述代码、数据库、部署或算法实现？",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 11
+        },
+        {
+          "criterion_key": "S2-C12",
+          "description": "所有 P1/P2 用户故事是否能在功能需求中找到对应支撑需求？",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 12
+        },
+        {
+          "criterion_key": "S2-C13",
+          "description": "SPEC 是否至少包含 3 条成功标准，并使用 SC-001 等稳定编号？",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 13
+        },
+        {
+          "criterion_key": "S2-C14",
+          "description": "成功标准是否描述用户或业务可感知结果，并包含可判断的数量、时间、状态、完成率或质量标准？",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 14
+        },
+        {
+          "criterion_key": "S2-C15",
+          "description": "若 SPEC 涉及 AI 或 UI 核心能力，成功标准或验收场景是否覆盖这些能力的可验证结果？",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 15
+        },
+        {
+          "criterion_key": "S2-C16",
+          "description": "成功标准是否标注 [Deferrable: yes/no] 或等价可延期验证状态，便于区分必须当期验证与可后验验证？",
+          "weight": 10,
+          "blocking": false,
+          "sort_order": 16
+        },
+        {
+          "criterion_key": "S2-C17",
+          "description": "SPEC 是否包含边界情况、异常场景或错误处理章节？",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 17
+        },
+        {
+          "criterion_key": "S2-C18",
+          "description": "边界情况是否覆盖数据丢失、权限限制、流程中断、超时失败、重复提交、业务边界等核心风险中的相关项？",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 18
+        },
+        {
+          "criterion_key": "S2-C19",
+          "description": "SPEC 是否定义核心业务实体、角色、对象或记录，并说明其业务含义？",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 19
+        },
+        {
+          "criterion_key": "S2-C20",
+          "description": "SPEC 中反复出现的业务状态、等级、风险、置信度、审批结果、完成状态等术语是否被定义？",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 20
+        },
+        {
+          "criterion_key": "S2-C21",
+          "description": "SPEC 是否列明关键业务假设、用户前提、数据前提、组织前提或环境前提？",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 21
+        },
+        {
+          "criterion_key": "S2-C22",
+          "description": "SPEC 是否明确说明本次不做什么，或通过初始版本限制、非目标、Out of Scope 等方式控制范围蔓延？",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 22
+        },
+        {
+          "criterion_key": "S2-C23",
+          "description": "若 SPEC 包含分期、MVP 或阶段计划，其内容是否与用户故事优先级和核心需求一致？",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 23
+        },
+        {
+          "criterion_key": "S2-C24",
+          "description": "若 SPEC 包含 AI 能力，是否说明 AI 应该做什么、不得做什么、基于什么上下文输出？",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 24
+        },
+        {
+          "criterion_key": "S2-C25",
+          "description": "若 SPEC 包含 AI 能力，是否说明 AI 超时、失败、不可用、低质量输出或争议结果的处理方式？",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 25
+        },
+        {
+          "criterion_key": "S2-C26",
+          "description": "若 SPEC 包含 UI 能力，是否能从验收场景或成功标准中人工验证主要页面、操作、反馈和状态变化？",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 26
+        },
+        {
+          "criterion_key": "S2-C27",
+          "description": "若 SPEC 涉及多个角色，是否说明不同角色可见、可操作或不可操作的能力边界？",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 27
+        },
+        {
+          "criterion_key": "S2-C28",
+          "description": "若 SPEC 涉及外部系统或企业既有系统，是否说明集成对象、业务目的和失败影响？",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 28
+        },
+        {
+          "criterion_key": "S2-C29",
+          "description": "SPEC 是否避免把 Plan 或 Task 阶段才应决定的代码级、数据库级、部署级、接口级、算法级实现方案写死？",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 29
+        },
+        {
+          "criterion_key": "S2-C30",
+          "description": "SPEC 内部的优先级、需求、成功标准、假设条件、边界情况之间是否没有明显矛盾？",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 30
+        }
+      ]
+    },
+    {
+      "stage_key": "Stage3",
+      "metric_key": "plan",
+      "name": "阶段3",
+      "description": "检查plan.md的完备性等",
+      "stage_order": 3,
+      "enabled": true,
+      "prompt_template": "prompts/stages/s1.md",
+      "report_dimensions": [
+        "完备性",
+        "一致性",
+        "可执行性"
+      ],
+      "thresholds": {},
+      "rules": [
+        {
+          "input_type": "pattern",
+          "pattern": "specs/**/plan.md",
+          "file_list": [],
+          "recursive": false,
+          "extensions": [],
+          "required": false,
+          "min_count": 0,
+          "is_metric": false
+        }
+      ],
+      "criteria": [
+        {
+          "criterion_key": "S3-C1",
+          "description": "Plan 文件头部是否同时标注了 Branch、Date、Spec 三个字段,且 Spec 链接指向同 feature 目录下的 spec.md?",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 1
+        },
+        {
+          "criterion_key": "S3-C2",
+          "description": "Plan 是否包含 Summary 章节,对方案要做什么、采用什么主要技术栈、核心架构形态(单体/前后端分离/微服务等)给出一段精炼概述?",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 2
+        },
+        {
+          "criterion_key": "S3-C3",
+          "description": "Technical Context 是否包含全部九个标准字段(Language/Version、Primary Dependencies、Storage、Testing、Target Platform、Project Type、Performance Goals、Constraints、Scale/Scope)且每个字段都有具体值?",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 3
+        },
+        {
+          "criterion_key": "S3-C4",
+          "description": "Plan 全文是否还存在 'NEEDS CLARIFICATION' 标记?",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 4
+        },
+        {
+          "criterion_key": "S3-C5",
+          "description": "Performance Goals 与 Scale/Scope 是否使用具体数值与单位(如响应时间/并发数/QPS),而非'快速'、'高并发'等模糊措辞?",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 5
+        },
+        {
+          "criterion_key": "S3-C6",
+          "description": "Plan 是否包含 'Constitution Check' 一级章节?",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 6
+        },
+        {
+          "criterion_key": "S3-C7",
+          "description": "Constitution Check 是否对宪法的每一条原则逐条给出 PASS/FAIL/N/A(或 ✅/❌/➖)状态,且覆盖全部原则?",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 7
+        },
+        {
+          "criterion_key": "S3-C8",
+          "description": "Constitution Check 中每条原则除状态外是否附有判定理由,且理由能关联到本 plan 的具体方案要素(框架/模块/约束)?",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 8
+        },
+        {
+          "criterion_key": "S3-C9",
+          "description": "Constitution Check 末尾是否给出总体 Gate Result(ALL PASS / 有违规但 Complexity Tracking 已说明 / BLOCK 等),并明确能否进入 Phase 0?",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 9
+        },
+        {
+          "criterion_key": "S3-C10",
+          "description": "Plan 是否以代码块或文件树形式展示 specs/<feature>/ 下的文档结构?",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 10
+        },
+        {
+          "criterion_key": "S3-C11",
+          "description": "Plan 是否展示项目源代码目录结构(对应 Project Type 选定的根目录布局)?",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 11
+        },
+        {
+          "criterion_key": "S3-C12",
+          "description": "Plan 是否在项目结构后给出 'Structure Decision' 一段,说明为何选择该结构?",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 12
+        },
+        {
+          "criterion_key": "S3-C13",
+          "description": "Plan 的 specs/<feature>/ 文档树中是否同时出现 research.md、data-model.md、contracts/ 目录、quickstart.md 四件核心制品?",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 13
+        },
+        {
+          "criterion_key": "S3-C14",
+          "description": "Plan 中若引入新基础设施/中间件/状态管理框架等复杂度,是否存在 Complexity Tracking 章节并以表格形式罗列?",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 14
+        },
+        {
+          "criterion_key": "S3-C15",
+          "description": "Complexity Tracking 表的每一行是否同时给出'为何需要'和'更简单方案为何被拒'两栏内容?",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 15
+        },
+        {
+          "criterion_key": "S3-C16",
+          "description": "Plan 中是否避免出现'系统应支持...'、'用户能够...'、'当 X 时,系统必须 Y' 等本应属于 spec.md 的需求描述句式与需求编号?",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 16
+        },
+        {
+          "criterion_key": "S3-C17",
+          "description": "Plan 涉及高风险类别(认证授权/计费支付/AI/LLM 调用/不可逆数据修改/合规审计)时,是否在 Constitution Check 或专门小节中显式出现 '高风险'/'High-Risk'/'L4 审查' 等可机读的风险标记词,并与具体模块或原则关联?",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 17
+        }
+      ]
+    },
+    {
+      "stage_key": "Stage4",
+      "metric_key": "task",
+      "name": "阶段4",
+      "description": null,
+      "stage_order": 4,
+      "enabled": true,
+      "prompt_template": "prompts/stages/s1.md",
+      "report_dimensions": [
+        "完备性等"
+      ],
+      "thresholds": {},
+      "rules": [
+        {
+          "input_type": "pattern",
+          "pattern": "specs/**/tasks.md",
+          "file_list": [],
+          "recursive": false,
+          "extensions": [],
+          "required": true,
+          "min_count": 1,
+          "is_metric": false
+        }
+      ],
+      "criteria": [
+        {
+          "criterion_key": "S4-C1",
+          "description": "文档开头是否声明 Input（设计文档来源路径）以及 Prerequisites（前置必备文档清单）？",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 1
+        },
+        {
+          "criterion_key": "S4-C2",
+          "description": "文档是否包含 'Format' 字段，明文给出任务行的格式约定（至少包含 ID、[P]、描述三要素）？",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 2
+        },
+        {
+          "criterion_key": "S4-C3",
+          "description": "文档是否声明 Path Conventions（项目目录结构约定），让 AI 知道代码应放在哪个根目录下？",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 3
+        },
+        {
+          "criterion_key": "S4-C4",
+          "description": "所有任务行是否严格遵循 `- [ ] T### [P?] [US?] 描述` 格式？",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 4
+        },
+        {
+          "criterion_key": "S4-C5",
+          "description": "所有 Task ID（T001、T002 ...）是否在全文中唯一，无重复编号？",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 5
+        },
+        {
+          "criterion_key": "S4-C6",
+          "description": "每个任务行是否都带 `[ ]` 或 `[x]` 完成状态标记（用于 AI 中断重入与人工追踪）？",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 6
+        },
+        {
+          "criterion_key": "S4-C7",
+          "description": "单个任务是否聚焦单一可交付物（一个文件或一组紧耦合文件），而非笼统的『实现整个模块』？",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 7
+        },
+        {
+          "criterion_key": "S4-C8",
+          "description": "是否禁止单条任务横跨多个不相关模块（如同时涉及前端 + 后端 + 数据库迁移）？",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 8
+        },
+        {
+          "criterion_key": "S4-C9",
+          "description": "每个实现/编码类任务是否在描述中包含具体文件路径（精确到目录与文件名）？",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 9
+        },
+        {
+          "criterion_key": "S4-C10",
+          "description": "任务中出现的根目录是否与 Path Conventions 声明一致（无脱离约定的路径）？",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 10
+        },
+        {
+          "criterion_key": "S4-C11",
+          "description": "文档是否包含 Phase 1: Setup 阶段，用于项目初始化与基础脚手架？",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 11
+        },
+        {
+          "criterion_key": "S4-C12",
+          "description": "文档是否包含 Phase 2: Foundational 阶段，明确声明该阶段是所有 User Story 的阻塞前置（Blocking Prerequisites）？",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 12
+        },
+        {
+          "criterion_key": "S4-C13",
+          "description": "Phase 3 起的 User Story 阶段是否按优先级（P1 → P2 → P3 …）顺序组织，且每个 US 阶段标题中标注优先级？",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 13
+        },
+        {
+          "criterion_key": "S4-C14",
+          "description": "Phase 3 起的 User Story 阶段下，所有任务行是否都带 `[US数字]` 标签（如 [US1]、[US2]），用于追溯到 spec 的具体故事？",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 14
+        },
+        {
+          "criterion_key": "S4-C15",
+          "description": "Phase 1 Setup、Phase 2 Foundational、以及 Polish/收尾阶段下的任务是否一律不带 [US?] 标签（这些是跨故事共享基建）？",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 15
+        },
+        {
+          "criterion_key": "S4-C16",
+          "description": "spec.md/plan.md 中声明的每个 P1 用户故事，是否在 tasks.md 中至少有一组对应任务（[US?] 标签命中）？",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 16
+        },
+        {
+          "criterion_key": "S4-C17",
+          "description": "文档是否在开头明文定义 [P] 标记的含义（不同文件、无依赖、可并行）？",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 17
+        },
+        {
+          "criterion_key": "S4-C18",
+          "description": "标记 [P] 的任务之间是否避免操作完全相同的文件路径（启发式抽样检查）？",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 18
+        },
+        {
+          "criterion_key": "S4-C19",
+          "description": "data-model.md 中声明的每个实体（Entity）是否在 tasks.md 中至少对应一条任务（migration 或 entity 创建）？",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 19
+        },
+        {
+          "criterion_key": "S4-C20",
+          "description": "contracts/ 下每个 API 契约文件，是否在 tasks.md 中至少有一条 controller/endpoint 实现任务？",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 20
+        },
+        {
+          "criterion_key": "S4-C21",
+          "description": "每个 User Story 阶段是否包含 `Independent Test` 或 `独立测试` 段落，明确该 US 完成后如何端到端验证？",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 21
+        },
+        {
+          "criterion_key": "S4-C22",
+          "description": "每个 User Story 阶段末尾是否有 Checkpoint 声明，说明该阶段完成后系统能力的增量？",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 22
+        },
+        {
+          "criterion_key": "S4-C23",
+          "description": "tasks.md 中是否包含明确的测试任务（contract test / integration test / unit test 至少一类）？",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 23
+        },
+        {
+          "criterion_key": "S4-C24",
+          "description": "文档是否包含 `Dependencies & Execution Order` 或 `依赖与执行顺序` 段落，说明 Phase 与 User Story 之间的先后约束？",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 24
+        },
+        {
+          "criterion_key": "S4-C25",
+          "description": "依赖说明是否明文声明 Foundational 阶段必须完成才能开始任何 User Story？",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 25
+        },
+        {
+          "criterion_key": "S4-C26",
+          "description": "文档是否包含 `Implementation Strategy` 或 `实施策略` 段落，说明 MVP 范围与增量交付路径？",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 26
+        }
+      ]
+    },
+    {
+      "stage_key": "Stage5",
+      "metric_key": "spt",
+      "name": "阶段5",
+      "description": null,
+      "stage_order": 5,
+      "enabled": true,
+      "prompt_template": "prompts/stages/s1.md",
+      "report_dimensions": [
+        "一致性"
+      ],
+      "thresholds": {},
+      "rules": [
+        {
+          "input_type": "pattern",
+          "pattern": "specs/**/spec.md",
+          "file_list": [],
+          "recursive": false,
+          "extensions": [],
+          "required": true,
+          "min_count": 1,
+          "is_metric": false
+        },
+        {
+          "input_type": "pattern",
+          "pattern": "specs/**/plan.md",
+          "file_list": [],
+          "recursive": false,
+          "extensions": [],
+          "required": true,
+          "min_count": 1,
+          "is_metric": false
+        },
+        {
+          "input_type": "pattern",
+          "pattern": "specs/**/tasks.md",
+          "file_list": [],
+          "recursive": false,
+          "extensions": [],
+          "required": true,
+          "min_count": 1,
+          "is_metric": false
+        }
+      ],
+      "criteria": [
+        {
+          "criterion_key": "S5-C1",
+          "description": "spec.md 中所有功能需求是否使用形如 FR-001、FR-002... 的唯一编号？是否存在重号或编号缺失？",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 1
+        },
+        {
+          "criterion_key": "S5-C2",
+          "description": "spec.md 中所有成功标准是否使用形如 SC-001、SC-002... 的唯一编号？是否可被 tasks.md 引用？",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 2
+        },
+        {
+          "criterion_key": "S5-C3",
+          "description": "spec.md 是否定义至少一个用户故事，且每个用户故事都明确标注优先级（如 P1/P2/P3 或 高/中/低）？",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 3
+        },
+        {
+          "criterion_key": "S5-C4",
+          "description": "每个用户故事下是否包含可独立测试的验收场景，且场景以 Given-When-Then（假设-当-则 / Given-When-Then）三段式表达？",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 4
+        },
+        {
+          "criterion_key": "S5-C5",
+          "description": "spec.md 是否定义了'关键实体'（Key Entities）章节，列出系统中的主要业务对象及其核心属性？",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 5
+        },
+        {
+          "criterion_key": "S5-C6",
+          "description": "plan.md 的 Technical Context 章节是否填写了至少以下 4 类信息：编程语言/版本、关键依赖、存储方案、测试方案？",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 6
+        },
+        {
+          "criterion_key": "S5-C7",
+          "description": "plan.md 是否包含 Constitution Check 章节，并对宪法中的每一条原则给出 PASS/FAIL/N_A 的明确判定结果？",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 7
+        },
+        {
+          "criterion_key": "S5-C8",
+          "description": "plan.md 是否定义了 Project Structure，明确给出源代码目录树（至少到二级目录），并说明结构选型理由？",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 8
+        },
+        {
+          "criterion_key": "S5-C9",
+          "description": "tasks.md 中每个任务是否使用形如 T001、T002... 的唯一 ID，便于在 commit、PR、追溯报告中引用？",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 9
+        },
+        {
+          "criterion_key": "S5-C10",
+          "description": "tasks.md 中归属于用户故事阶段的任务，是否带有 [US1] / [US2] 等故事追溯标签？",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 10
+        },
+        {
+          "criterion_key": "S5-C11",
+          "description": "tasks.md 中所有创建/修改类任务，是否在描述中给出明确的目标文件路径（包括目录前缀），便于并行执行与冲突检测？",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 11
+        },
+        {
+          "criterion_key": "S5-C12",
+          "description": "tasks.md 是否按阶段（Phase）组织任务，至少包含 Setup（初始化）、Foundational（底座）、User Story（用户故事）三类阶段？",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 12
+        },
+        {
+          "criterion_key": "S5-C13",
+          "description": "spec.md 中的每个功能需求 FR-###，是否在 tasks.md 中能找到至少一个明确实现该需求的任务？",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 13
+        },
+        {
+          "criterion_key": "S5-C14",
+          "description": "spec.md 中定义的每个用户故事（包括所有优先级），是否在 tasks.md 中都有标注该 [US#] 标签的任务？",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 14
+        },
+        {
+          "criterion_key": "S5-C15",
+          "description": "plan.md 中 Technical Context 与 Project Structure 列出的关键技术栈（语言、框架、存储），是否在 tasks.md 中通过初始化或集成任务可追溯？",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 15
+        },
+        {
+          "criterion_key": "S5-C16",
+          "description": "plan.md 的 Constitution Check 是否全部通过；若有违反项，是否在 Complexity Tracking 中给出'为何需要 + 已拒绝的更简方案'的豁免说明？",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 16
+        },
+        {
+          "criterion_key": "S5-C17",
+          "description": "当 plan.md 或 spec.md 含有'零 X 改动'/'不影响 Y'/'保持向后兼容'等边界承诺时，是否在 plan 中有'Scope 边界验证清单'，且 tasks.md 中有对应的验证任务？",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 17
+        },
+        {
+          "criterion_key": "S5-C18",
+          "description": "当项目涉及 AI/LLM 功能时，spec.md 中每条 SC-### 是否明确标注 [Deferrable: yes] 或 [Deferrable: no]，以保护 Sprint 不被任意压缩？",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 18
+        },
+        {
+          "criterion_key": "S5-C19",
+          "description": "对于 spec.md 中标记 [Deferrable: no] 的 SC，tasks.md 中对应实现任务是否处于活跃状态（非 DEFERRED / 非 SKIPPED），以防 Sprint 47 滑坡？",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 19
+        },
+        {
+          "criterion_key": "S5-C20",
+          "description": "spec.md 中功能需求（FR）是否使用硬约束词（必须 / 禁止 / 不得 / MUST），而不使用软词（应当 / 建议 / 尽量 / should / may）？",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 20
+        },
+        {
+          "criterion_key": "S5-C21",
+          "description": "三份文档的核心章节（用户故事、功能需求、SC、Technical Context、阶段任务）是否仍残留 TODO / FIXME / [NEEDS CLARIFICATION] / TBD 等未决占位符？",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 21
+        }
+      ]
+    },
+    {
+      "stage_key": "Stage6",
+      "metric_key": "sprint",
+      "name": "阶段6",
+      "description": null,
+      "stage_order": 6,
+      "enabled": true,
+      "prompt_template": "prompts/stages/s1.md",
+      "report_dimensions": [
+        "完备性检查"
+      ],
+      "thresholds": {},
+      "rules": [
+        {
+          "input_type": "pattern",
+          "pattern": "sprints/**/sprint-*.md",
+          "file_list": [],
+          "recursive": false,
+          "extensions": [],
+          "required": true,
+          "min_count": 1,
+          "is_metric": false
+        }
+      ],
+      "criteria": [
+        {
+          "criterion_key": "S6-C1",
+          "description": "Sprint 文件是否标注 Sprint 编号、时间窗、总工时（人日或工作日）、对应 Phase 或迭代阶段？",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 1
+        },
+        {
+          "criterion_key": "S6-C2",
+          "description": "Sprint 是否引用对应的 Spec 文件、Feature 分支、User Story 或上游规划文档？",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 2
+        },
+        {
+          "criterion_key": "S6-C3",
+          "description": "Sprint 目标段落是否表述为'本 Sprint 结束用户/系统可以做什么'，而非'完成 T001-T0NN 任务'？",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 3
+        },
+        {
+          "criterion_key": "S6-C4",
+          "description": "是否给出 Sprint 结束时可验证的具体场景、验收标准或演示用例？",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 4
+        },
+        {
+          "criterion_key": "S6-C5",
+          "description": "Sprint 工作日数是否明确，且落在 3-7 个工作日（含）区间？",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 5
+        },
+        {
+          "criterion_key": "S6-C6",
+          "description": "Sprint 内任务总数是否合理？任务数 31-50 时必须有 ≥3 个批次门禁；超过 50 一律不通过。",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 6
+        },
+        {
+          "criterion_key": "S6-C7",
+          "description": "Sprint 中的任务是否每个都有唯一 ID（如 T001、T002）？",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 7
+        },
+        {
+          "criterion_key": "S6-C8",
+          "description": "Sprint 是否在任务级、批次级或日级标注工时估算？",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 8
+        },
+        {
+          "criterion_key": "S6-C9",
+          "description": "Sprint 是否在任务、批次或专门段落中说明并行机会或依赖关系？",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 9
+        },
+        {
+          "criterion_key": "S6-C10",
+          "description": "Sprint 是否按 Day（日）或 Phase（阶段）/ 批次划分，且每段有明确目标或主题？",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 10
+        },
+        {
+          "criterion_key": "S6-C11",
+          "description": "Sprint 内是否包含 L1 级别验证的明确条目（编译、lint、契约测试、单元测试）？",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 11
+        },
+        {
+          "criterion_key": "S6-C12",
+          "description": "Sprint 产出涉及多模块集成或 UI 时，是否规划了 L2 集成验证或 L3 端到端验证？",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 12
+        },
+        {
+          "criterion_key": "S6-C13",
+          "description": "Sprint 是否设置至少一个 Checkpoint 或批次门禁，且每个门禁附明确的验证内容（命令、阈值或场景）？",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 13
+        },
+        {
+          "criterion_key": "S6-C14",
+          "description": "Sprint 是否展示内部任务或批次的依赖关系（依赖图、依赖说明或依赖列）？",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 14
+        },
+        {
+          "criterion_key": "S6-C15",
+          "description": "Sprint 是否说明本 Sprint 在整体规划中的位置（前置 Phase / 前置 Sprint / 解锁的后续 Sprint）？",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 15
+        },
+        {
+          "criterion_key": "S6-C16",
+          "description": "Sprint 是否列出主要风险项及对应缓解措施？",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 16
+        },
+        {
+          "criterion_key": "S6-C17",
+          "description": "Sprint 是否明确完成判定项（任务全 done、门禁全过、度量产出、Constitution 复核等）？",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 17
+        },
+        {
+          "criterion_key": "S6-C18",
+          "description": "若 Sprint 编号为 1，是否包含项目初始化 / 脚手架 / 基础设施 / CI 配置等内容？",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 18
+        },
+        {
+          "criterion_key": "S6-C19",
+          "description": "Sprint 含真实 AI 调用或用户 UI 功能时，是否设置 ≥2 个人工验证（HV）节点（演示验收、手动验证、Constitution 复核、批次门禁手动验证等）？",
+          "weight": 10,
+          "blocking": true,
+          "sort_order": 19
+        }
+      ]
+    },
+    {
+      "stage_key": "Stage7",
+      "metric_key": "unit_test",
+      "name": "是否存在单元测试文件",
+      "description": null,
+      "stage_order": 7,
+      "enabled": true,
+      "prompt_template": null,
+      "report_dimensions": [],
+      "thresholds": {},
+      "rules": [
+        {
+          "input_type": "pattern",
+          "pattern": "apps/api/test/**/*.js",
+          "file_list": [],
+          "recursive": false,
+          "extensions": [],
+          "required": true,
+          "min_count": 1,
+          "is_metric": false
+        },
+        {
+          "input_type": "pattern",
+          "pattern": "apps/api/test/**/*.ts",
+          "file_list": [],
+          "recursive": false,
+          "extensions": [],
+          "required": true,
+          "min_count": 1,
+          "is_metric": false
+        },
+        {
+          "input_type": "pattern",
+          "pattern": "apps/web/tests/**/*.js",
+          "file_list": [],
+          "recursive": false,
+          "extensions": [],
+          "required": true,
+          "min_count": 1,
+          "is_metric": false
+        },
+        {
+          "input_type": "pattern",
+          "pattern": "apps/web/tests/**/*.ts",
+          "file_list": [],
+          "recursive": false,
+          "extensions": [],
+          "required": true,
+          "min_count": 1,
+          "is_metric": false
+        }
+      ],
+      "criteria": []
+    },
+    {
+      "stage_key": "Stage8",
+      "metric_key": "coverage_pct",
+      "name": "单元测试覆盖率文件是否存在",
+      "description": null,
+      "stage_order": 8,
+      "enabled": true,
+      "prompt_template": null,
+      "report_dimensions": [],
+      "thresholds": {},
+      "rules": [
+        {
+          "input_type": "pattern",
+          "pattern": "coverage.xml",
+          "file_list": [],
+          "recursive": false,
+          "extensions": [],
+          "required": true,
+          "min_count": 1,
+          "is_metric": false
+        }
+      ],
+      "criteria": []
+    },
+    {
+      "stage_key": "Stage9",
+      "metric_key": "metric_exists",
+      "name": "Harness度量文件是否存在",
+      "description": null,
+      "stage_order": 9,
+      "enabled": true,
+      "prompt_template": null,
+      "report_dimensions": [],
+      "thresholds": {},
+      "rules": [
+        {
+          "input_type": "pattern",
+          "pattern": ".harness/metrics/*.json",
+          "file_list": [],
+          "recursive": false,
+          "extensions": [],
+          "required": true,
+          "min_count": 1,
+          "is_metric": false
+        }
+      ],
+      "criteria": []
+    }
+  ]
+}

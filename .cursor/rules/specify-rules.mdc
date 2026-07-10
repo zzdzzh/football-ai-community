@@ -1,0 +1,74 @@
+---
+description: SpecKit 自动生成的项目开发指南，源自 feature plans
+globs:
+  - "**/*"
+alwaysApply: false
+---
+
+# Football AI Community Development Guidelines
+
+Auto-generated from feature plans. Last updated: 2026-07-10
+
+## Active Technologies
+
+- **后台**: Node.js 20 LTS, Express 4.x, better-sqlite3, Jest
+- **前台**: Vue 3.4+, TypeScript 5.x, Vite 5.x, Element Plus, Pinia, Vue Router
+- **AI**: OpenAI 兼容 API（统一抽象层 `server/src/ai/`）
+- **外部数据**: football-data.org（比赛统计）, RSS（新闻）
+- **认证**: JWT Bearer + bcrypt, RBAC (user/moderator/admin)
+
+## Project Structure
+
+```text
+server/          # Node.js 后台（业务、Agent、API）
+web/             # Vue 3 前台（Vite host: 0.0.0.0）
+specs/000-football-community-vision/   # 产品愿景（非可执行）
+specs/001-football-feed-mvp/           # 当前可执行 feature（MVP-1）
+  plan.md        # 实现方案
+  contracts/     # OpenAPI 契约
+  data-model.md  # 数据模型
+specs/002-football-stats-content/      # MVP-2（待 plan/tasks）
+specs/003-football-scout-tactical/     # MVP-3
+specs/004-football-fan-community/      # MVP-4
+```
+
+## Commands
+
+```powershell
+# 后台测试
+cd server; npm test
+
+# 契约测试
+cd server; npm run test:contract
+
+# 启动后台
+cd server; npm run dev
+
+# 启动前台（监听 0.0.0.0）
+cd web; npm run dev
+```
+
+## Code Style
+
+- 所有文件 UTF-8 编码
+- 后台 ESLint；前台 ESLint + Vue 推荐规则
+- 单方法 ≤ 50 行；单文件 ≤ 500 行（基础设施除外）
+- 脚本使用 PowerShell（`;` 分隔，不用 `&&`）
+
+## Recent Changes
+
+- **001-football-feed-mvp** (2026-07-10): Spec 拆分 — Feed MVP（US1+偏好），原 001-multi-agent 已废弃
+- **000-football-community-vision** (2026-07-10): 六 Agent 社区全景愿景与 MVP 路线图
+
+<!-- SPECKIT START -->
+## Active Plan
+
+- **Vision**: [000-football-community-vision](../../specs/000-football-community-vision/spec.md)
+- **Feature**: [001-football-feed-mvp](../../specs/001-football-feed-mvp/plan.md)
+- **Spec**: [spec.md](../../specs/001-football-feed-mvp/spec.md)
+- **Data Model**: [data-model.md](../../specs/001-football-feed-mvp/data-model.md)
+- **Contracts**: [openapi.yaml](../../specs/001-football-feed-mvp/contracts/openapi.yaml)
+<!-- SPECKIT END -->
+
+<!-- MANUAL ADDITIONS START -->
+<!-- MANUAL ADDITIONS END -->
