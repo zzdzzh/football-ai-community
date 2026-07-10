@@ -445,7 +445,7 @@ components:
           type: array
           items:
             type: string
-            enum: [PL, PD, BL1, SA, FL1, CL]
+            enum: [PL, PD, BL1, SA, FL1, CL, WC]
         enabledAgents:
           type: array
           items:

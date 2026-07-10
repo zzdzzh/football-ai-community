@@ -5,9 +5,11 @@ import type {
   CreateConversationRequest,
   SendMessageResponse,
 } from '@/types/stats';
+import type { MessageFeedbackResponse, CreateScoutConversationRequest } from '@/types/scout';
+import type { CreateTacticalConversationRequest } from '@/types/tactical';
 
 export async function fetchConversations(params?: {
-  agentId?: 'stats';
+  agentId?: 'stats' | 'scout' | 'tactical';
   page?: number;
   pageSize?: number;
 }): Promise<ConversationListResponse> {
@@ -37,4 +39,28 @@ export async function sendMessage(
     { timeout: 35000 },
   );
   return data;
+}
+
+export async function submitMessageFeedback(
+  conversationId: string,
+  messageId: string,
+  helpful: boolean,
+): Promise<MessageFeedbackResponse> {
+  const { data } = await apiClient.post<MessageFeedbackResponse>(
+    `/conversations/${conversationId}/messages/${messageId}/feedback`,
+    { helpful },
+  );
+  return data;
+}
+
+export async function createScoutConversation(
+  payload: CreateScoutConversationRequest,
+): Promise<ConversationDetail> {
+  return createConversation(payload);
+}
+
+export async function createTacticalConversation(
+  payload: CreateTacticalConversationRequest,
+): Promise<ConversationDetail> {
+  return createConversation(payload);
 }

@@ -46,6 +46,13 @@ export function getMatchDetail(matchId) {
 
   if (match.dataCompleteness === 'pending') {
     detail.syncMessage = '数据同步中';
+  } else if (
+    match.status === 'FINISHED'
+    && (!match.stats || match.stats.length === 0)
+  ) {
+    detail.syncMessage = match.id.startsWith('ss-')
+      ? '比赛统计同步中，请触发 match-sync 后刷新'
+      : '该比赛暂无统计数据，建议选择英超（PL）爬虫同步的比赛进行战术分析';
   }
 
   return detail;

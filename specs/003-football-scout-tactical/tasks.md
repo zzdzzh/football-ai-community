@@ -75,9 +75,9 @@
 - [x] T014 [US1] Implement scout-context-builder with league filter and candidate cap in server/src/services/scout-context-builder.js
 - [x] T015 [US1] Implement scout-agent orchestration with recommendations_json persistence in server/src/agents/scout-agent.js
 - [x] T016 [US1] Extend conversation-service and conversations API for agentId=scout and feedback endpoint in server/src/services/conversation-service.js and server/src/api/conversations.js
-- [ ] T017 [P] [US1] Extend web API clients for players and scout conversations in web/src/api/players.ts and web/src/api/conversations.ts
-- [ ] T018 [P] [US1] Implement ScoutStartView and scout components in web/src/views/ScoutStartView.vue, web/src/components/scout/ScoutFilterForm.vue and web/src/components/scout/PlayerRecommendationCard.vue
-- [ ] T019 [US1] Extend ConversationView for scout recommendations and register /scout route in web/src/views/ConversationView.vue and web/src/router/index.ts
+- [x] T017 [P] [US1] Extend web API clients for players and scout conversations in web/src/api/players.ts and web/src/api/conversations.ts
+- [x] T018 [P] [US1] Implement ScoutStartView and scout components in web/src/views/ScoutStartView.vue, web/src/components/scout/ScoutFilterForm.vue and web/src/components/scout/PlayerRecommendationCard.vue
+- [x] T019 [US1] Extend ConversationView for scout recommendations and register /scout route in web/src/views/ConversationView.vue and web/src/router/index.ts
 
 **Checkpoint**: User Story 1 fully functional — Scout 推荐闭环可独立验收（对齐 FR-013–015）
 
@@ -93,17 +93,17 @@
 
 ### Tests for User Story 2
 
-- [ ] T020 [P] [US2] Contract tests for Tactical conversations in server/tests/contract/tactical-conversations.test.js
-- [ ] T021 [P] [US2] Unit tests for tactical-context-builder and tactical-agent with 100% branch coverage in server/tests/unit/tactical-context-builder.test.js and server/tests/unit/tactical-agent.test.js
+- [x] T020 [P] [US2] Contract tests for Tactical conversations in server/tests/contract/tactical-conversations.test.js
+- [x] T021 [P] [US2] Unit tests for tactical-context-builder and tactical-agent with 100% branch coverage in server/tests/unit/tactical-context-builder.test.js and server/tests/unit/tactical-agent.test.js
 
 ### Implementation for User Story 2
 
-- [ ] T022 [P] [US2] Create tactical-analysis prompt and AiTacticalService in server/prompts/tactical-analysis.md and server/src/ai/ai-tactical-service.js
-- [ ] T023 [US2] Implement tactical-context-builder with analysisType derivation and data-limitation guard in server/src/services/tactical-context-builder.js
-- [ ] T024 [US2] Implement tactical-agent orchestration with tactical_json persistence in server/src/agents/tactical-agent.js
-- [ ] T025 [US2] Extend conversation-service and conversations API for agentId=tactical in server/src/services/conversation-service.js and server/src/api/conversations.js
-- [ ] T026 [P] [US2] Implement TacticalStartView, tactical components and MatchDetailView entry in web/src/views/TacticalStartView.vue, web/src/components/tactical/TacticalPhasePanel.vue, web/src/components/tactical/FormationBadge.vue and web/src/views/MatchDetailView.vue
-- [ ] T027 [US2] Extend ConversationView for tactical analysis rendering and register /tactical route in web/src/views/ConversationView.vue and web/src/router/index.ts
+- [x] T022 [P] [US2] Create tactical-analysis prompt and AiTacticalService in server/prompts/tactical-analysis.md and server/src/ai/ai-tactical-service.js
+- [x] T023 [US2] Implement tactical-context-builder with analysisType derivation and data-limitation guard in server/src/services/tactical-context-builder.js
+- [x] T024 [US2] Implement tactical-agent orchestration with tactical_json persistence in server/src/agents/tactical-agent.js
+- [x] T025 [US2] Extend conversation-service and conversations API for agentId=tactical in server/src/services/conversation-service.js and server/src/api/conversations.js
+- [x] T026 [P] [US2] Implement TacticalStartView, tactical components and MatchDetailView entry in web/src/views/TacticalStartView.vue, web/src/components/tactical/TacticalPhasePanel.vue, web/src/components/tactical/FormationBadge.vue and web/src/views/MatchDetailView.vue
+- [x] T027 [US2] Extend ConversationView for tactical analysis rendering and register /tactical route in web/src/views/ConversationView.vue and web/src/router/index.ts
 
 **Checkpoint**: User Stories 1 AND 2 both work independently — Scout + Tactical 双 Agent 可验收（对齐 FR-016–018）
 
@@ -113,7 +113,7 @@
 
 ## Phase 5: Polish & Cross-Cutting Concerns
 
-- [ ] T028 Run 002 Stats conversations contract regression and MVP-3 scope boundary audit per plan.md Scope 边界验证清单 in server/tests/contract/conversations.test.js and specs/003-football-scout-tactical/quickstart.md
+- [x] T028 Run 002 Stats conversations contract regression and MVP-3 scope boundary audit per plan.md Scope 边界验证清单 in server/tests/contract/conversations.test.js and specs/003-football-scout-tactical/quickstart.md
 
 ---
 

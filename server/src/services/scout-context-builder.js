@@ -1,14 +1,33 @@
 import { ALLOWED_LEAGUES } from '../constants/league-codes.js';
 import { findTeamById } from '../db/repositories/team-repository.js';
-import { searchPlayers, calcPlayerAge } from '../db/repositories/player-repository.js';
+import { searchPlayers, calcPlayerAge, countPlayersByLeague } from '../db/repositories/player-repository.js';
 import {
   listPlayerStatsSnapshots,
   mapSnapshotToPlayerStats,
 } from '../db/repositories/player-stats-snapshot-repository.js';
-import { getAggregatePlayerSyncStatus } from '../db/repositories/player-sync-meta-repository.js';
+import {
+  getAggregatePlayerSyncStatus,
+  findPlayerSyncMetaByLeague,
+  getAllPlayerSyncMeta,
+} from '../db/repositories/player-sync-meta-repository.js';
 
 const CANDIDATE_CAP = 50;
 const BROAD_POOL_THRESHOLD = 5;
+const PLAYER_DATA_NOT_SYNCED_MESSAGE = '球员数据尚未同步，请稍后再试（首次同步约需数分钟）';
+
+function isLeaguePlayerDataNeverSynced(leagueCode) {
+  const meta = findPlayerSyncMetaByLeague(leagueCode);
+  return !meta?.lastSyncAt && countPlayersByLeague(leagueCode) === 0;
+}
+
+function isGlobalPlayerDataNeverSynced() {
+  const result = searchPlayers({ page: 1, pageSize: 1 });
+  if (result.total > 0) {
+    return false;
+  }
+  const metas = getAllPlayerSyncMeta();
+  return metas.length === 0 || metas.every((meta) => !meta.lastSyncAt);
+}
 
 export function parseMaxAgeFromQuestion(question) {
   if (!question) return null;
@@ -76,6 +95,9 @@ export function buildScoutContext({ contextType, contextId, userQuestion = '' })
     if (!contextId || !ALLOWED_LEAGUES.includes(contextId)) {
       return { notFound: true };
     }
+    if (isLeaguePlayerDataNeverSynced(contextId)) {
+      return { syncMessage: PLAYER_DATA_NOT_SYNCED_MESSAGE };
+    }
     const result = searchPlayers({ league: contextId, page: 1, pageSize: CANDIDATE_CAP });
     const candidates = result.items.map(mapCandidate);
     const maxAge = parseMaxAgeFromQuestion(userQuestion);
@@ -97,6 +119,9 @@ export function buildScoutContext({ contextType, contextId, userQuestion = '' })
     if (!team) {
       return { notFound: true };
     }
+    if (isLeaguePlayerDataNeverSynced(team.leagueCode)) {
+      return { syncMessage: PLAYER_DATA_NOT_SYNCED_MESSAGE };
+    }
     const result = searchPlayers({ teamId: contextId, page: 1, pageSize: CANDIDATE_CAP });
     const candidates = result.items.map(mapCandidate);
     const maxAge = parseMaxAgeFromQuestion(userQuestion);
@@ -115,6 +140,9 @@ export function buildScoutContext({ contextType, contextId, userQuestion = '' })
   }
 
   if (contextType === 'general') {
+    if (isGlobalPlayerDataNeverSynced()) {
+      return { syncMessage: PLAYER_DATA_NOT_SYNCED_MESSAGE };
+    }
     const result = searchPlayers({ page: 1, pageSize: CANDIDATE_CAP });
     const candidates = result.items.map(mapCandidate);
     const maxAge = parseMaxAgeFromQuestion(userQuestion);

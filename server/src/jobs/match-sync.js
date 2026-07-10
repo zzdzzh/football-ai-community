@@ -4,6 +4,8 @@ import { Router } from 'express';
 import { config } from '../config/index.js';
 import { AppError } from '../middleware/error.js';
 import { createFootballDataAdapter, ALLOWED_LEAGUES } from '../adapters/football-data-adapter.js';
+import { importLeagueFromScraper } from '../services/scraper-import-service.js';
+import { enrichScraperFinishedMatches } from '../services/scraper-match-enricher.js';
 import { upsertTeam } from '../db/repositories/team-repository.js';
 import { upsertMatch, findFinishedMatchesMissingStats } from '../db/repositories/match-repository.js';
 import { upsertMatchSyncMeta } from '../db/repositories/match-sync-meta-repository.js';
@@ -103,6 +105,30 @@ async function enrichFinishedMatches(adapter) {
 
 export async function executeMatchSyncJob({ league = null, adapter = null } = {}) {
   if (runningJob) {
+    return runningJob;
+  }
+
+  if (config.dataSource === 'scraper') {
+    const leagues = league ? [league] : ALLOWED_LEAGUES;
+    runningJob = (async () => {
+      const results = [];
+      for (const leagueCode of leagues) {
+        try {
+          const result = await importLeagueFromScraper(leagueCode);
+          results.push({
+            leagueCode,
+            syncedTeams: result.syncedTeams,
+            syncedMatches: result.syncedMatches,
+          });
+        } catch (err) {
+          results.push({ leagueCode, error: err.message });
+        }
+      }
+      const enriched = await enrichScraperFinishedMatches({ limit: 8 });
+      return { results, enriched };
+    })().finally(() => {
+      runningJob = null;
+    });
     return runningJob;
   }
 

@@ -47,40 +47,46 @@
 
 ## 批次 3.5 · Day 4 · US1 前台 — Scout 推荐 UI
 
-- [ ] T017 [P] [US1] Extend web API clients for players and scout conversations in web/src/api/players.ts and web/src/api/conversations.ts | L1:- L2:- |
-- [ ] T018 [P] [US1] Implement ScoutStartView and scout components in web/src/views/ScoutStartView.vue, web/src/components/scout/ScoutFilterForm.vue and web/src/components/scout/PlayerRecommendationCard.vue | L1:- L2:- |
-- [ ] T019 [US1] Extend ConversationView for scout recommendations and register /scout route in web/src/views/ConversationView.vue and web/src/router/index.ts | L1:- L2:- |
-- [ ] 🚧 **批次3.5门禁: L1 Step4 + 👁 HV-1 (~5 min, 产品/用户)** | 结果: - |
+- [x] T017 [P] [US1] Extend web API clients for players and scout conversations in web/src/api/players.ts and web/src/api/conversations.ts | L1:✅ typecheck L2:- |
+- [x] T018 [P] [US1] Implement ScoutStartView and scout components in web/src/views/ScoutStartView.vue, web/src/components/scout/ScoutFilterForm.vue and web/src/components/scout/PlayerRecommendationCard.vue | L1:✅ typecheck L2:- |
+- [x] T019 [US1] Extend ConversationView for scout recommendations and register /scout route in web/src/views/ConversationView.vue and web/src/router/index.ts | L1:✅ typecheck L2:- |
+- [x] 🚧 **批次3.5门禁: L1 Step4 + 👁 HV-1 (~5 min, 产品/用户)** | L1:✅ typecheck · HV-1: ✅ 用户确认 |
 
 ---
 
 ## 批次 3.6 · Day 4 · US2 契约与单元测试
 
-- [ ] T020 [P] [US2] Contract tests for Tactical conversations in server/tests/contract/tactical-conversations.test.js | L1:- L2:- |
-- [ ] T021 [P] [US2] Unit tests for tactical-context-builder and tactical-agent with 100% branch coverage in server/tests/unit/tactical-context-builder.test.js and server/tests/unit/tactical-agent.test.js | L1:- L2:- |
-- [ ] 🚧 **批次3.6门禁: L1 Step4 (tactical-conversations 契约测试通过 + tactical-agent/context-builder 100% 分支覆盖)** | 结果: - |
+- [x] T020 [P] [US2] Contract tests for Tactical conversations in server/tests/contract/tactical-conversations.test.js | L1:✅(200/200) L2:✅ |
+- [x] T021 [P] [US2] Unit tests for tactical-context-builder and tactical-agent with 100% branch coverage in server/tests/unit/tactical-context-builder.test.js and server/tests/unit/tactical-agent.test.js | L1:✅(200/200) L2:✅ |
+- [x] 🚧 **批次3.6门禁: L1 Step4 (tactical-conversations 契约测试通过 + tactical-agent/context-builder 100% 分支覆盖)** | 结果: ✅ 契约+单元全通过 |
 
 ---
 
 ## 批次 3.7 · Day 4–5 · US2 后台 — Tactical Agent 分析闭环
 
-- [ ] T022 [P] [US2] Create tactical-analysis prompt and AiTacticalService in server/prompts/tactical-analysis.md and server/src/ai/ai-tactical-service.js | L1:- L2:- |
-- [ ] T023 [US2] Implement tactical-context-builder with analysisType derivation and data-limitation guard in server/src/services/tactical-context-builder.js | L1:- L2:- |
-- [ ] T024 [US2] Implement tactical-agent orchestration with tactical_json persistence in server/src/agents/tactical-agent.js | L1:- L2:- |
-- [ ] T025 [US2] Extend conversation-service and conversations API for agentId=tactical in server/src/services/conversation-service.js and server/src/api/conversations.js | L1:- L2:- |
-- [ ] 🚧 **批次3.7门禁: L1 Step4 (`[APP_START_COMMAND]` + Tactical conversations API 调用链成功 + 回复含阵型与战术阶段)** | 结果: - |
+- [x] T022 [P] [US2] Create tactical-analysis prompt and AiTacticalService in server/prompts/tactical-analysis.md and server/src/ai/ai-tactical-service.js | L1:✅(200/200) L2:✅ |
+- [x] T023 [US2] Implement tactical-context-builder with analysisType derivation and data-limitation guard in server/src/services/tactical-context-builder.js | L1:✅(200/200) L2:✅ |
+- [x] T024 [US2] Implement tactical-agent orchestration with tactical_json persistence in server/src/agents/tactical-agent.js | L1:✅(200/200) L2:✅ |
+- [x] T025 [US2] Extend conversation-service and conversations API for agentId=tactical in server/src/services/conversation-service.js and server/src/api/conversations.js | L1:✅(200/200) L2:✅ |
+- [x] 🚧 **批次3.7门禁: L1 Step4 (`[APP_START_COMMAND]` + Tactical conversations API 调用链成功 + 回复含阵型与战术阶段)** | 结果: ✅ tactical-conversations 契约验证 formation+phases |
 
 ---
 
 ## 批次 3.8 · Day 5 · US2 前台 — 战术分析 UI + 比赛页入口
 
-- [ ] T026 [P] [US2] Implement TacticalStartView, tactical components and MatchDetailView entry in web/src/views/TacticalStartView.vue, web/src/components/tactical/TacticalPhasePanel.vue, web/src/components/tactical/FormationBadge.vue and web/src/views/MatchDetailView.vue | L1:- L2:- |
-- [ ] T027 [US2] Extend ConversationView for tactical analysis rendering and register /tactical route in web/src/views/ConversationView.vue and web/src/router/index.ts | L1:- L2:- |
-- [ ] 🚧 **批次3.8门禁: L1 Step4 (`[APP_START_COMMAND]` + `[UI_START_COMMAND]` + `[TYPECHECK_COMMAND]` + 比赛页→战术分析导航成功)** | 结果: - |
+- [x] T026 [P] [US2] Implement TacticalStartView, tactical components and MatchDetailView entry in web/src/views/TacticalStartView.vue, web/src/components/tactical/TacticalPhasePanel.vue, web/src/components/tactical/FormationBadge.vue and web/src/views/MatchDetailView.vue | L1:✅ typecheck L2:- |
+- [x] T027 [US2] Extend ConversationView for tactical analysis rendering and register /tactical route in web/src/views/ConversationView.vue and web/src/router/index.ts | L1:✅ typecheck L2:- |
+- [x] 🚧 **批次3.8门禁: L1 Step4 (`[APP_START_COMMAND]` + `[UI_START_COMMAND]` + `[TYPECHECK_COMMAND]` + 比赛页→战术分析导航成功)** | L1:✅ typecheck · UI导航: ✅ 用户确认 |
 
 ---
 
 ## 批次 3.9 · Day 5 · Polish 收官
 
-- [ ] T028 Run 002 Stats conversations contract regression and MVP-3 scope boundary audit per plan.md Scope 边界验证清单 in server/tests/contract/conversations.test.js and specs/003-football-scout-tactical/quickstart.md | L1:- L2:- |
-- [ ] 🚧 **批次3.9门禁: L1 Step4 + 👁 HV-2 (~15–20 min, 产品/用户)** | 结果: - |
+- [x] T028 Run 002 Stats conversations contract regression and MVP-3 scope boundary audit per plan.md Scope 边界验证清单 in server/tests/contract/conversations.test.js and specs/003-football-scout-tactical/quickstart.md | L1:✅(59/59 contract) L2:✅ |
+- [x] 🚧 **批次3.9门禁: L1 Step4 + 👁 HV-2 (~15–20 min, 产品/用户)** | L1:✅ contract回归 · HV-2: ✅ 用户确认 |
+
+---
+
+## Sprint 3 收官
+
+**状态**: ✅ 全部批次完成（T001–T028 · HV-1/HV-2 已通过）

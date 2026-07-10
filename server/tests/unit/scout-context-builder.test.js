@@ -170,4 +170,20 @@ describe('ScoutContextBuilder', () => {
     expect(context.syncMessage).toBeDefined();
     db.prepare("UPDATE player_sync_meta SET status = 'ok'").run();
   });
+
+  it('returns syncMessage when league player data was never synced', () => {
+    const db = getDb();
+    db.prepare('DELETE FROM players WHERE league_code = ?').run('FL1');
+    db.prepare(`
+      UPDATE player_sync_meta
+      SET last_sync_at = NULL, players_count = 0, status = 'ok', last_error = NULL
+      WHERE league_code = 'FL1'
+    `).run();
+    const context = buildScoutContext({
+      contextType: 'league',
+      contextId: 'FL1',
+    });
+    expect(context.syncMessage).toContain('尚未同步');
+    seedScoutPlayers();
+  });
 });

@@ -1,0 +1,731 @@
+openapi: 3.0.3
+info:
+  title: 足球社区 Stats & Content API
+  description: |
+    MVP-2 REST API 契约（比赛数据、Stats 对话、Content 战报、同步 Job）。
+    认证：JWT Bearer Token（Stats 对话、用户 Conversation 列表）。
+    共享 schema（User、FeedItem 基础、ErrorResponse）与 [001-football-feed-mvp](../001-football-feed-mvp/contracts/openapi.yaml) 保持一致；本文件定义 MVP-2 增量端点。
+  version: 1.0.0-mvp2
+  contact:
+    name: Football AI Community
+
+servers:
+  - url: http://localhost:3000/api
+    description: 本地开发
+
+tags:
+  - name: Matches
+  - name: Teams
+  - name: Conversations
+  - name: Internal
+
+paths:
+  /matches:
+    get:
+      tags: [Matches]
+      summary: 获取比赛列表
+      description: 按联赛、状态、球队、日期筛选；数据来自本地 SQLite 缓存
+      operationId: listMatches
+      parameters:
+        - name: league
+          in: query
+          schema:
+            type: string
+            enum: [PL, PD, BL1, SA, FL1, CL, WC]
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [SCHEDULED, LIVE, FINISHED, POSTPONED, CANCELLED]
+        - name: teamId
+          in: query
+          description: 主队或客队匹配
+          schema:
+            type: string
+        - name: dateFrom
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: dateTo
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: pageSize
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 20
+      responses:
+        '200':
+          description: 比赛列表
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MatchListResponse'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+
+  /matches/{matchId}:
+    get:
+      tags: [Matches]
+      summary: 获取比赛详情
+      description: 含统计数据、事件时间线、关联 Content 战报 FeedItem（若有）
+      operationId: getMatch
+      parameters:
+        - $ref: '#/components/parameters/matchId'
+      responses:
+        '200':
+          description: 比赛详情
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MatchDetail'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /teams:
+    get:
+      tags: [Teams]
+      summary: 搜索球队
+      operationId: searchTeams
+      parameters:
+        - name: q
+          in: query
+          description: 名称模糊搜索
+          schema:
+            type: string
+        - name: league
+          in: query
+          schema:
+            type: string
+            enum: [PL, PD, BL1, SA, FL1, CL, WC]
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: pageSize
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 20
+      responses:
+        '200':
+          description: 球队列表
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TeamListResponse'
+
+  /teams/{teamId}:
+    get:
+      tags: [Teams]
+      summary: 获取球队详情
+      operationId: getTeam
+      parameters:
+        - $ref: '#/components/parameters/teamId'
+      responses:
+        '200':
+          description: 球队详情含近期比赛
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TeamDetail'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /conversations:
+    get:
+      tags: [Conversations]
+      summary: 获取当前用户的 Stats 对话列表
+      operationId: listConversations
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: agentId
+          in: query
+          schema:
+            type: string
+            enum: [stats]
+            default: stats
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: pageSize
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 20
+      responses:
+        '200':
+          description: 对话列表
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConversationListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      tags: [Conversations]
+      summary: 创建 Stats 对话
+      operationId: createConversation
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateConversationRequest'
+      responses:
+        '201':
+          description: 对话已创建
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConversationDetail'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: 上下文（比赛/球队）未找到
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /conversations/{conversationId}:
+    get:
+      tags: [Conversations]
+      summary: 获取对话详情与消息历史
+      operationId: getConversation
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/conversationId'
+      responses:
+        '200':
+          description: 对话详情
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConversationDetail'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: 非本人对话
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /conversations/{conversationId}/messages:
+    post:
+      tags: [Conversations]
+      summary: 向 Stats Agent 发送消息
+      description: 30 秒内返回含至少 3 项指标的解读（SC-002）；缺数据时不编造
+      operationId: sendConversationMessage
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/conversationId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SendMessageRequest'
+      responses:
+        '200':
+          description: 用户消息与 assistant 回复
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SendMessageResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: 非本人对话
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '408':
+          description: Stats Agent 超时
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: 数据同步中或外部服务不可用
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /internal/jobs/match-sync:
+    post:
+      tags: [Internal]
+      summary: 手动触发比赛/球队同步
+      operationId: triggerMatchSync
+      parameters:
+        - name: X-Internal-Key
+          in: header
+          required: true
+          schema:
+            type: string
+        - name: league
+          in: query
+          description: 可选，限定单联赛；缺省同步全部白名单联赛
+          schema:
+            type: string
+            enum: [PL, PD, BL1, SA, FL1, CL, WC]
+      responses:
+        '202':
+          description: 同步任务已接受
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobAcceptedResponse'
+        '401':
+          description: Internal Key 无效
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /internal/jobs/match-report-generate:
+    post:
+      tags: [Internal]
+      summary: 手动触发赛后报道生成
+      operationId: triggerMatchReportGenerate
+      parameters:
+        - name: X-Internal-Key
+          in: header
+          required: true
+          schema:
+            type: string
+        - name: matchId
+          in: query
+          description: 可选，限定单场比赛
+          schema:
+            type: string
+      responses:
+        '202':
+          description: 生成任务已接受
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobAcceptedResponse'
+        '401':
+          description: Internal Key 无效
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    matchId:
+      name: matchId
+      in: path
+      required: true
+      schema:
+        type: string
+    teamId:
+      name: teamId
+      in: path
+      required: true
+      schema:
+        type: string
+    conversationId:
+      name: conversationId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+  responses:
+    BadRequest:
+      description: 请求参数无效
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Unauthorized:
+      description: 未认证
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotFound:
+      description: 资源不存在
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    ServiceUnavailable:
+      description: 数据同步中或服务暂不可用
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+  schemas:
+    ErrorResponse:
+      type: object
+      required: [error, message]
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+        traceId:
+          type: string
+
+    JobAcceptedResponse:
+      type: object
+      required: [jobId, status]
+      properties:
+        jobId:
+          type: string
+        status:
+          type: string
+          enum: [accepted]
+
+    Team:
+      type: object
+      required: [id, name, leagueCode]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        shortName:
+          type: string
+        tla:
+          type: string
+        crestUrl:
+          type: string
+          format: uri
+        leagueCode:
+          type: string
+          enum: [PL, PD, BL1, SA, FL1, CL, WC]
+
+    TeamListResponse:
+      type: object
+      required: [items, page, pageSize, total]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Team'
+        page:
+          type: integer
+        pageSize:
+          type: integer
+        total:
+          type: integer
+
+    TeamDetail:
+      allOf:
+        - $ref: '#/components/schemas/Team'
+        - type: object
+          properties:
+            recentMatches:
+              type: array
+              items:
+                $ref: '#/components/schemas/MatchSummary'
+
+    MatchSummary:
+      type: object
+      required: [id, leagueCode, utcDate, status, homeTeam, awayTeam]
+      properties:
+        id:
+          type: string
+        leagueCode:
+          type: string
+        utcDate:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [SCHEDULED, LIVE, FINISHED, POSTPONED, CANCELLED]
+        homeTeam:
+          $ref: '#/components/schemas/Team'
+        awayTeam:
+          $ref: '#/components/schemas/Team'
+        homeScore:
+          type: integer
+          nullable: true
+        awayScore:
+          type: integer
+          nullable: true
+        dataCompleteness:
+          type: string
+          enum: [complete, partial, pending]
+
+    MatchListResponse:
+      type: object
+      required: [items, page, pageSize, total]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/MatchSummary'
+        page:
+          type: integer
+        pageSize:
+          type: integer
+        total:
+          type: integer
+        syncStatus:
+          type: string
+          enum: [ok, degraded, down]
+        warnings:
+          type: array
+          items:
+            type: string
+
+    MatchStat:
+      type: object
+      required: [name, homeValue, awayValue]
+      properties:
+        name:
+          type: string
+        homeValue:
+          type: number
+        awayValue:
+          type: number
+        unit:
+          type: string
+
+    MatchEvent:
+      type: object
+      required: [minute, type, teamId]
+      properties:
+        minute:
+          type: integer
+        type:
+          type: string
+          enum: [GOAL, OWN_GOAL, PENALTY, YELLOW_CARD, RED_CARD, SUBSTITUTION]
+        teamId:
+          type: string
+        playerName:
+          type: string
+        detail:
+          type: string
+
+    MatchReportFeedItem:
+      type: object
+      required: [id, type, title, publishedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          type: string
+          enum: [match_report, brief_report]
+        title:
+          type: string
+        summary:
+          type: string
+        publishedAt:
+          type: string
+          format: date-time
+        body:
+          type: object
+          properties:
+            sections:
+              type: array
+              items:
+                type: object
+                properties:
+                  heading:
+                    type: string
+                  content:
+                    type: string
+            timeline:
+              type: array
+              items:
+                $ref: '#/components/schemas/MatchEvent'
+            missingFields:
+              type: array
+              items:
+                type: string
+
+    MatchDetail:
+      allOf:
+        - $ref: '#/components/schemas/MatchSummary'
+        - type: object
+          properties:
+            season:
+              type: string
+            matchday:
+              type: integer
+            stats:
+              type: array
+              items:
+                $ref: '#/components/schemas/MatchStat'
+            events:
+              type: array
+              items:
+                $ref: '#/components/schemas/MatchEvent'
+            report:
+              $ref: '#/components/schemas/MatchReportFeedItem'
+            syncMessage:
+              type: string
+              description: 数据未就绪时的提示，如「数据同步中」
+
+    ConversationSummary:
+      type: object
+      required: [id, agentId, title, updatedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        agentId:
+          type: string
+          enum: [stats]
+        contextType:
+          type: string
+          enum: [match, team, general]
+        contextId:
+          type: string
+          nullable: true
+        title:
+          type: string
+        updatedAt:
+          type: string
+          format: date-time
+
+    MetricCitation:
+      type: object
+      required: [name, value]
+      properties:
+        name:
+          type: string
+        value:
+          type: number
+        unit:
+          type: string
+
+    Message:
+      type: object
+      required: [id, role, content, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        role:
+          type: string
+          enum: [user, assistant]
+        content:
+          type: string
+        metrics:
+          type: array
+          items:
+            $ref: '#/components/schemas/MetricCitation'
+        confidence:
+          type: string
+          enum: [high, medium, low]
+        missingFields:
+          type: array
+          items:
+            type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    ConversationDetail:
+      allOf:
+        - $ref: '#/components/schemas/ConversationSummary'
+        - type: object
+          required: [messages]
+          properties:
+            messages:
+              type: array
+              items:
+                $ref: '#/components/schemas/Message'
+
+    ConversationListResponse:
+      type: object
+      required: [items, page, pageSize, total]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ConversationSummary'
+        page:
+          type: integer
+        pageSize:
+          type: integer
+        total:
+          type: integer
+
+    CreateConversationRequest:
+      type: object
+      required: [agentId, contextType]
+      properties:
+        agentId:
+          type: string
+          enum: [stats]
+        contextType:
+          type: string
+          enum: [match, team, general]
+        contextId:
+          type: string
+          description: match 或 team 的 ID；general 可省略
+        initialMessage:
+          type: string
+          description: 可选，创建后立即发送首条问题
+
+    SendMessageRequest:
+      type: object
+      required: [content]
+      properties:
+        content:
+          type: string
+          minLength: 1
+          maxLength: 2000
+
+    SendMessageResponse:
+      type: object
+      required: [userMessage, assistantMessage]
+      properties:
+        userMessage:
+          $ref: '#/components/schemas/Message'
+        assistantMessage:
+          $ref: '#/components/schemas/Message'

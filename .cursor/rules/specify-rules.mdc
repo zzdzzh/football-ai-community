@@ -27,9 +27,18 @@ specs/001-football-feed-mvp/           # 当前可执行 feature（MVP-1）
   plan.md        # 实现方案
   contracts/     # OpenAPI 契约
   data-model.md  # 数据模型
-specs/002-football-stats-content/      # MVP-2（待 plan/tasks）
-specs/003-football-scout-tactical/     # MVP-3
-specs/004-football-fan-community/      # MVP-4
+specs/002-football-stats-content/      # MVP-2（Stats + Content）
+  plan.md        # 实现方案
+  contracts/     # OpenAPI 契约
+  data-model.md  # 数据模型
+specs/003-football-scout-tactical/     # MVP-3（Scout + Tactical）
+  plan.md        # 实现方案
+  contracts/     # OpenAPI 契约
+  data-model.md  # 数据模型
+specs/004-football-fan-community/      # MVP-4（Fan Agent + 社区治理）
+  plan.md        # 实现方案
+  contracts/     # OpenAPI 契约
+  data-model.md  # 数据模型
 ```
 
 ## Commands
@@ -57,17 +66,20 @@ cd web; npm run dev
 
 ## Recent Changes
 
-- **001-football-feed-mvp** (2026-07-10): Spec 拆分 — Feed MVP（US1+偏好），原 001-multi-agent 已废弃
+- **004-football-fan-community** (2026-07-10): Fan Agent 模拟讨论 + 内容举报/管理员审核 plan 完成
+- **003-football-scout-tactical** (2026-07-10): Scout Agent 球员推荐 + Tactical Agent 战术分析 plan 完成
+- **002-football-stats-content** (2026-07-10): Stats Agent 对话 + Content Agent 赛后报道 plan 完成
+- **001-football-feed-mvp** (2026-07-10): Feed MVP（US1+偏好）Sprint 1 交付
 - **000-football-community-vision** (2026-07-10): 六 Agent 社区全景愿景与 MVP 路线图
 
 <!-- SPECKIT START -->
 ## Active Plan
 
 - **Vision**: [000-football-community-vision](../../specs/000-football-community-vision/spec.md)
-- **Feature**: [001-football-feed-mvp](../../specs/001-football-feed-mvp/plan.md)
-- **Spec**: [spec.md](../../specs/001-football-feed-mvp/spec.md)
-- **Data Model**: [data-model.md](../../specs/001-football-feed-mvp/data-model.md)
-- **Contracts**: [openapi.yaml](../../specs/001-football-feed-mvp/contracts/openapi.yaml)
+- **Feature**: [004-football-fan-community](../../specs/004-football-fan-community/plan.md)
+- **Spec**: [spec.md](../../specs/004-football-fan-community/spec.md)
+- **Data Model**: [data-model.md](../../specs/004-football-fan-community/data-model.md)
+- **Contracts**: [openapi.yaml](../../specs/004-football-fan-community/contracts/openapi.yaml)
 <!-- SPECKIT END -->
 
 <!-- MANUAL ADDITIONS START -->

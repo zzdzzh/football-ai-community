@@ -11,6 +11,7 @@ const MIGRATION_FILES = [
   '005_feed_source_url_unique.sql',
   '006_scout_tactical.sql',
   '007_scout_conversation_context.sql',
+  '008_scraper_external_ids.sql',
 ];
 
 function ensureMigrationTable(db) {

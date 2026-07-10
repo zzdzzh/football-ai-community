@@ -23,6 +23,10 @@ const envSchema = z.object({
   MATCH_REPORT_CRON: z.string().default('*/5 * * * *'),
   PLAYER_SYNC_CRON: z.string().default('0 4 * * *'),
   FOOTBALL_DATA_WC_SEASON: z.coerce.number().default(2026),
+  DATA_SOURCE: z.enum(['football-data', 'scraper']).default('scraper'),
+  SCRAPER_PYTHON: z.string().default('python'),
+  SCRAPER_DIR: z.string().default('../scraper'),
+  SCRAPER_REQUEST_DELAY_SEC: z.coerce.number().default(1.5),
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
 });
 
@@ -56,6 +60,12 @@ export const config = {
   matchSyncCron: env.MATCH_SYNC_CRON,
   matchReportCron: env.MATCH_REPORT_CRON,
   playerSyncCron: env.PLAYER_SYNC_CRON,
+  dataSource: env.NODE_ENV === 'test' ? 'football-data' : env.DATA_SOURCE,
+  scraper: {
+    pythonPath: env.SCRAPER_PYTHON,
+    dir: resolve(__dirname, '../..', env.SCRAPER_DIR),
+    requestDelaySec: env.SCRAPER_REQUEST_DELAY_SEC,
+  },
   nodeEnv: env.NODE_ENV,
   isTest: env.NODE_ENV === 'test',
 };

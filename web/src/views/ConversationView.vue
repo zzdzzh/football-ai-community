@@ -5,7 +5,7 @@ import { ElMessage } from 'element-plus';
 import { fetchConversation, sendMessage } from '@/api/conversations';
 import MessageList from '@/components/conversation/MessageList.vue';
 import ChatInput from '@/components/conversation/ChatInput.vue';
-import type { ConversationDetail, Message } from '@/types/stats';
+import type { AgentId, ConversationDetail, Message } from '@/types/stats';
 
 const route = useRoute();
 const router = useRouter();
@@ -16,6 +16,25 @@ const messages = ref<Message[]>([]);
 const loading = ref(false);
 const sending = ref(false);
 const errorMessage = ref('');
+
+const agentId = computed<AgentId>(() => conversation.value?.agentId ?? 'stats');
+const isScout = computed(() => agentId.value === 'scout');
+const isTactical = computed(() => agentId.value === 'tactical');
+
+const backPath = computed(() => {
+  if (isScout.value) return '/scout';
+  if (isTactical.value) {
+    const matchId = route.query.matchId as string | undefined;
+    if (matchId) return `/matches/${matchId}`;
+    return '/tactical';
+  }
+  return '/stats';
+});
+const defaultTitle = computed(() => {
+  if (isScout.value) return 'Scout 对话';
+  if (isTactical.value) return 'Tactical 对话';
+  return 'Stats 对话';
+});
 
 async function loadConversation() {
   loading.value = true;
@@ -54,7 +73,8 @@ async function handleSend(content: string) {
     if (response?.status === 503) {
       ElMessage.warning(response.data?.message || '数据同步中，请稍后再试');
     } else if (response?.status === 408) {
-      ElMessage.error('Stats Agent 响应超时，请重试');
+      const label = isScout.value ? 'Scout' : isTactical.value ? 'Tactical' : 'Stats';
+      ElMessage.error(`${label} Agent 响应超时，请重试`);
     } else {
       ElMessage.error(response?.data?.message || '发送失败');
     }
@@ -64,7 +84,7 @@ async function handleSend(content: string) {
 }
 
 function goBack() {
-  router.push('/stats');
+  router.push(backPath.value);
 }
 
 onMounted(() => {
@@ -77,9 +97,11 @@ onMounted(() => {
     <header class="conversation-header">
       <div>
         <el-button text type="primary" @click="goBack">← 返回选择</el-button>
-        <h1 class="page-title">{{ conversation?.title ?? 'Stats 对话' }}</h1>
+        <h1 class="page-title">{{ conversation?.title ?? defaultTitle }}</h1>
         <p v-if="conversation" class="page-subtitle">
-          对话 ID：{{ conversation.id }} · 上下文：{{ conversation.contextType }}
+          对话 ID：{{ conversation.id }} · Agent：{{ conversation.agentId }} · 上下文：{{
+            conversation.contextType
+          }}
         </p>
       </div>
     </header>
@@ -93,8 +115,23 @@ onMounted(() => {
     />
 
     <template v-else>
-      <MessageList :messages="messages" :loading="sending" />
-      <ChatInput :loading="sending" @send="handleSend" />
+      <MessageList
+        :messages="messages"
+        :loading="sending"
+        :agent-id="agentId"
+        :conversation-id="conversationId"
+      />
+      <ChatInput
+        :loading="sending"
+        :placeholder="
+          isScout
+            ? '补充位置、年龄或风格要求…'
+            : isTactical
+              ? '追问压迫、出球或转换阶段…'
+              : '输入关于比赛数据的问题…'
+        "
+        @send="handleSend"
+      />
     </template>
   </section>
 </template>

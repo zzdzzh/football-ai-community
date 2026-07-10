@@ -10,6 +10,8 @@ const authStore = useAuthStore();
 const baseNavItems = [
   { label: '首页', path: '/' },
   { label: '数据问答', path: '/stats' },
+  { label: '球员推荐', path: '/scout' },
+  { label: '战术分析', path: '/tactical' },
   { label: '偏好设置', path: '/settings/preferences' },
 ];
 
@@ -27,7 +29,8 @@ const navItems = computed(() => {
 const activePath = computed(() => route.path);
 
 function navigate(path: string) {
-  if ((path === '/settings/preferences' || path === '/stats') && !authStore.isAuthenticated) {
+  const authPaths = ['/settings/preferences', '/stats', '/scout', '/tactical'];
+  if (authPaths.includes(path) && !authStore.isAuthenticated) {
     router.push({ path: '/login', query: { redirect: path } });
     return;
   }
@@ -60,7 +63,22 @@ onMounted(() => {
               :key="item.path"
               type="button"
               class="nav-link"
-              :class="{ active: activePath === item.path || (item.path === '/stats' && activePath.startsWith('/conversations/')) }"
+              :class="{
+                active:
+                  activePath === item.path
+                  || (item.path === '/stats'
+                    && activePath.startsWith('/conversations/')
+                    && route.query.from !== 'scout'
+                    && route.query.from !== 'tactical')
+                  || (item.path === '/scout'
+                    && activePath.startsWith('/conversations/')
+                    && route.query.from === 'scout')
+                  || (item.path === '/tactical'
+                    && (activePath.startsWith('/tactical')
+                      || activePath.startsWith('/matches/')
+                      || (activePath.startsWith('/conversations/')
+                        && route.query.from === 'tactical'))),
+              }"
               @click="navigate(item.path)"
             >
               {{ item.label }}

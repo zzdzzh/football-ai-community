@@ -19,6 +19,10 @@ npm-debug.log*
 .DS_Store
 Thumbs.db
 
-# IDE
-.vscode/
-.idea/
+# Python scraper
+scraper/__pycache__/
+scraper/**/__pycache__/
+scraper/.venv/
+scraper/_probe.py
+scraper/_sample_*.html
+scraper/_tm.html

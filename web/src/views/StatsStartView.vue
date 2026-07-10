@@ -6,6 +6,7 @@ import { fetchMatches } from '@/api/matches';
 import { searchTeams } from '@/api/teams';
 import { createConversation } from '@/api/conversations';
 import type { LeagueCode, MatchSummary, Team } from '@/types/stats';
+import { LEAGUE_OPTIONS_SHORT } from '@/constants/leagues';
 
 const router = useRouter();
 
@@ -25,14 +26,7 @@ const selectedMatchId = ref<string | null>(null);
 const selectedTeamId = ref<string | null>(null);
 const initialQuestion = ref('');
 
-const leagueOptions: { label: string; value: LeagueCode }[] = [
-  { label: '英超 PL', value: 'PL' },
-  { label: '西甲 PD', value: 'PD' },
-  { label: '德甲 BL1', value: 'BL1' },
-  { label: '意甲 SA', value: 'SA' },
-  { label: '法甲 FL1', value: 'FL1' },
-  { label: '欧冠 CL', value: 'CL' },
-];
+const leagueOptions = LEAGUE_OPTIONS_SHORT;
 
 function formatMatchLabel(match: MatchSummary) {
   const score =
@@ -110,7 +104,7 @@ async function startConversation() {
     }
 
     const conversation = await createConversation(payload);
-    await router.push(`/conversations/${conversation.id}`);
+    await router.push({ path: `/conversations/${conversation.id}`, query: { from: 'stats' } });
   } catch (err: unknown) {
     const msg =
       err && typeof err === 'object' && 'response' in err

@@ -4,6 +4,7 @@ import { Router } from 'express';
 import { config } from '../config/index.js';
 import { AppError } from '../middleware/error.js';
 import { createFootballDataAdapter, ALLOWED_LEAGUES } from '../adapters/football-data-adapter.js';
+import { importLeagueFromScraper } from '../services/scraper-import-service.js';
 import { SEASON_REQUIRED_LEAGUES } from '../constants/league-codes.js';
 import { searchTeams, upsertTeam } from '../db/repositories/team-repository.js';
 import { upsertPlayer, countPlayersByLeague } from '../db/repositories/player-repository.js';
@@ -90,6 +91,29 @@ async function syncLeaguePlayers(adapter, leagueCode) {
 
 export async function executePlayerSyncJob({ league = null, adapter = null } = {}) {
   if (runningJob) {
+    return runningJob;
+  }
+
+  if (config.dataSource === 'scraper') {
+    const leagues = league ? [league] : ALLOWED_LEAGUES;
+    runningJob = (async () => {
+      const results = [];
+      for (const leagueCode of leagues) {
+        try {
+          const result = await importLeagueFromScraper(leagueCode);
+          results.push({
+            leagueCode,
+            syncedPlayers: result.syncedPlayers,
+            syncedScorers: result.syncedScorers,
+          });
+        } catch (err) {
+          results.push({ leagueCode, error: err.message });
+        }
+      }
+      return results;
+    })().finally(() => {
+      runningJob = null;
+    });
     return runningJob;
   }
 

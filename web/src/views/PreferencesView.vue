@@ -6,6 +6,8 @@ import { fetchPreferences, updatePreferences } from '@/api/auth';
 import { useAuthStore } from '@/stores/auth';
 import type { UserPreference } from '@/types/auth';
 
+import { LEAGUE_OPTIONS } from '@/constants/leagues';
+
 const authStore = useAuthStore();
 const router = useRouter();
 const formRef = ref<FormInstance>();
@@ -15,14 +17,7 @@ const errorMessage = ref('');
 const successMessage = ref('');
 const teamInput = ref('');
 
-const leagueOptions = [
-  { value: 'PL', label: '英超 (PL)' },
-  { value: 'PD', label: '西甲 (PD)' },
-  { value: 'BL1', label: '德甲 (BL1)' },
-  { value: 'SA', label: '意甲 (SA)' },
-  { value: 'FL1', label: '法甲 (FL1)' },
-  { value: 'CL', label: '欧冠 (CL)' },
-];
+const leagueOptions = LEAGUE_OPTIONS;
 
 const agentOptions = [
   { value: 'news', label: '新闻 Agent' },

@@ -1,0 +1,616 @@
+openapi: 3.0.3
+info:
+  title: 足球社区 Fan Agent & 社区治理 API
+  description: |
+    MVP-4 REST API 契约（Fan Persona、模拟讨论、内容举报、管理员审核）。
+    认证：JWT Bearer Token（讨论、举报）；管理员端点需 moderator/admin 角色。
+    共享 schema（User、ErrorResponse、Team、Match 基础、FeedItem 基础）与
+    [001-football-feed-mvp](../001-football-feed-mvp/contracts/openapi.yaml)、
+    [002-football-stats-content](../002-football-stats-content/contracts/openapi.yaml) 保持一致；
+    本文件定义 MVP-4 增量端点与 schema。
+  version: 1.0.0-mvp4
+  contact:
+    name: Football AI Community
+
+servers:
+  - url: http://localhost:3000/api
+    description: 本地开发
+
+tags:
+  - name: FanPersonas
+  - name: FanDiscussions
+  - name: ContentReports
+  - name: AdminReports
+
+paths:
+  /fan-personas:
+    get:
+      tags: [FanPersonas]
+      summary: 列出可选 Fan Persona
+      description: 按联赛或球队筛选；数据来自本地种子
+      operationId: listFanPersonas
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: league
+          in: query
+          schema:
+            type: string
+            enum: [PL, PD, BL1, SA, FL1, CL, WC]
+        - name: teamId
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Persona 列表
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FanPersonaListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /fan-discussions:
+    post:
+      tags: [FanDiscussions]
+      summary: 创建 Fan 模拟讨论并生成首轮发言
+      description: |
+        选择 ≥2 个 Persona 与讨论主题；60 秒内生成 ≥4 条交替 Persona 发言。
+        成功后发布 fan_discussion 类型 FeedItem。
+      operationId: createFanDiscussion
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateFanDiscussionRequest'
+      responses:
+        '201':
+          description: 讨论已创建
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FanDiscussionDetail'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '408':
+          description: Fan Agent 响应超时
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: 内容违反社区规范（生成结果被过滤）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContentPolicyError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+
+  /fan-discussions/{discussionId}:
+    get:
+      tags: [FanDiscussions]
+      summary: 获取讨论详情
+      description: active 讨论对登录用户可读；hidden 讨论仅 owner 可读
+      operationId: getFanDiscussion
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/discussionId'
+      responses:
+        '200':
+          description: 讨论详情含 turns
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FanDiscussionDetail'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: 讨论已隐藏且非 owner
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /fan-discussions/{discussionId}/turns:
+    post:
+      tags: [FanDiscussions]
+      summary: 用户插话并触发 Fan Agent 续写
+      description: |
+        写入用户 turn 后，Fan Agent 生成 1–2 条 Persona 回应，参考用户观点并保持风格差异。
+        违规内容在写入前拦截。
+      operationId: addFanDiscussionTurn
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/discussionId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddFanTurnRequest'
+      responses:
+        '200':
+          description: 用户 turn 与新增 Persona turns
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AddFanTurnResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: 非讨论 owner 或讨论已隐藏
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '408':
+          description: Fan Agent 续写超时
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: 用户内容违反社区规范
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContentPolicyError'
+
+  /content-reports:
+    post:
+      tags: [ContentReports]
+      summary: 举报 Agent 输出不当内容
+      operationId: createContentReport
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateContentReportRequest'
+      responses:
+        '201':
+          description: 举报已提交
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContentReport'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: 举报目标不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: 24 小时内重复举报同一目标
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /admin/content-reports:
+    get:
+      tags: [AdminReports]
+      summary: 获取待处理举报列表
+      operationId: listContentReports
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, hidden, dismissed]
+            default: pending
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: pageSize
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 20
+      responses:
+        '200':
+          description: 举报列表
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContentReportListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: 需要 moderator 或 admin 角色
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /admin/content-reports/{reportId}/hide:
+    post:
+      tags: [AdminReports]
+      summary: 隐藏被举报内容
+      description: |
+        fan_discussion_turn：隐藏单条 turn。
+        fan_discussion：隐藏整讨论并更新 FeedItem visibility=hidden。
+      operationId: hideReportedContent
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/reportId'
+      responses:
+        '200':
+          description: 内容已隐藏
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContentReportActionResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /admin/content-reports/{reportId}/dismiss:
+    post:
+      tags: [AdminReports]
+      summary: 驳回举报
+      operationId: dismissContentReport
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/reportId'
+      responses:
+        '200':
+          description: 举报已驳回
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContentReportActionResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    discussionId:
+      name: discussionId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    reportId:
+      name: reportId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+  responses:
+    BadRequest:
+      description: 请求参数无效
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Unauthorized:
+      description: 未认证
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Forbidden:
+      description: 权限不足
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotFound:
+      description: 资源不存在
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    ServiceUnavailable:
+      description: AI 服务暂不可用
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+  schemas:
+    ErrorResponse:
+      type: object
+      required: [error, message]
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+        traceId:
+          type: string
+
+    ContentPolicyError:
+      allOf:
+        - $ref: '#/components/schemas/ErrorResponse'
+        - type: object
+          properties:
+            error:
+              type: string
+              enum: [content_policy_violation]
+
+    FanPersona:
+      type: object
+      required: [id, displayName, teamId, teamName, leagueCode, styleTraits]
+      properties:
+        id:
+          type: string
+        displayName:
+          type: string
+        teamId:
+          type: string
+        teamName:
+          type: string
+        leagueCode:
+          type: string
+          enum: [PL, PD, BL1, SA, FL1, CL, WC]
+        styleTraits:
+          type: array
+          items:
+            type: string
+        accentPhrases:
+          type: array
+          items:
+            type: string
+
+    FanPersonaListResponse:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/FanPersona'
+
+    CreateFanDiscussionRequest:
+      type: object
+      required: [topic, personaIds]
+      properties:
+        topic:
+          type: string
+          minLength: 1
+          maxLength: 200
+        personaIds:
+          type: array
+          minItems: 2
+          items:
+            type: string
+        matchId:
+          type: string
+          description: 可选，关联比赛作为议题上下文
+
+    FanDiscussionTurn:
+      type: object
+      required: [id, sequence, role, content, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        sequence:
+          type: integer
+        role:
+          type: string
+          enum: [persona, user]
+        personaId:
+          type: string
+          nullable: true
+        personaDisplayName:
+          type: string
+          nullable: true
+        teamName:
+          type: string
+          nullable: true
+        userId:
+          type: string
+          nullable: true
+        content:
+          type: string
+        isHidden:
+          type: boolean
+          default: false
+        createdAt:
+          type: string
+          format: date-time
+
+    FanDiscussionDetail:
+      type: object
+      required: [id, topic, status, personas, turns, turnCount, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        topic:
+          type: string
+        matchId:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [active, hidden, archived]
+        personas:
+          type: array
+          items:
+            $ref: '#/components/schemas/FanPersona'
+        turns:
+          type: array
+          items:
+            $ref: '#/components/schemas/FanDiscussionTurn'
+        turnCount:
+          type: integer
+        feedItemId:
+          type: string
+          nullable: true
+        disclaimer:
+          type: string
+          description: 模拟内容免责声明
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    AddFanTurnRequest:
+      type: object
+      required: [content]
+      properties:
+        content:
+          type: string
+          minLength: 1
+          maxLength: 1000
+
+    AddFanTurnResponse:
+      type: object
+      required: [userTurn, personaTurns]
+      properties:
+        userTurn:
+          $ref: '#/components/schemas/FanDiscussionTurn'
+        personaTurns:
+          type: array
+          items:
+            $ref: '#/components/schemas/FanDiscussionTurn'
+
+    CreateContentReportRequest:
+      type: object
+      required: [targetType, targetId, reason]
+      properties:
+        targetType:
+          type: string
+          enum: [fan_discussion, fan_discussion_turn]
+        targetId:
+          type: string
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 500
+
+    ContentReport:
+      type: object
+      required: [id, targetType, targetId, reason, status, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        targetType:
+          type: string
+          enum: [fan_discussion, fan_discussion_turn]
+        targetId:
+          type: string
+        reason:
+          type: string
+        status:
+          type: string
+          enum: [pending, hidden, dismissed]
+        reporterUserId:
+          type: string
+        reviewedBy:
+          type: string
+          nullable: true
+        reviewedAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        targetSummary:
+          type: string
+          description: 被举报内容摘要（管理员列表用）
+
+    ContentReportListResponse:
+      type: object
+      required: [items, page, pageSize, total]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ContentReport'
+        page:
+          type: integer
+        pageSize:
+          type: integer
+        total:
+          type: integer
+
+    ContentReportActionResponse:
+      type: object
+      required: [report, message]
+      properties:
+        report:
+          $ref: '#/components/schemas/ContentReport'
+        message:
+          type: string
+
+    FanDiscussionFeedItem:
+      type: object
+      description: FeedItem type=fan_discussion 扩展字段（引用 001 FeedItem 基础）
+      required: [id, type, agentId, title, publishedAt]
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+          enum: [fan_discussion]
+        agentId:
+          type: string
+          enum: [fan]
+        title:
+          type: string
+        summary:
+          type: string
+        discussionId:
+          type: string
+        personaCount:
+          type: integer
+        turnCount:
+          type: integer
+        publishedAt:
+          type: string
+          format: date-time

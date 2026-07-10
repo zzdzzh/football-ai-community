@@ -192,3 +192,16 @@ export function findFinishedMatchesMissingStats(limit = 10) {
   `).all(limit);
   return rows.map((row) => attachTeams(row));
 }
+
+export function findFinishedScraperMatchesMissingStats(limit = 10) {
+  const db = getDb();
+  const rows = db.prepare(`
+    SELECT * FROM matches
+    WHERE status = 'FINISHED'
+      AND id LIKE 'ss-%'
+      AND (stats_json IS NULL OR stats_json = '')
+    ORDER BY utc_date DESC
+    LIMIT ?
+  `).all(limit);
+  return rows.map((row) => attachTeams(row));
+}

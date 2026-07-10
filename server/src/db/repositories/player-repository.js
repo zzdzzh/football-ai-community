@@ -28,8 +28,9 @@ export function upsertPlayer(player) {
   const now = new Date().toISOString();
   db.prepare(`
     INSERT INTO players (
-      id, name, team_id, position, date_of_birth, nationality, league_code, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      id, name, team_id, position, date_of_birth, nationality, league_code, updated_at,
+      transfermarkt_id, fbref_id, sofascore_id
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(id) DO UPDATE SET
       name = excluded.name,
       team_id = excluded.team_id,
@@ -37,7 +38,10 @@ export function upsertPlayer(player) {
       date_of_birth = excluded.date_of_birth,
       nationality = excluded.nationality,
       league_code = excluded.league_code,
-      updated_at = excluded.updated_at
+      updated_at = excluded.updated_at,
+      transfermarkt_id = COALESCE(excluded.transfermarkt_id, players.transfermarkt_id),
+      fbref_id = COALESCE(excluded.fbref_id, players.fbref_id),
+      sofascore_id = COALESCE(excluded.sofascore_id, players.sofascore_id)
   `).run(
     player.id,
     player.name,
@@ -47,6 +51,9 @@ export function upsertPlayer(player) {
     player.nationality ?? null,
     player.leagueCode,
     player.updatedAt ?? now,
+    player.transfermarktId ?? null,
+    player.fbrefId ?? null,
+    player.sofascoreId ?? null,
   );
   return findPlayerById(player.id);
 }

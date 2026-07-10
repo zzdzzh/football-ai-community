@@ -24,6 +24,24 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/StatsStartView.vue'),
       },
       {
+        path: 'scout',
+        name: 'scout-start',
+        meta: { requiresAuth: true },
+        component: () => import('@/views/ScoutStartView.vue'),
+      },
+      {
+        path: 'tactical',
+        name: 'tactical-start',
+        meta: { requiresAuth: true },
+        component: () => import('@/views/TacticalStartView.vue'),
+      },
+      {
+        path: 'matches/:matchId',
+        name: 'match-detail',
+        meta: { requiresAuth: true },
+        component: () => import('@/views/MatchDetailView.vue'),
+      },
+      {
         path: 'conversations/:conversationId',
         name: 'conversation',
         meta: { requiresAuth: true },

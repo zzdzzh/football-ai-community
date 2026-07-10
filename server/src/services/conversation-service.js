@@ -15,6 +15,7 @@ import {
 import { upsertMessageFeedback } from '../db/repositories/message-feedback-repository.js';
 import { createStatsAgent } from '../agents/stats-agent.js';
 import { createScoutAgent } from '../agents/scout-agent.js';
+import { createTacticalAgent } from '../agents/tactical-agent.js';
 import { ALLOWED_LEAGUES, getLeagueDisplayName } from '../constants/league-codes.js';
 
 function buildStatsConversationTitle({ contextType, contextId }) {
@@ -42,9 +43,35 @@ function buildScoutConversationTitle({ contextType, contextId }) {
   return '球员推荐';
 }
 
+function buildTacticalConversationTitle({ contextType, contextId }) {
+  if (contextType === 'match') {
+    const match = findMatchById(contextId);
+    if (match) {
+      return `${match.homeTeam.name} vs ${match.awayTeam.name} · 战术分析`;
+    }
+  }
+  if (contextType === 'team') {
+    const team = findTeamById(contextId);
+    if (team) return `${team.name} · 战术分析`;
+  }
+  return '战术分析';
+}
+
 function assertConversationOwner(conversation, userId) {
   if (conversation.userId !== userId) {
     throw new AppError(403, 'forbidden', '无权访问此对话');
+  }
+}
+
+function validateTacticalContext({ contextType, contextId }) {
+  if (contextType === 'match' && !findMatchById(contextId)) {
+    throw new AppError(404, 'not_found', '比赛不存在');
+  }
+  if (contextType === 'team' && !findTeamById(contextId)) {
+    throw new AppError(404, 'not_found', '球队不存在');
+  }
+  if (!['match', 'team'].includes(contextType)) {
+    throw new AppError(400, 'bad_request', 'Tactical 仅支持 match/team 上下文');
   }
 }
 
@@ -85,6 +112,12 @@ function formatMessageForApi(message, agentId) {
       narrowHint: message.metrics?.find?.((m) => m.name === 'narrowHint')?.value ?? undefined,
     };
   }
+  if (agentId === 'tactical' && message.role === 'assistant') {
+    return {
+      ...base,
+      tacticalAnalysis: message.tacticalAnalysis,
+    };
+  }
   if (agentId === 'stats') {
     return {
       ...base,
@@ -117,8 +150,9 @@ export async function createUserConversation({
   initialMessage = null,
   statsAgent = null,
   scoutAgent = null,
+  tacticalAgent = null,
 }) {
-  if (!['stats', 'scout'].includes(agentId)) {
+  if (!['stats', 'scout', 'tactical'].includes(agentId)) {
     throw new AppError(400, 'bad_request', `不支持的 Agent: ${agentId}`);
   }
 
@@ -131,6 +165,13 @@ export async function createUserConversation({
     }
   }
 
+  if (agentId === 'tactical') {
+    if (!contextId) {
+      throw new AppError(400, 'bad_request', 'match/team 上下文需要 contextId');
+    }
+    validateTacticalContext({ contextType, contextId });
+  }
+
   if (agentId === 'scout') {
     if ((contextType === 'league' || contextType === 'team') && !contextId) {
       throw new AppError(400, 'bad_request', 'league/team 上下文需要 contextId');
@@ -140,9 +181,14 @@ export async function createUserConversation({
     }
   }
 
-  const title = agentId === 'scout'
-    ? buildScoutConversationTitle({ contextType, contextId })
-    : buildStatsConversationTitle({ contextType, contextId });
+  let title;
+  if (agentId === 'scout') {
+    title = buildScoutConversationTitle({ contextType, contextId });
+  } else if (agentId === 'tactical') {
+    title = buildTacticalConversationTitle({ contextType, contextId });
+  } else {
+    title = buildStatsConversationTitle({ contextType, contextId });
+  }
 
   const conversation = createConversation({
     userId,
@@ -162,6 +208,7 @@ export async function createUserConversation({
     content: initialMessage,
     statsAgent,
     scoutAgent,
+    tacticalAgent,
   });
 
   return getConversationDetail({ conversationId: conversation.id, userId });
@@ -173,6 +220,7 @@ export async function sendConversationMessage({
   content,
   statsAgent = null,
   scoutAgent = null,
+  tacticalAgent = null,
 }) {
   const conversation = findConversationById(conversationId);
   if (!conversation) {
@@ -223,6 +271,22 @@ export async function sendConversationMessage({
         recommendations: reply.recommendations,
         confidence: reply.confidence,
         metrics,
+      });
+    } else if (conversation.agentId === 'tactical') {
+      const agent = tacticalAgent ?? createTacticalAgent();
+      const reply = await agent.handleQuestion({
+        contextType: conversation.contextType,
+        contextId: conversation.contextId,
+        userQuestion: content,
+        userId,
+      });
+      assistantMessage = createMessage({
+        conversationId,
+        role: 'assistant',
+        content: reply.content,
+        tacticalAnalysis: reply.tacticalAnalysis,
+        confidence: reply.confidence,
+        missingFields: reply.missingFields,
       });
     } else {
       throw new AppError(400, 'bad_request', '不支持的 Agent');

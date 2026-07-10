@@ -4,6 +4,7 @@ import { ref } from 'vue';
 const props = defineProps<{
   disabled?: boolean;
   loading?: boolean;
+  placeholder?: string;
 }>();
 
 const emit = defineEmits<{
@@ -22,7 +23,7 @@ function handleSend() {
 
 <template>
   <div class="chat-input">
-    <label class="field-label" for="stats-chat-input">向 Stats Agent 提问</label>
+    <label class="field-label" for="stats-chat-input">继续对话</label>
     <div class="input-row">
       <el-input
         id="stats-chat-input"
@@ -30,7 +31,7 @@ function handleSend() {
         type="textarea"
         :rows="3"
         :disabled="disabled || loading"
-        placeholder="例如：这场比赛控球与射门表现如何？"
+        :placeholder="placeholder ?? '例如：这场比赛控球与射门表现如何？'"
         maxlength="2000"
         show-word-limit
         @keydown.ctrl.enter="handleSend"

@@ -49,10 +49,10 @@
 - [ ] T004 [P] Implement team and match repositories in server/src/db/repositories/team-repository.js and server/src/db/repositories/match-repository.js
 - [ ] T005 [P] Implement conversation, message and match-sync-meta repositories in server/src/db/repositories/conversation-repository.js, server/src/db/repositories/message-repository.js and server/src/db/repositories/match-sync-meta-repository.js
 - [ ] T006 Extend feed-item-repository for match_id, body_json, data_sources_json and match_report/brief_report types in server/src/db/repositories/feed-item-repository.js
-- [ ] T007 Implement FootballDataAdapter with 8 req/min rate limiter and ALLOWED_LEAGUES whitelist in server/src/adapters/football-data-adapter.js
+- [x] T007 Implement FootballDataAdapter with 8 req/min rate limiter and ALLOWED_LEAGUES whitelist in server/src/adapters/football-data-adapter.js
 - [ ] T008 [P] Implement match-service and team-service in server/src/services/match-service.js and server/src/services/team-service.js
 - [ ] T009 [P] Implement AiAnalysisService and stats-interpret prompt in server/src/ai/ai-analysis-service.js and server/prompts/stats-interpret.md
-- [ ] T010 Implement match-sync job and mount matches/teams API routes in server/src/jobs/match-sync.js, server/src/api/matches.js, server/src/api/teams.js and server/src/app.js
+- [x] T010 Implement match-sync job and mount matches/teams API routes in server/src/jobs/match-sync.js, server/src/api/matches.js, server/src/api/teams.js and server/src/app.js
 
 **Checkpoint**: Foundation ready — match data syncable, matches/teams API callable, user story implementation can now begin
 

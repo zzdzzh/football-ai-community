@@ -16,15 +16,20 @@ export function upsertTeam(team) {
   const db = getDb();
   const now = new Date().toISOString();
   db.prepare(`
-    INSERT INTO teams (id, name, short_name, tla, crest_url, league_code, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO teams (
+      id, name, short_name, tla, crest_url, league_code, updated_at,
+      sofascore_id, transfermarkt_id, fbref_id
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(id) DO UPDATE SET
       name = excluded.name,
       short_name = excluded.short_name,
       tla = excluded.tla,
       crest_url = excluded.crest_url,
       league_code = excluded.league_code,
-      updated_at = excluded.updated_at
+      updated_at = excluded.updated_at,
+      sofascore_id = COALESCE(excluded.sofascore_id, teams.sofascore_id),
+      transfermarkt_id = COALESCE(excluded.transfermarkt_id, teams.transfermarkt_id),
+      fbref_id = COALESCE(excluded.fbref_id, teams.fbref_id)
   `).run(
     team.id,
     team.name,
@@ -33,8 +38,40 @@ export function upsertTeam(team) {
     team.crestUrl ?? null,
     team.leagueCode,
     team.updatedAt ?? now,
+    team.sofascoreId ?? null,
+    team.transfermarktId ?? null,
+    team.fbrefId ?? null,
   );
   return findTeamById(team.id);
+}
+
+export function findTeamBySofascoreId(sofascoreId) {
+  const db = getDb();
+  const row = db.prepare('SELECT * FROM teams WHERE sofascore_id = ?').get(sofascoreId);
+  return row ? mapTeamRow(row) : null;
+}
+
+export function findTeamByTransfermarktId(transfermarktId) {
+  const db = getDb();
+  const row = db.prepare('SELECT * FROM teams WHERE transfermarkt_id = ?').get(transfermarktId);
+  return row ? mapTeamRow(row) : null;
+}
+
+export function normalizeTeamName(name) {
+  return name
+    .toLowerCase()
+    .replace(/\bfc\b/g, '')
+    .replace(/\./g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+export function findTeamByNormalizedName(name, leagueCode) {
+  const db = getDb();
+  const target = normalizeTeamName(name);
+  const rows = db.prepare('SELECT * FROM teams WHERE league_code = ?').all(leagueCode);
+  const row = rows.find((item) => normalizeTeamName(item.name) === target);
+  return row ? mapTeamRow(row) : null;
 }
 
 export function findTeamById(id) {

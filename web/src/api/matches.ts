@@ -1,5 +1,5 @@
 import apiClient from './client';
-import type { LeagueCode, MatchListResponse, MatchStatus, MatchSummary } from '@/types/stats';
+import type { LeagueCode, MatchDetail, MatchListResponse, MatchStatus } from '@/types/stats';
 
 export async function fetchMatches(params?: {
   league?: LeagueCode;
@@ -14,7 +14,7 @@ export async function fetchMatches(params?: {
   return data;
 }
 
-export async function fetchMatchDetail(matchId: string): Promise<MatchSummary> {
-  const { data } = await apiClient.get<MatchSummary>(`/matches/${matchId}`);
+export async function fetchMatchDetail(matchId: string): Promise<MatchDetail> {
+  const { data } = await apiClient.get<MatchDetail>(`/matches/${matchId}`);
   return data;
 }
