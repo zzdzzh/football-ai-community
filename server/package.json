@@ -10,6 +10,7 @@
     "start": "node src/index.js",
     "db:migrate": "node src/db/cli-migrate.js",
     "db:seed": "node src/db/cli-seed.js",
+    "db:seed-admin": "node scripts/seed-admin.mjs",
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
     "test:contract": "node --experimental-vm-modules node_modules/jest/bin/jest.js --selectProjects contract",
     "test:unit:auth": "node --experimental-vm-modules node_modules/jest/bin/jest.js --selectProjects unit-auth-coverage --coverage"

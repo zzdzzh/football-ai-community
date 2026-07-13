@@ -94,7 +94,7 @@
 
 ## Phase 4: Polish & Cross-Cutting Concerns
 
-- [ ] T027 Run 002/003 conversations contract regression and MVP-4 scope boundary audit per plan.md Scope 边界验证清单 in server/tests/contract/conversations.test.js and specs/004-football-fan-community/quickstart.md
+- [x] T027 Run 002/003 conversations contract regression and MVP-4 scope boundary audit per plan.md Scope 边界验证清单 in server/tests/contract/conversations.test.js and specs/004-football-fan-community/quickstart.md
 
 ---
 

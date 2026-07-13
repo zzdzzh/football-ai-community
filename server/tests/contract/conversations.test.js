@@ -156,4 +156,32 @@ describe('Conversations API contract', () => {
       expect(res.status).toBe(503);
     });
   });
+
+  describe('MVP-4 scope boundary audit', () => {
+    it('rejects fan agentId on conversations API', async () => {
+      const res = await request(app)
+        .post('/api/conversations')
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          agentId: 'fan',
+          contextType: 'general',
+        });
+
+      expect(res.status).toBe(400);
+      expect(res.body.error).toBe('bad_request');
+    });
+
+    it('does not expose direct messaging or chat room routes', async () => {
+      const directRes = await request(app)
+        .post('/api/messages/direct')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ content: 'hello' });
+      const roomRes = await request(app)
+        .get('/api/chat-rooms')
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(directRes.status).toBe(404);
+      expect(roomRes.status).toBe(404);
+    });
+  });
 });

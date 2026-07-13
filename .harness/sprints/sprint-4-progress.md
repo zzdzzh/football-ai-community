@@ -64,17 +64,17 @@
 
 - [x] T025 [US1] Implement AdminReportsView and register /admin/reports route in web/src/views/AdminReportsView.vue and web/src/router/index.ts | L1:✅ vue-tsc L2:✅ |
 - [x] T026 [US1] Extend FeedCard for fan_discussion type navigation and add /fan entry in web/src/components/feed/FeedCard.vue and web/src/router/index.ts | L1:✅ vue-tsc L2:✅ |
-- [ ] 🚧 **批次4.6门禁: L1 Step4 (`[APP_START_COMMAND]` + `[UI_START_COMMAND]` + `[TYPECHECK_COMMAND]` + 举报→hide→Feed 不可见)** | 结果: L1:✅ vue-tsc · HV: 待签收 |
+- [ ] 🚧 **批次4.6门禁: L1 Step4 (`[APP_START_COMMAND]` + `[UI_START_COMMAND]` + `[TYPECHECK_COMMAND]` + 举报→hide→Feed 不可见)** | 结果: L1:✅ vue-tsc · HV: ✅ 用户签收 |
 
 ---
 
 ## 批次 4.7 · Day 5 · Polish 收官
 
-- [ ] T027 Run 002/003 conversations contract regression and MVP-4 scope boundary audit per plan.md Scope 边界验证清单 in server/tests/contract/conversations.test.js and specs/004-football-fan-community/quickstart.md | L1:- L2:- |
-- [ ] 🚧 **批次4.7门禁: L1 Step4 + 👁 HV-2 (~15–20 min, 产品/用户)** | 结果: - |
+- [x] T027 Run 002/003 conversations contract regression and MVP-4 scope boundary audit per plan.md Scope 边界验证清单 in server/tests/contract/conversations.test.js and specs/004-football-fan-community/quickstart.md | L1:✅(260/260) L2:✅ |
+- [ ] 🚧 **批次4.7门禁: L1 Step4 + 👁 HV-2 (~15–20 min, 产品/用户)** | 结果: L1:✅ 260/260 · HV-2: 待签收 |
 
 ---
 
 ## Sprint 4 收官
 
-**状态**: 进行中（批次 4.6）
+**状态**: 进行中（批次 4.7 · 待 HV-2 收官）
