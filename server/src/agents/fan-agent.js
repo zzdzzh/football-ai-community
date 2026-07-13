@@ -56,6 +56,15 @@ export class FanAgent {
     if (err.name === 'AbortError' || err.code === 'TIMEOUT' || err.statusCode === 408) {
       throw new AppError(408, 'timeout', 'Fan Agent 响应超时');
     }
+    if (err.statusCode === 429) {
+      throw new AppError(503, 'service_unavailable', 'AI 服务请求过于频繁，请稍后再试');
+    }
+    if (err.statusCode === 401 || err.statusCode === 403) {
+      throw new AppError(503, 'service_unavailable', 'AI 服务凭证无效或未配置');
+    }
+    if (typeof err.statusCode === 'number' && err.statusCode >= 500) {
+      throw new AppError(503, 'service_unavailable', 'AI 服务暂不可用，请稍后再试');
+    }
     throw err;
   }
 

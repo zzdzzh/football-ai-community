@@ -221,6 +221,23 @@ describe('FanAgent', () => {
     })).rejects.toMatchObject({ statusCode: 422 });
   });
 
+  it('throws 503 when AI provider rate limits', async () => {
+    const err = new Error('AI request failed: 429');
+    err.statusCode = 429;
+    mockAi.simulateTurns.mockRejectedValueOnce(err);
+
+    const agent = createAgent();
+    await expect(agent.createInitialDiscussion({
+      userId: 'u1',
+      topic: 'test',
+      personaIds: ['persona-arsenal', 'persona-liverpool'],
+    })).rejects.toMatchObject({
+      statusCode: 503,
+      error: 'service_unavailable',
+      message: 'AI 服务请求过于频繁，请稍后再试',
+    });
+  });
+
   it('rethrows unexpected AI errors', async () => {
     mockAi.simulateTurns.mockRejectedValueOnce(new Error('unexpected'));
 

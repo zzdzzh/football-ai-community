@@ -61,6 +61,8 @@ async function startDiscussion() {
       ElMessage.error(response?.data?.message || '内容违反社区规范，请修改后重试');
     } else if (response?.status === 408) {
       ElMessage.error('Fan Agent 响应超时，请重试');
+    } else if (response?.status === 503 || response?.data?.error === 'service_unavailable') {
+      ElMessage.warning(response?.data?.message || 'AI 服务暂不可用，请稍后再试');
     } else {
       ElMessage.error(response?.data?.message || '创建讨论失败');
     }
