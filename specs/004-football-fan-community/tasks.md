@@ -64,22 +64,22 @@
 
 ### Tests for User Story 1
 
-- [ ] T009 [P] [US1] Contract tests for GET /fan-personas, POST/GET /fan-discussions and POST /fan-discussions/{id}/turns in server/tests/contract/fan-discussions.test.js
-- [ ] T010 [P] [US1] Contract tests for POST /content-reports in server/tests/contract/content-reports.test.js
-- [ ] T011 [P] [US1] Contract tests for GET /admin/content-reports, hide and dismiss actions in server/tests/contract/admin-reports.test.js
-- [ ] T012 [P] [US1] Unit tests for fan-context-builder with 100% branch coverage in server/tests/unit/fan-context-builder.test.js
-- [ ] T013 [P] [US1] Unit tests for fan-agent with 100% branch coverage in server/tests/unit/fan-agent.test.js
-- [ ] T014 [P] [US1] Unit tests for content-moderation-service with 100% branch coverage in server/tests/unit/content-moderation.test.js
+- [x] T009 [P] [US1] Contract tests for GET /fan-personas, POST/GET /fan-discussions and POST /fan-discussions/{id}/turns in server/tests/contract/fan-discussions.test.js
+- [x] T010 [P] [US1] Contract tests for POST /content-reports in server/tests/contract/content-reports.test.js
+- [x] T011 [P] [US1] Contract tests for GET /admin/content-reports, hide and dismiss actions in server/tests/contract/admin-reports.test.js
+- [x] T012 [P] [US1] Unit tests for fan-context-builder with 100% branch coverage in server/tests/unit/fan-context-builder.test.js
+- [x] T013 [P] [US1] Unit tests for fan-agent with 100% branch coverage in server/tests/unit/fan-agent.test.js
+- [x] T014 [P] [US1] Unit tests for content-moderation-service with 100% branch coverage in server/tests/unit/content-moderation.test.js
 
 ### Implementation for User Story 1
 
-- [ ] T015 [P] [US1] Create fan-discussion prompt and AiFanService in server/prompts/fan-discussion.md and server/src/ai/ai-fan-service.js
-- [ ] T016 [US1] Implement fan-context-builder with optional matchId and feed snippet context in server/src/services/fan-context-builder.js
-- [ ] T017 [US1] Implement fan-discussion-service with turn persistence, persona association and Feed publish transaction in server/src/services/fan-discussion-service.js
-- [ ] T018 [US1] Implement fan-agent orchestration for initial batch and continue modes in server/src/agents/fan-agent.js
-- [ ] T019 [US1] Implement fan-discussions and fan-personas API and mount routes in server/src/api/fan-discussions.js and server/src/app.js
-- [ ] T020 [US1] Implement content-reports API and mount route in server/src/api/content-reports.js and server/src/app.js
-- [ ] T021 [US1] Implement admin-reports API and mount route in server/src/api/admin-reports.js and server/src/app.js
+- [x] T015 [P] [US1] Create fan-discussion prompt and AiFanService in server/prompts/fan-discussion.md and server/src/ai/ai-fan-service.js
+- [x] T016 [US1] Implement fan-context-builder with optional matchId and feed snippet context in server/src/services/fan-context-builder.js
+- [x] T017 [US1] Implement fan-discussion-service with turn persistence, persona association and Feed publish transaction in server/src/services/fan-discussion-service.js
+- [x] T018 [US1] Implement fan-agent orchestration for initial batch and continue modes in server/src/agents/fan-agent.js
+- [x] T019 [US1] Implement fan-discussions and fan-personas API and mount routes in server/src/api/fan-discussions.js and server/src/app.js
+- [x] T020 [US1] Implement content-reports API and mount route in server/src/api/content-reports.js and server/src/app.js
+- [x] T021 [US1] Implement admin-reports API and mount route in server/src/api/admin-reports.js and server/src/app.js
 - [ ] T022 [P] [US1] Add web API clients for fan discussions and content reports in web/src/api/fan-discussions.ts and web/src/api/content-reports.ts
 - [ ] T023 [P] [US1] Implement FanStartView and PersonaPicker component in web/src/views/FanStartView.vue and web/src/components/fan/PersonaPicker.vue
 - [ ] T024 [US1] Implement FanDiscussionView, TurnBubble, ReportDialog and register /fan and /discussions/:discussionId routes in web/src/views/FanDiscussionView.vue, web/src/components/fan/TurnBubble.vue, web/src/components/fan/ReportDialog.vue and web/src/router/index.ts

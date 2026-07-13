@@ -28,26 +28,26 @@
 
 ## 批次 4.3 · Day 2 · US1 契约与单元测试
 
-- [ ] T009 [P] [US1] Contract tests for GET /fan-personas, POST/GET /fan-discussions and POST /fan-discussions/{id}/turns in server/tests/contract/fan-discussions.test.js | L1:- L2:- |
-- [ ] T010 [P] [US1] Contract tests for POST /content-reports in server/tests/contract/content-reports.test.js | L1:- L2:- |
-- [ ] T011 [P] [US1] Contract tests for GET /admin/content-reports, hide and dismiss actions in server/tests/contract/admin-reports.test.js | L1:- L2:- |
-- [ ] T012 [P] [US1] Unit tests for fan-context-builder with 100% branch coverage in server/tests/unit/fan-context-builder.test.js | L1:- L2:- |
-- [ ] T013 [P] [US1] Unit tests for fan-agent with 100% branch coverage in server/tests/unit/fan-agent.test.js | L1:- L2:- |
-- [ ] T014 [P] [US1] Unit tests for content-moderation-service with 100% branch coverage in server/tests/unit/content-moderation.test.js | L1:- L2:- |
-- [ ] 🚧 **批次4.3门禁: L1 Step4 (fan-discussions/content-reports/admin-reports 契约测试通过 + fan-agent/context-builder/content-moderation 100% 分支覆盖)** | 结果: - |
+- [x] T009 [P] [US1] Contract tests for GET /fan-personas, POST/GET /fan-discussions and POST /fan-discussions/{id}/turns in server/tests/contract/fan-discussions.test.js | L1:✅(250/250) L2:✅ |
+- [x] T010 [P] [US1] Contract tests for POST /content-reports in server/tests/contract/content-reports.test.js | L1:✅(250/250) L2:✅ |
+- [x] T011 [P] [US1] Contract tests for GET /admin/content-reports, hide and dismiss actions in server/tests/contract/admin-reports.test.js | L1:✅(250/250) L2:✅ |
+- [x] T012 [P] [US1] Unit tests for fan-context-builder with 100% branch coverage in server/tests/unit/fan-context-builder.test.js | L1:✅(250/250) L2:✅ |
+- [x] T013 [P] [US1] Unit tests for fan-agent with 100% branch coverage in server/tests/unit/fan-agent.test.js | L1:✅(250/250) L2:✅ |
+- [x] T014 [P] [US1] Unit tests for content-moderation-service with 100% branch coverage in server/tests/unit/content-moderation.test.js | L1:✅(250/250) L2:✅ |
+- [x] 🚧 **批次4.3门禁: L1 Step4 (fan-discussions/content-reports/admin-reports 契约测试通过 + fan-agent/context-builder/content-moderation 100% 分支覆盖)** | 结果: ✅ contract:3/3 unit:100% branches |
 
 ---
 
 ## 批次 4.4 · Day 3 · US1 后台 — Fan Agent 讨论闭环 + 举报审核 API
 
-- [ ] T015 [P] [US1] Create fan-discussion prompt and AiFanService in server/prompts/fan-discussion.md and server/src/ai/ai-fan-service.js | L1:- L2:- |
-- [ ] T016 [US1] Implement fan-context-builder with optional matchId and feed snippet context in server/src/services/fan-context-builder.js | L1:- L2:- |
-- [ ] T017 [US1] Implement fan-discussion-service with turn persistence, persona association and Feed publish transaction in server/src/services/fan-discussion-service.js | L1:- L2:- |
-- [ ] T018 [US1] Implement fan-agent orchestration for initial batch and continue modes in server/src/agents/fan-agent.js | L1:- L2:- |
-- [ ] T019 [US1] Implement fan-discussions and fan-personas API and mount routes in server/src/api/fan-discussions.js and server/src/app.js | L1:- L2:- |
-- [ ] T020 [US1] Implement content-reports API and mount route in server/src/api/content-reports.js and server/src/app.js | L1:- L2:- |
-- [ ] T021 [US1] Implement admin-reports API and mount route in server/src/api/admin-reports.js and server/src/app.js | L1:- L2:- |
-- [ ] 🚧 **批次4.4门禁: L1 Step4 (`[APP_START_COMMAND]` + fan-discussions API 调用链成功 + ≥4 条 Persona 发言 + 违规 422)** | 结果: - |
+- [x] T015 [P] [US1] Create fan-discussion prompt and AiFanService in server/prompts/fan-discussion.md and server/src/ai/ai-fan-service.js | L1:✅(250/250) L2:✅ |
+- [x] T016 [US1] Implement fan-context-builder with optional matchId and feed snippet context in server/src/services/fan-context-builder.js | L1:✅(250/250) L2:✅ |
+- [x] T017 [US1] Implement fan-discussion-service with turn persistence, persona association and Feed publish transaction in server/src/services/fan-discussion-service.js | L1:✅(250/250) L2:✅ |
+- [x] T018 [US1] Implement fan-agent orchestration for initial batch and continue modes in server/src/agents/fan-agent.js | L1:✅(250/250) L2:✅ |
+- [x] T019 [US1] Implement fan-discussions and fan-personas API and mount routes in server/src/api/fan-discussions.js and server/src/app.js | L1:✅(250/250) L2:✅ |
+- [x] T020 [US1] Implement content-reports API and mount route in server/src/api/content-reports.js and server/src/app.js | L1:✅(250/250) L2:✅ |
+- [x] T021 [US1] Implement admin-reports API and mount route in server/src/api/admin-reports.js and server/src/app.js | L1:✅(250/250) L2:✅ |
+- [x] 🚧 **批次4.4门禁: L1 Step4 (`[APP_START_COMMAND]` + fan-discussions API 调用链成功 + ≥4 条 Persona 发言 + 违规 422)** | 结果: ✅ create:201 turns≥4 policy:422 |
 
 ---
 
@@ -77,4 +77,4 @@
 
 ## Sprint 4 收官
 
-**状态**: 进行中（批次 4.2）
+**状态**: 进行中（批次 4.5）
