@@ -107,6 +107,17 @@ export function findFeedItemByEventKey(eventKey) {
   return row ? mapFeedItemRow(row) : null;
 }
 
+export function updateFeedItemVisibilityByEventKey(eventKey, visibility) {
+  const db = getDb();
+  const result = db.prepare(`
+    UPDATE feed_items SET visibility = ? WHERE event_key = ?
+  `).run(visibility, eventKey);
+  if (result.changes === 0) {
+    return null;
+  }
+  return findFeedItemByEventKey(eventKey);
+}
+
 export function findFeedItemByMatchIdAndType(matchId, type) {
   const db = getDb();
   const row = db.prepare(`

@@ -4,9 +4,11 @@ import {
   createFeedItem,
   findFeedItemById,
   findFeedItemBySourceUrl,
+  findFeedItemByEventKey,
   findRecentFeedItemsForDedup,
   findRelatedFeedItems,
   listFeedItems,
+  updateFeedItemVisibilityByEventKey,
 } from '../db/repositories/feed-item-repository.js';
 import {
   buildSourceWarnings,
@@ -163,4 +165,48 @@ function isRecentArticle(publishedAt) {
   const publishedMs = new Date(publishedAt).getTime();
   if (Number.isNaN(publishedMs)) return false;
   return Date.now() - publishedMs <= HOURS_24_MS;
+}
+
+export function buildFanDiscussionEventKey(discussionId) {
+  return `fan_discussion:${discussionId}`;
+}
+
+export function publishFanDiscussionFeedItem({
+  discussionId,
+  topic,
+  personaIds,
+  turns,
+  matchId = null,
+}) {
+  const eventKey = buildFanDiscussionEventKey(discussionId);
+  const existing = findFeedItemByEventKey(eventKey);
+  if (existing) {
+    return existing;
+  }
+
+  const summaryParts = turns
+    .filter((turn) => turn.role === 'persona' && turn.content)
+    .slice(0, 2)
+    .map((turn) => turn.content);
+  const summary = summaryParts.join(' · ').slice(0, 280) || topic;
+
+  return createFeedItem({
+    agentId: 'fan',
+    type: 'fan_discussion',
+    title: topic,
+    summary,
+    eventKey,
+    matchId,
+    visibility: 'public',
+    body: {
+      discussionId,
+      personaIds,
+      turnCount: turns.length,
+    },
+  });
+}
+
+export function hideFanDiscussionFeedItem(discussionId) {
+  const eventKey = buildFanDiscussionEventKey(discussionId);
+  return updateFeedItemVisibilityByEventKey(eventKey, 'hidden');
 }

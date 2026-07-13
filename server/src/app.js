@@ -16,6 +16,7 @@ import matchesRouter from './api/matches.js';
 import teamsRouter from './api/teams.js';
 import conversationsRouter from './api/conversations.js';
 import playersRouter from './api/players.js';
+import fanPersonasRouter from './api/fan-personas.js';
 import { config } from './config/index.js';
 import { getHealthNewsMeta } from './services/feed-service.js';
 import { createInternalRouter } from './jobs/news-fetch.js';
@@ -56,6 +57,7 @@ export function createApp() {
   app.use('/api/matches', matchesRouter);
   app.use('/api/teams', teamsRouter);
   app.use('/api/players', playersRouter);
+  app.use('/api/fan-personas', fanPersonasRouter);
   app.use('/api/conversations', conversationsRouter);
   app.use('/api/internal', createInternalRouter());
   app.use('/api/internal', createMatchSyncRouter());

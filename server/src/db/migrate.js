@@ -12,6 +12,7 @@ const MIGRATION_FILES = [
   '006_scout_tactical.sql',
   '007_scout_conversation_context.sql',
   '008_scraper_external_ids.sql',
+  '009_fan_community.sql',
 ];
 
 function ensureMigrationTable(db) {
