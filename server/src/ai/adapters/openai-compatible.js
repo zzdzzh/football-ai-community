@@ -1,12 +1,49 @@
+export function parseAiProviderError(errorBody) {
+  if (typeof errorBody !== 'string' || !errorBody) {
+    return { code: null, message: null };
+  }
+  try {
+    const parsed = JSON.parse(errorBody);
+    return {
+      code: parsed?.error?.code ?? null,
+      message: parsed?.error?.message ?? parsed?.message ?? null,
+    };
+  } catch {
+    return { code: null, message: null };
+  }
+}
+
+export function isRetryableAiError(statusCode, errorBody) {
+  if (statusCode === 502 || statusCode === 503 || statusCode === 504) {
+    return true;
+  }
+  if (statusCode !== 429) {
+    return false;
+  }
+  const { code, message } = parseAiProviderError(errorBody);
+  if (code === '1113' || /余额|资源包|充值/.test(message ?? '')) {
+    return false;
+  }
+  return true;
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
+
 export class OpenAiCompatibleAdapter {
-  constructor({ baseUrl, apiKey, model, timeoutMs }) {
+  constructor({ baseUrl, apiKey, model, timeoutMs, maxRetries = 2, retryDelaysMs = [2000, 4000] }) {
     this.baseUrl = baseUrl.replace(/\/$/, '');
     this.apiKey = apiKey;
     this.model = model;
     this.timeoutMs = timeoutMs;
+    this.maxRetries = maxRetries;
+    this.retryDelaysMs = retryDelaysMs;
   }
 
-  async complete({ systemPrompt, userPrompt }) {
+  async requestOnce({ systemPrompt, userPrompt }) {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), this.timeoutMs);
 
@@ -45,5 +82,26 @@ export class OpenAiCompatibleAdapter {
     } finally {
       clearTimeout(timer);
     }
+  }
+
+  async complete({ systemPrompt, userPrompt }) {
+    let lastError = null;
+    const maxAttempts = this.maxRetries + 1;
+
+    for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+      try {
+        return await this.requestOnce({ systemPrompt, userPrompt });
+      } catch (err) {
+        lastError = err;
+        const canRetry = attempt < maxAttempts - 1
+          && isRetryableAiError(err.statusCode, err.details);
+        if (!canRetry) {
+          throw err;
+        }
+        await sleep(this.retryDelaysMs[attempt] ?? this.retryDelaysMs.at(-1) ?? 2000);
+      }
+    }
+
+    throw lastError;
   }
 }
