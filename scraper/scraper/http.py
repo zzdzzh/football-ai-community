@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import http.client
 import time
 import urllib.error
 import urllib.request
@@ -33,7 +34,7 @@ def _throttle() -> None:
     _last_request_at = time.time()
 
 
-def fetch_html(url: str, *, timeout: int = 30) -> str:
+def fetch_html(url: str, *, timeout: int = 30, max_retries: int = 3) -> str:
     """Transfermarkt 等静态页面。"""
     _throttle()
     req = urllib.request.Request(
@@ -43,11 +44,24 @@ def fetch_html(url: str, *, timeout: int = 30) -> str:
             "Accept-Language": "en-US,en;q=0.9",
         },
     )
-    try:
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
-            return resp.read().decode("utf-8", errors="replace")
-    except urllib.error.HTTPError as err:
-        raise RuntimeError(f"HTTP {err.code} 获取失败: {url}") from err
+    last_err: Exception | None = None
+    for attempt in range(max_retries):
+        try:
+            with urllib.request.urlopen(req, timeout=timeout) as resp:
+                return resp.read().decode("utf-8", errors="replace")
+        except urllib.error.HTTPError as err:
+            if err.code >= 500 and attempt < max_retries - 1:
+                last_err = err
+                time.sleep(3 * (attempt + 1))
+                continue
+            raise RuntimeError(f"HTTP {err.code} 获取失败: {url}") from err
+        except (TimeoutError, http.client.IncompleteRead, ConnectionResetError, OSError) as err:
+            last_err = err
+            if attempt < max_retries - 1:
+                time.sleep(2 * (attempt + 1))
+                continue
+            break
+    raise RuntimeError(f"获取失败（重试 {max_retries} 次）: {url}") from last_err
 
 
 def fetch_json(url: str, *, timeout: int = 30) -> Any:

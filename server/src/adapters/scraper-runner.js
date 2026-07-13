@@ -61,12 +61,16 @@ export function runScraperCli(args, { timeoutMs = 600000 } = {}) {
   });
 }
 
-export async function syncLeagueFromScraper(leagueCode, { includeFbref = false } = {}) {
+export async function syncLeagueFromScraper(leagueCode, { includeFbref = false, playersOnly = false } = {}) {
   const args = ['sync-league', '--league', leagueCode, '--delay', String(config.scraper.requestDelaySec)];
   if (!includeFbref) {
     args.push('--no-fbref');
   }
-  return runScraperCli(args);
+  if (playersOnly) {
+    args.push('--players-only');
+  }
+  const timeoutMs = leagueCode === 'WC' ? 1800000 : 600000;
+  return runScraperCli(args, { timeoutMs });
 }
 
 export async function fetchScraperMatchDetail(sofascoreMatchId) {

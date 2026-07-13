@@ -3,12 +3,23 @@
 
 from __future__ import annotations
 
+import os
 from datetime import datetime
 
 from scraper.fbref import fetch_league_player_stats
 from scraper.leagues import LeagueConfig, get_league
 from scraper.sofascore import fetch_league_matches
 from scraper.transfermarkt import fetch_league_teams, fetch_team_squad
+
+WC_NAME_ALIASES: dict[str, list[str]] = {
+    "United States": ["United States", "USA"],
+    "South Korea": ["South Korea", "Korea Republic"],
+    "Congo DR": ["Congo DR", "DR Congo"],
+    "Ivory Coast": ["Ivory Coast", "Cote d'Ivoire"],
+    "Cape Verde Islands": ["Cape Verde Islands", "Cape Verde"],
+    "Bosnia-Herzegovina": ["Bosnia-Herzegovina", "Bosnia and Herzegovina"],
+    "Curaçao": ["Curaçao", "Curacao"],
+}
 
 
 def _tm_dob_to_iso(dob: str | None) -> str | None:
@@ -25,39 +36,69 @@ def _normalize_name(name: str) -> str:
     return " ".join(name.lower().replace("fc", "").replace(".", "").split())
 
 
-def sync_league(league_code: str, *, include_fbref: bool = True) -> dict:
+def _team_match_keys(name: str) -> list[str]:
+    keys = [_normalize_name(name)]
+    for aliases in WC_NAME_ALIASES.values():
+        normalized_aliases = [_normalize_name(alias) for alias in aliases]
+        if _normalize_name(name) in normalized_aliases:
+            keys.extend(normalized_aliases)
+            break
+    return list(dict.fromkeys(keys))
+
+
+def _resolve_season_year(league: LeagueConfig) -> int:
+    if league.code == "WC":
+        return int(os.environ.get("FOOTBALL_DATA_WC_SEASON", str(datetime.now().year)))
+    return datetime.now().year if datetime.now().month >= 7 else datetime.now().year - 1
+
+
+def _find_sofa_team(sofa_team_map: dict[str, dict], team_name: str) -> dict:
+    for key in _team_match_keys(team_name):
+        if key in sofa_team_map:
+            return sofa_team_map[key]
+    return {}
+
+
+def sync_league(league_code: str, *, include_fbref: bool = True, players_only: bool = False) -> dict:
     league = get_league(league_code)
-    season_year = datetime.now().year if datetime.now().month >= 7 else datetime.now().year - 1
+    season_year = _resolve_season_year(league)
 
     tm_teams = fetch_league_teams(league)
-    sofa_matches = fetch_league_matches(league)
+    sofa_matches: list = []
+    if not (players_only and league.code == "WC"):
+        sofa_matches = fetch_league_matches(league)
 
     sofa_team_map: dict[str, dict] = {}
     for match in sofa_matches:
         for team in (match.home_team, match.away_team):
-            key = _normalize_name(team.name)
-            sofa_team_map.setdefault(key, {
-                "sofascoreId": team.sofascore_id,
-                "name": team.name,
-                "shortName": team.short_name,
-            })
+            for key in _team_match_keys(team.name):
+                sofa_team_map.setdefault(key, {
+                    "sofascoreId": team.sofascore_id,
+                    "name": team.name,
+                    "shortName": team.short_name,
+                })
 
     teams: list[dict] = []
     for tm_team in tm_teams:
-        key = _normalize_name(tm_team.name)
-        sofa = sofa_team_map.get(key, {})
+        sofa = _find_sofa_team(sofa_team_map, tm_team.name)
         teams.append({
-            "name": tm_team.name,
+            "name": sofa.get("name") or tm_team.name,
             "shortName": sofa.get("shortName") or tm_team.name,
             "sofascoreId": sofa.get("sofascoreId"),
             "transfermarktId": tm_team.transfermarkt_id,
             "leagueCode": league.code,
+            "transfermarktName": tm_team.name,
         })
 
     players: list[dict] = []
     scorers: list[dict] = []
+    squad_errors: list[str] = []
     for tm_team in tm_teams:
-        squad = fetch_team_squad(tm_team, season_year)
+        try:
+            squad = fetch_team_squad(tm_team, season_year)
+        except Exception as err:
+            squad_errors.append(f"{tm_team.name}: {err}")
+            continue
         for player in squad:
             player_id = f"tm-{player.transfermarkt_id}"
             players.append({
@@ -82,7 +123,7 @@ def sync_league(league_code: str, *, include_fbref: bool = True) -> dict:
                 })
 
     fbref_stats: list[dict] = []
-    if include_fbref:
+    if include_fbref and not (players_only and league.code == "WC"):
         for stat in fetch_league_player_stats(league):
             fbref_stats.append({
                 "fbrefId": stat.fbref_id,
@@ -128,9 +169,11 @@ def sync_league(league_code: str, *, include_fbref: bool = True) -> dict:
         "scorers": scorers,
         "matches": matches,
         "fbrefStats": fbref_stats,
+        "squadErrors": squad_errors,
         "sources": {
             "transfermarkt": True,
             "sofascore": True,
             "fbref": len(fbref_stats) > 0,
+            "nationalTeams": league.code == "WC",
         },
     }

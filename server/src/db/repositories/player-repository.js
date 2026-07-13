@@ -123,6 +123,36 @@ export function countPlayersByLeague(leagueCode) {
   return db.prepare('SELECT COUNT(*) AS count FROM players WHERE league_code = ?').get(leagueCode).count;
 }
 
+export function searchPlayersByTeamLeague(teamLeagueCode, { page = 1, pageSize = 20 } = {}) {
+  const db = getDb();
+  const safePage = Math.max(1, page);
+  const safePageSize = Math.min(50, Math.max(1, pageSize));
+  const offset = (safePage - 1) * safePageSize;
+
+  const total = db.prepare(`
+    SELECT COUNT(*) AS count
+    FROM players p
+    INNER JOIN teams t ON t.id = p.team_id
+    WHERE t.league_code = ?
+  `).get(teamLeagueCode).count;
+
+  const rows = db.prepare(`
+    SELECT p.*, t.name AS team_name
+    FROM players p
+    INNER JOIN teams t ON t.id = p.team_id
+    WHERE t.league_code = ?
+    ORDER BY p.name COLLATE NOCASE ASC
+    LIMIT ? OFFSET ?
+  `).all(teamLeagueCode, safePageSize, offset);
+
+  return {
+    items: rows.map((row) => mapPlayerRow(row)),
+    page: safePage,
+    pageSize: safePageSize,
+    total,
+  };
+}
+
 export function upsertPlayersInTransaction(players, handler = upsertPlayer) {
   const db = getDb();
   const tx = db.transaction((records) => {

@@ -1,6 +1,6 @@
 import { ALLOWED_LEAGUES } from '../constants/league-codes.js';
 import { findTeamById } from '../db/repositories/team-repository.js';
-import { searchPlayers, calcPlayerAge, countPlayersByLeague } from '../db/repositories/player-repository.js';
+import { searchPlayers, calcPlayerAge, countPlayersByLeague, searchPlayersByTeamLeague } from '../db/repositories/player-repository.js';
 import {
   listPlayerStatsSnapshots,
   mapSnapshotToPlayerStats,
@@ -17,6 +17,12 @@ const PLAYER_DATA_NOT_SYNCED_MESSAGE = '球员数据尚未同步，请稍后再�
 
 function isLeaguePlayerDataNeverSynced(leagueCode) {
   const meta = findPlayerSyncMetaByLeague(leagueCode);
+  if (meta?.lastSyncAt && (meta.playersCount ?? 0) > 0) {
+    return false;
+  }
+  if (leagueCode === 'CL') {
+    return searchPlayersByTeamLeague('CL', { page: 1, pageSize: 1 }).total === 0;
+  }
   return !meta?.lastSyncAt && countPlayersByLeague(leagueCode) === 0;
 }
 
@@ -98,7 +104,9 @@ export function buildScoutContext({ contextType, contextId, userQuestion = '' })
     if (isLeaguePlayerDataNeverSynced(contextId)) {
       return { syncMessage: PLAYER_DATA_NOT_SYNCED_MESSAGE };
     }
-    const result = searchPlayers({ league: contextId, page: 1, pageSize: CANDIDATE_CAP });
+    const result = contextId === 'CL'
+      ? searchPlayersByTeamLeague('CL', { page: 1, pageSize: CANDIDATE_CAP })
+      : searchPlayers({ league: contextId, page: 1, pageSize: CANDIDATE_CAP });
     const candidates = result.items.map(mapCandidate);
     const maxAge = parseMaxAgeFromQuestion(userQuestion);
     const position = parsePositionFromQuestion(userQuestion);

@@ -40,6 +40,9 @@ function buildTeamIdMap(payload) {
       map.set(`ss:${team.sofascoreId}`, id);
     }
     map.set(team.name, id);
+    if (team.transfermarktName) {
+      map.set(team.transfermarktName, id);
+    }
   }
   return map;
 }
@@ -67,105 +70,119 @@ function resolveMatchTeamId(teamRef, teamIdMap, leagueCode) {
   return resolved;
 }
 
-export async function importLeagueFromScraper(leagueCode, { includeFbref = false } = {}) {
-  const payload = await syncLeagueFromScraper(leagueCode, { includeFbref });
+export async function importLeagueFromScraper(leagueCode, { includeFbref = false, playersOnly = false } = {}) {
   const now = new Date().toISOString();
-  const teamIdMap = buildTeamIdMap(payload);
+  try {
+    const payload = await syncLeagueFromScraper(leagueCode, { includeFbref, playersOnly });
+    const teamIdMap = buildTeamIdMap(payload);
+    const squadErrors = payload.squadErrors ?? [];
 
-  const db = getDb();
-  const tx = db.transaction(() => {
-    for (const team of payload.teams ?? []) {
-      const id = resolveTeamId(team);
-      teamIdMap.set(String(team.transfermarktId), id);
+    const db = getDb();
+    const tx = db.transaction(() => {
+      for (const team of payload.teams ?? []) {
+        const id = resolveTeamId(team);
+        teamIdMap.set(String(team.transfermarktId), id);
       if (team.sofascoreId) teamIdMap.set(`ss:${team.sofascoreId}`, id);
       teamIdMap.set(team.name, id);
-      upsertTeam({
-        id,
-        name: team.name,
-        shortName: team.shortName,
-        leagueCode: team.leagueCode,
-        sofascoreId: team.sofascoreId,
-        transfermarktId: team.transfermarktId,
-        updatedAt: now,
-      });
-    }
+      if (team.transfermarktName) teamIdMap.set(team.transfermarktName, id);
+        upsertTeam({
+          id,
+          name: team.name,
+          shortName: team.shortName,
+          leagueCode: team.leagueCode,
+          sofascoreId: team.sofascoreId,
+          transfermarktId: team.transfermarktId,
+          updatedAt: now,
+        });
+      }
 
-    for (const player of payload.players ?? []) {
-      const teamId = teamIdMap.get(String(player.teamTransfermarktId));
-      if (!teamId) continue;
-      upsertPlayer({
-        id: player.id,
-        name: player.name,
-        teamId,
-        position: player.position,
-        dateOfBirth: player.dateOfBirth,
-        nationality: player.nationality,
-        leagueCode: player.leagueCode,
-        transfermarktId: player.transfermarktId,
-        updatedAt: now,
-      });
-    }
+      for (const player of payload.players ?? []) {
+        const teamId = teamIdMap.get(String(player.teamTransfermarktId));
+        if (!teamId) continue;
+        upsertPlayer({
+          id: player.id,
+          name: player.name,
+          teamId,
+          position: player.position,
+          dateOfBirth: player.dateOfBirth,
+          nationality: player.nationality,
+          leagueCode: player.leagueCode,
+          transfermarktId: player.transfermarktId,
+          updatedAt: now,
+        });
+      }
 
-    for (const scorer of payload.scorers ?? []) {
-      upsertPlayerStatsSnapshot({
-        playerId: scorer.playerId,
-        leagueCode: scorer.leagueCode,
-        season: scorer.season,
-        goals: scorer.goals,
-        assists: scorer.assists,
-        penalties: scorer.penalties,
-        appearances: scorer.appearances,
-        syncedAt: now,
-      });
-    }
+      for (const scorer of payload.scorers ?? []) {
+        upsertPlayerStatsSnapshot({
+          playerId: scorer.playerId,
+          leagueCode: scorer.leagueCode,
+          season: scorer.season,
+          goals: scorer.goals,
+          assists: scorer.assists,
+          penalties: scorer.penalties,
+          appearances: scorer.appearances,
+          syncedAt: now,
+        });
+      }
 
-    for (const match of payload.matches ?? []) {
-      const homeTeamId = resolveMatchTeamId(match.homeTeam, teamIdMap, match.leagueCode);
-      const awayTeamId = resolveMatchTeamId(match.awayTeam, teamIdMap, match.leagueCode);
-      if (!homeTeamId || !awayTeamId) continue;
-      upsertMatch({
-        id: match.id,
-        leagueCode: match.leagueCode,
-        season: match.season,
-        matchday: match.matchday,
-        utcDate: match.utcDate,
-        status: match.status,
-        homeTeamId,
-        awayTeamId,
-        homeScore: match.homeScore,
-        awayScore: match.awayScore,
-        statsJson: null,
-        eventsJson: null,
-        dataCompleteness: match.dataCompleteness ?? 'partial',
-        lastSyncedAt: now,
-      });
-    }
+      for (const match of payload.matches ?? []) {
+        const homeTeamId = resolveMatchTeamId(match.homeTeam, teamIdMap, match.leagueCode);
+        const awayTeamId = resolveMatchTeamId(match.awayTeam, teamIdMap, match.leagueCode);
+        if (!homeTeamId || !awayTeamId) continue;
+        upsertMatch({
+          id: match.id,
+          leagueCode: match.leagueCode,
+          season: match.season,
+          matchday: match.matchday,
+          utcDate: match.utcDate,
+          status: match.status,
+          homeTeamId,
+          awayTeamId,
+          homeScore: match.homeScore,
+          awayScore: match.awayScore,
+          statsJson: null,
+          eventsJson: null,
+          dataCompleteness: match.dataCompleteness ?? 'partial',
+          lastSyncedAt: now,
+        });
+      }
 
+      upsertPlayerSyncMeta({
+        leagueCode,
+        lastSyncAt: now,
+        lastError: squadErrors.length > 0 ? squadErrors.slice(0, 3).join('; ') : null,
+        status: squadErrors.length > 0 ? 'degraded' : 'ok',
+        playersCount: countPlayersByLeague(leagueCode),
+      });
+
+      upsertMatchSyncMeta({
+        leagueCode,
+        lastSyncAt: now,
+        lastError: null,
+        status: 'ok',
+        requestsInWindow: 0,
+        windowStartedAt: now,
+      });
+    });
+    tx();
+
+    return {
+      leagueCode,
+      syncedTeams: payload.teams?.length ?? 0,
+      syncedPlayers: payload.players?.length ?? 0,
+      syncedMatches: payload.matches?.length ?? 0,
+      syncedScorers: payload.scorers?.length ?? 0,
+      squadErrors,
+      sources: payload.sources ?? {},
+    };
+  } catch (err) {
     upsertPlayerSyncMeta({
       leagueCode,
       lastSyncAt: now,
-      lastError: null,
-      status: 'ok',
+      lastError: err.message,
+      status: 'down',
       playersCount: countPlayersByLeague(leagueCode),
     });
-
-    upsertMatchSyncMeta({
-      leagueCode,
-      lastSyncAt: now,
-      lastError: null,
-      status: 'ok',
-      requestsInWindow: 0,
-      windowStartedAt: now,
-    });
-  });
-  tx();
-
-  return {
-    leagueCode,
-    syncedTeams: payload.teams?.length ?? 0,
-    syncedPlayers: payload.players?.length ?? 0,
-    syncedMatches: payload.matches?.length ?? 0,
-    syncedScorers: payload.scorers?.length ?? 0,
-    sources: payload.sources ?? {},
-  };
+    throw err;
+  }
 }

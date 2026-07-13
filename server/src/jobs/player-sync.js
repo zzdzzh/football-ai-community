@@ -5,6 +5,7 @@ import { config } from '../config/index.js';
 import { AppError } from '../middleware/error.js';
 import { createFootballDataAdapter, ALLOWED_LEAGUES } from '../adapters/football-data-adapter.js';
 import { importLeagueFromScraper } from '../services/scraper-import-service.js';
+import { refreshClPlayerSyncMeta } from '../services/cl-player-bridge.js';
 import { SEASON_REQUIRED_LEAGUES } from '../constants/league-codes.js';
 import { searchTeams, upsertTeam } from '../db/repositories/team-repository.js';
 import { upsertPlayer, countPlayersByLeague } from '../db/repositories/player-repository.js';
@@ -14,6 +15,16 @@ import { getDb } from '../db/connection.js';
 
 let cronTask = null;
 let runningJob = null;
+
+export function getLeaguesNeedingPlayerSync() {
+  const rows = getDb().prepare(`
+    SELECT league_code
+    FROM player_sync_meta
+    WHERE players_count = 0 OR last_sync_at IS NULL
+    ORDER BY league_code
+  `).all();
+  return rows.map((row) => row.league_code);
+}
 
 function resolveSeason(leagueCode) {
   if (SEASON_REQUIRED_LEAGUES.includes(leagueCode)) {
@@ -100,15 +111,24 @@ export async function executePlayerSyncJob({ league = null, adapter = null } = {
       const results = [];
       for (const leagueCode of leagues) {
         try {
-          const result = await importLeagueFromScraper(leagueCode);
+          const result = await importLeagueFromScraper(leagueCode, {
+            playersOnly: leagueCode === 'WC',
+          });
           results.push({
             leagueCode,
             syncedPlayers: result.syncedPlayers,
             syncedScorers: result.syncedScorers,
+            squadErrors: result.squadErrors?.length ?? 0,
           });
         } catch (err) {
           results.push({ leagueCode, error: err.message });
         }
+      }
+      try {
+        const bridgeResult = refreshClPlayerSyncMeta();
+        results.push({ leagueCode: 'CL', ...bridgeResult });
+      } catch (err) {
+        results.push({ leagueCode: 'CL', bridgeError: err.message });
       }
       return results;
     })().finally(() => {
