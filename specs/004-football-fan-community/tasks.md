@@ -80,9 +80,9 @@
 - [x] T019 [US1] Implement fan-discussions and fan-personas API and mount routes in server/src/api/fan-discussions.js and server/src/app.js
 - [x] T020 [US1] Implement content-reports API and mount route in server/src/api/content-reports.js and server/src/app.js
 - [x] T021 [US1] Implement admin-reports API and mount route in server/src/api/admin-reports.js and server/src/app.js
-- [ ] T022 [P] [US1] Add web API clients for fan discussions and content reports in web/src/api/fan-discussions.ts and web/src/api/content-reports.ts
-- [ ] T023 [P] [US1] Implement FanStartView and PersonaPicker component in web/src/views/FanStartView.vue and web/src/components/fan/PersonaPicker.vue
-- [ ] T024 [US1] Implement FanDiscussionView, TurnBubble, ReportDialog and register /fan and /discussions/:discussionId routes in web/src/views/FanDiscussionView.vue, web/src/components/fan/TurnBubble.vue, web/src/components/fan/ReportDialog.vue and web/src/router/index.ts
+- [x] T022 [P] [US1] Add web API clients for fan discussions and content reports in web/src/api/fan-discussions.ts and web/src/api/content-reports.ts
+- [x] T023 [P] [US1] Implement FanStartView and PersonaPicker component in web/src/views/FanStartView.vue and web/src/components/fan/PersonaPicker.vue
+- [x] T024 [US1] Implement FanDiscussionView, TurnBubble, ReportDialog and register /fan and /discussions/:discussionId routes in web/src/views/FanDiscussionView.vue, web/src/components/fan/TurnBubble.vue, web/src/components/fan/ReportDialog.vue and web/src/router/index.ts
 - [ ] T025 [US1] Implement AdminReportsView and register /admin/reports route in web/src/views/AdminReportsView.vue and web/src/router/index.ts
 - [ ] T026 [US1] Extend FeedCard for fan_discussion type navigation and add /fan entry in web/src/components/feed/FeedCard.vue and web/src/router/index.ts
 
