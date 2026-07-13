@@ -93,7 +93,8 @@ function filterCandidates(candidates, { maxAge = null, position = null } = {}) {
 
 export function buildScoutContext({ contextType, contextId, userQuestion = '' }) {
   const { status: syncStatus } = getAggregatePlayerSyncStatus();
-  if (syncStatus === 'down') {
+  // 同步任务失败但库内仍有历史数据时，允许使用已有球员继续推荐
+  if (syncStatus === 'down' && isGlobalPlayerDataNeverSynced()) {
     return { syncMessage: '球员数据同步暂不可用，请稍后再试' };
   }
 

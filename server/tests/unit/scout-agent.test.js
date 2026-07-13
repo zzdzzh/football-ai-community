@@ -80,15 +80,26 @@ describe('ScoutAgent', () => {
     })).rejects.toMatchObject({ statusCode: 503 });
   });
 
-  it('throws 503 when player sync is down', async () => {
+  it('still recommends when sync is down but league data exists', async () => {
+    mockAi.recommend.mockResolvedValueOnce({
+      summary: '推荐如下。',
+      recommendations: [
+        { playerId: 'p2', matchReason: 'a', keyStats: [{ name: '进球', value: 5 }] },
+        { playerId: 'p3', matchReason: 'b', keyStats: [{ name: '进球', value: 3 }] },
+        { playerId: 'p4', matchReason: 'c', keyStats: [{ name: '进球', value: 12 }] },
+      ],
+      narrowHint: null,
+      confidence: 'medium',
+    });
     const db = getDb();
     db.prepare("UPDATE player_sync_meta SET status = 'down'").run();
     const agent = new ScoutAgent({ aiScoutService: mockAi });
-    await expect(agent.handleQuestion({
+    const result = await agent.handleQuestion({
       contextType: 'league',
       contextId: 'PL',
       userQuestion: '推荐',
-    })).rejects.toMatchObject({ statusCode: 503 });
+    });
+    expect(result.recommendations.length).toBeGreaterThanOrEqual(3);
     db.prepare("UPDATE player_sync_meta SET status = 'ok'").run();
   });
 

@@ -3,6 +3,7 @@ import { requireAuth } from '../middleware/auth.js';
 import { AppError } from '../middleware/error.js';
 import { searchPlayerSummaries, getPlayerDetail } from '../services/player-service.js';
 import { getAggregatePlayerSyncStatus } from '../db/repositories/player-sync-meta-repository.js';
+import { searchPlayers } from '../db/repositories/player-repository.js';
 
 const router = Router();
 
@@ -11,7 +12,7 @@ router.use(requireAuth);
 router.get('/', (req, res, next) => {
   try {
     const { status } = getAggregatePlayerSyncStatus();
-    if (status === 'down') {
+    if (status === 'down' && searchPlayers({ page: 1, pageSize: 1 }).total === 0) {
       throw new AppError(503, 'service_unavailable', '球员数据同步暂不可用，请稍后再试');
     }
 

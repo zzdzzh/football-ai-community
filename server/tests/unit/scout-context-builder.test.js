@@ -160,14 +160,29 @@ describe('ScoutContextBuilder', () => {
     expect(candidate?.stats).toEqual([]);
   });
 
-  it('returns syncMessage when player sync is down', () => {
+  it('still returns candidates when sync is down but league data exists', () => {
     const db = getDb();
     db.prepare("UPDATE player_sync_meta SET status = 'down'").run();
     const context = buildScoutContext({
       contextType: 'league',
       contextId: 'PL',
     });
+    expect(context.syncMessage).toBeUndefined();
+    expect(context.candidates.length).toBeGreaterThan(0);
+    db.prepare("UPDATE player_sync_meta SET status = 'ok'").run();
+  });
+
+  it('returns syncMessage when player sync is down and catalog is empty', () => {
+    const db = getDb();
+    db.prepare('DELETE FROM player_stats_snapshots').run();
+    db.prepare('DELETE FROM players').run();
+    db.prepare("UPDATE player_sync_meta SET status = 'down', last_sync_at = NULL, players_count = 0").run();
+    const context = buildScoutContext({
+      contextType: 'league',
+      contextId: 'PL',
+    });
     expect(context.syncMessage).toBeDefined();
+    seedScoutPlayers();
     db.prepare("UPDATE player_sync_meta SET status = 'ok'").run();
   });
 
