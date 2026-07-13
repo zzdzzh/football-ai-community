@@ -8,21 +8,21 @@
 
 ## 批次 4.1 · Day 1 · MVP-4 环境配置
 
-- [ ] T001 Add FAN_CONTINUE_TIMEOUT_MS and CONTENT_MODERATION_BLOCKLIST to server/.env.example | L1:- L2:- |
-- [ ] T002 Extend environment config loader for fan timeout and moderation blocklist settings in server/src/config/index.js | L1:- L2:- |
-- [ ] 🚧 **批次4.1门禁: L1 Step4 (`[APP_START_COMMAND]` 启动成功 + 新环境变量加载无报错)** | 结果: - |
+- [x] T001 Add FAN_CONTINUE_TIMEOUT_MS and CONTENT_MODERATION_BLOCKLIST to server/.env.example | L1:✅(202/202) L2:✅ |
+- [x] T002 Extend environment config loader for fan timeout and moderation blocklist settings in server/src/config/index.js | L1:✅(202/202) L2:✅ |
+- [x] 🚧 **批次4.1门禁: L1 Step4 (`[APP_START_COMMAND]` 启动成功 + 新环境变量加载无报错)** | 结果: ✅ health:UP config:loaded |
 
 ---
 
 ## 批次 4.2 · Day 1–2 · Foundational — Fan/Community 数据层 + 内容过滤 + Feed 扩展
 
-- [ ] T003 Create SQLite migration for fan_personas, fan_discussions, fan_discussion_personas, fan_discussion_turns, content_reports and Persona seed data in server/src/db/migrations/007_fan_community.sql | L1:- L2:- |
-- [ ] T004 [P] Implement fan-persona repository in server/src/db/repositories/fan-persona-repository.js | L1:- L2:- |
-- [ ] T005 [P] Implement fan-discussion, fan-discussion-persona and fan-discussion-turn repositories in server/src/db/repositories/fan-discussion-repository.js | L1:- L2:- |
-- [ ] T006 [P] Implement content-report repository in server/src/db/repositories/content-report-repository.js | L1:- L2:- |
-- [ ] T007 [P] Implement ContentModerationService with blocklist rules in server/src/services/content-moderation-service.js | L1:- L2:- |
-- [ ] T008 Extend feed-service for fan_discussion FeedItem publish, visibility filter and event_key dedup in server/src/services/feed-service.js | L1:- L2:- |
-- [ ] 🚧 **批次4.2门禁: L1 Step4 (`[APP_START_COMMAND]` 启动成功 + 数据迁移通过 + GET /fan-personas 可调用)** | 结果: - |
+- [x] T003 Create SQLite migration for fan_personas, fan_discussions, fan_discussion_personas, fan_discussion_turns, content_reports and Persona seed data in server/src/db/migrations/009_fan_community.sql | L1:✅(202/202) L2:✅ |
+- [x] T004 [P] Implement fan-persona repository in server/src/db/repositories/fan-persona-repository.js | L1:✅(202/202) L2:✅ |
+- [x] T005 [P] Implement fan-discussion, fan-discussion-persona and fan-discussion-turn repositories in server/src/db/repositories/fan-discussion-repository.js | L1:✅(202/202) L2:✅ |
+- [x] T006 [P] Implement content-report repository in server/src/db/repositories/content-report-repository.js | L1:✅(202/202) L2:✅ |
+- [x] T007 [P] Implement ContentModerationService with blocklist rules in server/src/services/content-moderation-service.js | L1:✅(202/202) L2:✅ |
+- [x] T008 Extend feed-service for fan_discussion FeedItem publish, visibility filter and event_key dedup in server/src/services/feed-service.js | L1:✅(202/202) L2:✅ |
+- [x] 🚧 **批次4.2门禁: L1 Step4 (`[APP_START_COMMAND]` 启动成功 + 数据迁移通过 + GET /fan-personas 可调用)** | 结果: ✅ migration:009_fan_community personas:19 fan-personas:200 moderation:ok |
 
 ---
 
@@ -77,4 +77,4 @@
 
 ## Sprint 4 收官
 
-**状态**: 未开始
+**状态**: 进行中（批次 4.2）

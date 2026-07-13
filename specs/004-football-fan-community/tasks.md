@@ -34,8 +34,8 @@
 
 **Purpose**: MVP-4 环境变量与配置扩展（MVP-1/2/3 脚手架已就绪）
 
-- [ ] T001 Add FAN_CONTINUE_TIMEOUT_MS and CONTENT_MODERATION_BLOCKLIST to server/.env.example
-- [ ] T002 Extend environment config loader for fan timeout and moderation blocklist settings in server/src/config/index.js
+- [x] T001 Add FAN_CONTINUE_TIMEOUT_MS and CONTENT_MODERATION_BLOCKLIST to server/.env.example
+- [x] T002 Extend environment config loader for fan timeout and moderation blocklist settings in server/src/config/index.js
 
 ---
 
@@ -45,12 +45,12 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T003 Create SQLite migration for fan_personas, fan_discussions, fan_discussion_personas, fan_discussion_turns, content_reports and Persona seed data in server/src/db/migrations/007_fan_community.sql
-- [ ] T004 [P] Implement fan-persona repository in server/src/db/repositories/fan-persona-repository.js
-- [ ] T005 [P] Implement fan-discussion, fan-discussion-persona and fan-discussion-turn repositories in server/src/db/repositories/fan-discussion-repository.js
-- [ ] T006 [P] Implement content-report repository in server/src/db/repositories/content-report-repository.js
-- [ ] T007 [P] Implement ContentModerationService with blocklist rules in server/src/services/content-moderation-service.js
-- [ ] T008 Extend feed-service for fan_discussion FeedItem publish, visibility filter and event_key dedup in server/src/services/feed-service.js
+- [x] T003 Create SQLite migration for fan_personas, fan_discussions, fan_discussion_personas, fan_discussion_turns, content_reports and Persona seed data in server/src/db/migrations/009_fan_community.sql
+- [x] T004 [P] Implement fan-persona repository in server/src/db/repositories/fan-persona-repository.js
+- [x] T005 [P] Implement fan-discussion, fan-discussion-persona and fan-discussion-turn repositories in server/src/db/repositories/fan-discussion-repository.js
+- [x] T006 [P] Implement content-report repository in server/src/db/repositories/content-report-repository.js
+- [x] T007 [P] Implement ContentModerationService with blocklist rules in server/src/services/content-moderation-service.js
+- [x] T008 Extend feed-service for fan_discussion FeedItem publish, visibility filter and event_key dedup in server/src/services/feed-service.js
 
 **Checkpoint**: Foundation ready — fan/community 表可迁移、内容过滤可调用、Feed 扩展就绪，user story implementation can now begin
 
