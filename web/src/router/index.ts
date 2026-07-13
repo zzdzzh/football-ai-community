@@ -36,6 +36,18 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/TacticalStartView.vue'),
       },
       {
+        path: 'fan',
+        name: 'fan-start',
+        meta: { requiresAuth: true },
+        component: () => import('@/views/FanStartView.vue'),
+      },
+      {
+        path: 'discussions/:discussionId',
+        name: 'fan-discussion',
+        meta: { requiresAuth: true },
+        component: () => import('@/views/FanDiscussionView.vue'),
+      },
+      {
         path: 'matches/:matchId',
         name: 'match-detail',
         meta: { requiresAuth: true },
