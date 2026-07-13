@@ -238,6 +238,26 @@ describe('FanAgent', () => {
     });
   });
 
+  it('throws 503 with balance hint when provider reports insufficient quota', async () => {
+    const err = new Error('AI request failed: 429');
+    err.statusCode = 429;
+    err.details = JSON.stringify({
+      error: { code: '1113', message: '余额不足或无可用资源包,请充值。' },
+    });
+    mockAi.simulateTurns.mockRejectedValueOnce(err);
+
+    const agent = createAgent();
+    await expect(agent.createInitialDiscussion({
+      userId: 'u1',
+      topic: 'test',
+      personaIds: ['persona-arsenal', 'persona-liverpool'],
+    })).rejects.toMatchObject({
+      statusCode: 503,
+      error: 'service_unavailable',
+      message: 'AI 服务余额不足或无可用资源包，请充值后重试',
+    });
+  });
+
   it('rethrows unexpected AI errors', async () => {
     mockAi.simulateTurns.mockRejectedValueOnce(new Error('unexpected'));
 

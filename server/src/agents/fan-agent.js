@@ -8,6 +8,26 @@ import { defaultContentModerationService } from '../services/content-moderation-
 export const FAN_DISCLAIMER = '模拟内容仅供娱乐，不代表真实球迷或俱乐部立场';
 export const INITIAL_TURN_TARGET = 4;
 
+function resolveAiUnavailableMessage(err, fallback) {
+  if (typeof err.details !== 'string') {
+    return fallback;
+  }
+  try {
+    const parsed = JSON.parse(err.details);
+    const providerMsg = parsed?.error?.message ?? parsed?.message ?? '';
+    const providerCode = parsed?.error?.code;
+    if (providerCode === '1113' || /余额|资源包|充值/.test(providerMsg)) {
+      return 'AI 服务余额不足或无可用资源包，请充值后重试';
+    }
+    if (providerMsg) {
+      return providerMsg;
+    }
+  } catch {
+    // ignore malformed provider payload
+  }
+  return fallback;
+}
+
 export class FanAgent {
   constructor({
     aiFanService = null,
@@ -57,7 +77,11 @@ export class FanAgent {
       throw new AppError(408, 'timeout', 'Fan Agent 响应超时');
     }
     if (err.statusCode === 429) {
-      throw new AppError(503, 'service_unavailable', 'AI 服务请求过于频繁，请稍后再试');
+      throw new AppError(
+        503,
+        'service_unavailable',
+        resolveAiUnavailableMessage(err, 'AI 服务请求过于频繁，请稍后再试'),
+      );
     }
     if (err.statusCode === 401 || err.statusCode === 403) {
       throw new AppError(503, 'service_unavailable', 'AI 服务凭证无效或未配置');
