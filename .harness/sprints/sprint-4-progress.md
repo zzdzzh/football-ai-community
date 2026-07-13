@@ -56,15 +56,15 @@
 - [x] T022 [P] [US1] Add web API clients for fan discussions and content reports in web/src/api/fan-discussions.ts and web/src/api/content-reports.ts | L1:✅ vue-tsc L2:✅ |
 - [x] T023 [P] [US1] Implement FanStartView and PersonaPicker component in web/src/views/FanStartView.vue and web/src/components/fan/PersonaPicker.vue | L1:✅ vue-tsc L2:✅ |
 - [x] T024 [US1] Implement FanDiscussionView, TurnBubble, ReportDialog and register /fan and /discussions/:discussionId routes in web/src/views/FanDiscussionView.vue, web/src/components/fan/TurnBubble.vue, web/src/components/fan/ReportDialog.vue and web/src/router/index.ts | L1:✅ vue-tsc L2:✅ |
-- [ ] 🚧 **批次4.5门禁: L1 Step4 + 👁 HV-1 (~5 min, 产品/用户)** | 结果: L1:✅ vue-tsc · HV-1: 待签收 |
+- [x] 🚧 **批次4.5门禁: L1 Step4 + 👁 HV-1 (~5 min, 产品/用户)** | 结果: L1:✅ vue-tsc · HV-1: ✅ 用户签收 |
 
 ---
 
 ## 批次 4.6 · Day 5 · US1 前台 — 管理员审核 + Feed 集成
 
-- [ ] T025 [US1] Implement AdminReportsView and register /admin/reports route in web/src/views/AdminReportsView.vue and web/src/router/index.ts | L1:- L2:- |
-- [ ] T026 [US1] Extend FeedCard for fan_discussion type navigation and add /fan entry in web/src/components/feed/FeedCard.vue and web/src/router/index.ts | L1:- L2:- |
-- [ ] 🚧 **批次4.6门禁: L1 Step4 (`[APP_START_COMMAND]` + `[UI_START_COMMAND]` + `[TYPECHECK_COMMAND]` + 举报→hide→Feed 不可见)** | 结果: - |
+- [x] T025 [US1] Implement AdminReportsView and register /admin/reports route in web/src/views/AdminReportsView.vue and web/src/router/index.ts | L1:✅ vue-tsc L2:✅ |
+- [x] T026 [US1] Extend FeedCard for fan_discussion type navigation and add /fan entry in web/src/components/feed/FeedCard.vue and web/src/router/index.ts | L1:✅ vue-tsc L2:✅ |
+- [ ] 🚧 **批次4.6门禁: L1 Step4 (`[APP_START_COMMAND]` + `[UI_START_COMMAND]` + `[TYPECHECK_COMMAND]` + 举报→hide→Feed 不可见)** | 结果: L1:✅ vue-tsc · HV: 待签收 |
 
 ---
 
@@ -77,4 +77,4 @@
 
 ## Sprint 4 收官
 
-**状态**: 进行中（批次 4.5）
+**状态**: 进行中（批次 4.6）

@@ -59,6 +59,9 @@ export interface ContentReport {
   reason: string;
   status: 'pending' | 'hidden' | 'dismissed';
   reporterUserId?: string;
+  reviewedBy?: string | null;
+  reviewedAt?: string | null;
+  targetSummary?: string | null;
   createdAt: string;
 }
 

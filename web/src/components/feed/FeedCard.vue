@@ -1,26 +1,43 @@
 <script setup lang="ts">
+import { computed } from 'vue';
 import type { FeedItem } from '@/types/feed';
 
-defineProps<{
+const props = defineProps<{
   item: FeedItem;
 }>();
 
 function formatTime(value: string) {
   return new Date(value).toLocaleString('zh-CN');
 }
+
+const isFanDiscussion = computed(() => props.item.type === 'fan_discussion');
+
+const detailLink = computed(() => {
+  if (isFanDiscussion.value && props.item.body?.discussionId) {
+    return `/discussions/${props.item.body.discussionId}`;
+  }
+  return `/feed/${props.item.id}`;
+});
+
+const detailLabel = computed(() => (isFanDiscussion.value ? '进入讨论' : '查看详情'));
 </script>
 
 <template>
   <el-card class="feed-card" shadow="hover">
     <div class="feed-card__meta">
-      <el-tag size="small" type="success">{{ item.agentDisplayName || item.agentId }}</el-tag>
+      <div class="feed-card__tags">
+        <el-tag size="small" :type="isFanDiscussion ? 'warning' : 'success'">
+          {{ item.agentDisplayName || item.agentId }}
+        </el-tag>
+        <el-tag v-if="isFanDiscussion" size="small" type="info">球迷讨论</el-tag>
+      </div>
       <span class="feed-card__time">{{ formatTime(item.publishedAt) }}</span>
     </div>
     <h3 class="feed-card__title">{{ item.title }}</h3>
     <p v-if="item.summary" class="feed-card__summary">{{ item.summary }}</p>
     <div class="feed-card__actions">
-      <el-button type="primary" link tag="router-link" :to="`/feed/${item.id}`">
-        查看详情
+      <el-button type="primary" link tag="router-link" :to="detailLink">
+        {{ detailLabel }}
       </el-button>
     </div>
   </el-card>
@@ -37,6 +54,12 @@ function formatTime(value: string) {
   justify-content: space-between;
   gap: 0.5rem;
   margin-bottom: 0.5rem;
+}
+
+.feed-card__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
 }
 
 .feed-card__time {

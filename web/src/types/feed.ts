@@ -1,11 +1,19 @@
+export interface FeedItemBody {
+  discussionId?: string;
+  personaIds?: string[];
+  turnCount?: number;
+}
+
 export interface FeedItem {
   id: string;
   agentId: string;
   agentDisplayName?: string;
-  type: 'news_summary';
+  type: 'news_summary' | 'fan_discussion';
   title: string;
   summary?: string;
   publishedAt: string;
+  eventKey?: string;
+  body?: FeedItemBody;
 }
 
 export interface FeedItemDetail extends FeedItem {

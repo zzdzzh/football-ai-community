@@ -48,6 +48,12 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/FanDiscussionView.vue'),
       },
       {
+        path: 'admin/reports',
+        name: 'admin-reports',
+        meta: { requiresAuth: true, requiresRole: ['moderator', 'admin'] },
+        component: () => import('@/views/AdminReportsView.vue'),
+      },
+      {
         path: 'matches/:matchId',
         name: 'match-detail',
         meta: { requiresAuth: true },
@@ -86,11 +92,20 @@ const router = createRouter({
 router.beforeEach((to) => {
   if (!to.meta.requiresAuth) return true;
   const authStore = useAuthStore();
-  if (authStore.isAuthenticated) return true;
-  return {
-    path: '/login',
-    query: { redirect: to.fullPath },
-  };
+  if (!authStore.isAuthenticated) {
+    return {
+      path: '/login',
+      query: { redirect: to.fullPath },
+    };
+  }
+  const requiredRoles = to.meta.requiresRole;
+  if (requiredRoles) {
+    const roles = Array.isArray(requiredRoles) ? requiredRoles : [requiredRoles];
+    if (!roles.includes(authStore.user?.role ?? '')) {
+      return { path: '/' };
+    }
+  }
+  return true;
 });
 
 export default router;
