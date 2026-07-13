@@ -8,6 +8,8 @@ export function createAiContentService() {
     apiKey: config.ai.apiKey,
     model: config.ai.model,
     timeoutMs: config.ai.timeoutMs,
+    maxRetries: config.ai.maxRetries,
+    retryDelaysMs: config.ai.retryDelaysMs,
   });
   return new AiContentService(adapter);
 }

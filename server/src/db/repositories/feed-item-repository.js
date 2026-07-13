@@ -107,6 +107,24 @@ export function findFeedItemByEventKey(eventKey) {
   return row ? mapFeedItemRow(row) : null;
 }
 
+export function updateFeedItemSummary(id, { summary, keyPoints, eventKey }) {
+  const db = getDb();
+  const result = db.prepare(`
+    UPDATE feed_items
+    SET summary = ?, key_points = ?, event_key = COALESCE(?, event_key)
+    WHERE id = ?
+  `).run(
+    summary ?? null,
+    keyPoints ? JSON.stringify(keyPoints) : null,
+    eventKey ?? null,
+    id,
+  );
+  if (result.changes === 0) {
+    return null;
+  }
+  return findFeedItemById(id);
+}
+
 export function updateFeedItemVisibilityByEventKey(eventKey, visibility) {
   const db = getDb();
   const result = db.prepare(`

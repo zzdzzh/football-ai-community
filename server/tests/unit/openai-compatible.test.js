@@ -27,6 +27,13 @@ describe('isRetryableAiError', () => {
     expect(isRetryableAiError(429, body)).toBe(true);
   });
 
+  it('retries BigModel overload code 1305', () => {
+    const body = JSON.stringify({
+      error: { code: '1305', message: '该模型当前访问量过大，请您稍后再试' },
+    });
+    expect(isRetryableAiError(429, body)).toBe(true);
+  });
+
   it('retries 502/503/504', () => {
     expect(isRetryableAiError(502, '')).toBe(true);
     expect(isRetryableAiError(503, '')).toBe(true);

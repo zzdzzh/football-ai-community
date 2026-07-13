@@ -4,6 +4,11 @@ import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PROMPT_PATH = resolve(__dirname, '../../prompts/news-summary.md');
+export const DEGRADED_SUMMARY_MARKER = '摘要生成失败';
+
+export function isDegradedSummary(summary) {
+  return typeof summary === 'string' && summary.includes(DEGRADED_SUMMARY_MARKER);
+}
 
 function loadPromptTemplate() {
   return readFileSync(PROMPT_PATH, 'utf8');
@@ -65,7 +70,7 @@ export class NewsAgent {
       };
     } catch {
       return {
-        summary: `${article.title}（摘要生成失败，请查看原文）`,
+        summary: `${article.title}（${DEGRADED_SUMMARY_MARKER}，请查看原文）`,
         keyPoints: [],
         eventKey: null,
         summaryStatus: 'degraded',

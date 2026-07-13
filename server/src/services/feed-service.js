@@ -1,4 +1,5 @@
 import { AppError } from '../middleware/error.js';
+import { config } from '../config/index.js';
 import { findDuplicateParent } from './news-dedup.js';
 import {
   createFeedItem,
@@ -8,6 +9,7 @@ import {
   findRecentFeedItemsForDedup,
   findRelatedFeedItems,
   listFeedItems,
+  updateFeedItemSummary,
   updateFeedItemVisibilityByEventKey,
 } from '../db/repositories/feed-item-repository.js';
 import {
@@ -16,12 +18,23 @@ import {
   upsertNewsCacheMeta,
 } from '../db/repositories/news-cache-meta-repository.js';
 import { NewsRssAdapter } from '../adapters/news-rss-adapter.js';
-import { NewsAgent, buildFeedItemFromArticle } from '../agents/news-agent.js';
+import { NewsAgent, buildFeedItemFromArticle, isDegradedSummary } from '../agents/news-agent.js';
 import { getOrCreatePreferenceByUserId } from '../db/repositories/user-preference-repository.js';
 import { applyPreferenceFilteringAndSorting } from './feed-preference-sort.js';
 
 const HOURS_24_MS = 24 * 60 * 60 * 1000;
 const MAX_POOL_SIZE = 500;
+
+function sleep(ms) {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
+
+async function summarizeWithThrottle(newsAgent, article) {
+  await sleep(config.newsSummaryDelayMs);
+  return newsAgent.summarizeArticle(article);
+}
 
 export function listFeed({ page = 1, pageSize = 20, agentId = null, userId = null } = {}) {
   const safePage = Math.max(1, page);
@@ -100,6 +113,7 @@ export async function runNewsIngestion({ aiContentService, rssAdapter = new News
   const createdItems = [];
   let skippedCount = 0;
   let relatedCount = 0;
+  let retriedCount = 0;
 
   for (const sourceResult of sourceResults) {
     upsertNewsCacheMeta({
@@ -112,14 +126,30 @@ export async function runNewsIngestion({ aiContentService, rssAdapter = new News
     for (const article of sourceResult.items) {
       if (!article.title || !article.sourceUrl) continue;
       if (!isRecentArticle(article.publishedAt)) continue;
-      if (findFeedItemBySourceUrl(article.sourceUrl)) {
-        skippedCount += 1;
+
+      const existingByUrl = findFeedItemBySourceUrl(article.sourceUrl);
+      if (existingByUrl) {
+        if (isDegradedSummary(existingByUrl.summary)) {
+          const aiResult = await summarizeWithThrottle(newsAgent, article);
+          if (aiResult.summaryStatus === 'success') {
+            updateFeedItemSummary(existingByUrl.id, {
+              summary: aiResult.summary,
+              keyPoints: aiResult.keyPoints,
+              eventKey: aiResult.eventKey,
+            });
+            retriedCount += 1;
+          } else {
+            skippedCount += 1;
+          }
+        } else {
+          skippedCount += 1;
+        }
         continue;
       }
 
       const duplicateParent = findDuplicateParent(article, existingArticles);
       if (duplicateParent) {
-        const aiResult = await newsAgent.summarizeArticle(article);
+        const aiResult = await summarizeWithThrottle(newsAgent, article);
         const feedItem = buildFeedItemFromArticle(article, aiResult, { relatedTo: duplicateParent.id });
         const created = createFeedItem(feedItem);
         if (!created) {
@@ -136,7 +166,7 @@ export async function runNewsIngestion({ aiContentService, rssAdapter = new News
         continue;
       }
 
-      const aiResult = await newsAgent.summarizeArticle(article);
+      const aiResult = await summarizeWithThrottle(newsAgent, article);
       const feedItem = buildFeedItemFromArticle(article, aiResult);
       const created = createFeedItem(feedItem);
       if (!created) {
@@ -157,6 +187,7 @@ export async function runNewsIngestion({ aiContentService, rssAdapter = new News
     createdCount: createdItems.length,
     relatedCount,
     skippedCount,
+    retriedCount,
     sourceCount: sourceResults.length,
   };
 }
