@@ -7,6 +7,7 @@ import {
   parsePositionFromQuestion,
   CANDIDATE_CAP,
 } from '../../src/services/scout-context-builder.js';
+import { parseStatFocusFromQuestion } from '../../src/services/scout-key-stats.js';
 import { seedScoutPlayers } from '../helpers/seed-scout-data.js';
 
 describe('ScoutContextBuilder', () => {
@@ -42,6 +43,19 @@ describe('ScoutContextBuilder', () => {
   it('parses position keyword from question', () => {
     expect(parsePositionFromQuestion('擅长压迫的中场')).toBe('中场');
     expect(parsePositionFromQuestion('前锋推荐')).toBe('前锋');
+  });
+
+  it('attaches statFocus from user question into filters', () => {
+    const context = buildScoutContext({
+      contextType: 'league',
+      contextId: 'PL',
+      userQuestion: '需要一名擅长压迫的中场',
+    });
+    expect(context.filters.statFocus.focuses).toContain('defense');
+    expect(context.filters.statFocus.preferredStatNames).toEqual(
+      expect.arrayContaining(['拦截', '抢断成功']),
+    );
+    expect(parseStatFocusFromQuestion('找一个进球能力强的前锋').focuses).toContain('attack');
   });
 
   it('filters candidates by league context', () => {

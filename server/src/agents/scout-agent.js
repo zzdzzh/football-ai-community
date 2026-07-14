@@ -1,16 +1,21 @@
 import { AppError } from '../middleware/error.js';
 import { buildScoutContext } from '../services/scout-context-builder.js';
+import { composeKeyStats } from '../services/scout-key-stats.js';
 import { createAiScoutService } from '../ai/ai-scout-service.js';
 
-function enrichRecommendation(rec, candidates) {
+function enrichRecommendation(rec, candidates, preferredStatNames = []) {
   const player = candidates.find((c) => c.id === rec.playerId);
+  const aiKeyStats = Array.isArray(rec.keyStats) ? rec.keyStats : [];
+  const keyStats = player
+    ? composeKeyStats(aiKeyStats, player.stats ?? [], preferredStatNames)
+    : aiKeyStats;
   return {
     playerId: rec.playerId,
     playerName: player?.name ?? rec.playerId,
     teamName: player?.teamName ?? '',
     position: player?.position,
     matchReason: rec.matchReason ?? '',
-    keyStats: Array.isArray(rec.keyStats) ? rec.keyStats : [],
+    keyStats,
   };
 }
 
@@ -35,6 +40,8 @@ export class ScoutAgent {
       throw new AppError(503, 'service_unavailable', '暂无符合条件的候选球员，请稍后再试或调整筛选范围');
     }
 
+    const preferredStatNames = context.filters?.statFocus?.preferredStatNames ?? [];
+
     try {
       const reply = await this.aiScoutService.recommend({
         question: userQuestion,
@@ -43,7 +50,9 @@ export class ScoutAgent {
         userId,
       });
 
-      let recommendations = reply.recommendations.map((rec) => enrichRecommendation(rec, context.candidates));
+      let recommendations = reply.recommendations.map((rec) => (
+        enrichRecommendation(rec, context.candidates, preferredStatNames)
+      ));
       let narrowHint = reply.narrowHint ?? null;
 
       if (context.tooBroad && recommendations.length > 5) {

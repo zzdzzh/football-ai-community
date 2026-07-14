@@ -11,6 +11,7 @@ import {
   findPlayerSyncMetaByLeague,
   getAllPlayerSyncMeta,
 } from '../db/repositories/player-sync-meta-repository.js';
+import { parseStatFocusFromQuestion } from './scout-key-stats.js';
 
 const CANDIDATE_CAP = 50;
 const BROAD_POOL_THRESHOLD = 5;
@@ -153,6 +154,7 @@ export function buildScoutContext({ contextType, contextId, userQuestion = '' })
     const maxAge = parseMaxAgeFromQuestion(userQuestion);
     const minAge = parseMinAgeFromQuestion(userQuestion);
     const position = parsePositionFromQuestion(userQuestion);
+    const statFocus = parseStatFocusFromQuestion(userQuestion, position);
     const result = searchLeagueCandidates(contextId, { position });
     const candidates = result.items.map(mapCandidate);
     const filtered = filterCandidates(candidates, { maxAge, minAge, position });
@@ -163,7 +165,7 @@ export function buildScoutContext({ contextType, contextId, userQuestion = '' })
       candidates: filtered.slice(0, CANDIDATE_CAP),
       poolSize: filtered.length,
       tooBroad: filtered.length > BROAD_POOL_THRESHOLD,
-      filters: { maxAge, minAge, position, leagueCode: contextId },
+      filters: { maxAge, minAge, position, leagueCode: contextId, statFocus },
     };
   }
 
@@ -178,6 +180,7 @@ export function buildScoutContext({ contextType, contextId, userQuestion = '' })
     const maxAge = parseMaxAgeFromQuestion(userQuestion);
     const minAge = parseMinAgeFromQuestion(userQuestion);
     const position = parsePositionFromQuestion(userQuestion);
+    const statFocus = parseStatFocusFromQuestion(userQuestion, position);
     const result = searchPlayers({
       teamId: contextId,
       position: position ? resolvePositionSqlKeyword(position) : null,
@@ -194,7 +197,7 @@ export function buildScoutContext({ contextType, contextId, userQuestion = '' })
       candidates: filtered.slice(0, CANDIDATE_CAP),
       poolSize: filtered.length,
       tooBroad: filtered.length > BROAD_POOL_THRESHOLD,
-      filters: { maxAge, minAge, position, teamId: contextId },
+      filters: { maxAge, minAge, position, teamId: contextId, statFocus },
     };
   }
 
@@ -205,6 +208,7 @@ export function buildScoutContext({ contextType, contextId, userQuestion = '' })
     const maxAge = parseMaxAgeFromQuestion(userQuestion);
     const minAge = parseMinAgeFromQuestion(userQuestion);
     const position = parsePositionFromQuestion(userQuestion);
+    const statFocus = parseStatFocusFromQuestion(userQuestion, position);
     const result = searchPlayers({
       position: position ? resolvePositionSqlKeyword(position) : null,
       page: 1,
@@ -218,7 +222,7 @@ export function buildScoutContext({ contextType, contextId, userQuestion = '' })
       candidates: filtered.slice(0, CANDIDATE_CAP),
       poolSize: filtered.length,
       tooBroad: filtered.length > BROAD_POOL_THRESHOLD,
-      filters: { maxAge, minAge, position },
+      filters: { maxAge, minAge, position, statFocus },
     };
   }
 

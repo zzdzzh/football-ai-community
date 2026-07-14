@@ -71,9 +71,9 @@
 
 ### Implementation for User Story 1
 
-- [x] T013 [P] [US1] Create scout-recommend prompt and AiScoutService in server/prompts/scout-recommend.md and server/src/ai/ai-scout-service.js（BUG: prompt 引导优先选用分钟/射门/评分等非零关键数据）
-- [x] T014 [US1] Implement scout-context-builder with league filter and candidate cap in server/src/services/scout-context-builder.js（BUG: 补 minAge 解析与位置 SQL 预筛；优选/合并富统计快照供推荐）
-- [x] T015 [US1] Implement scout-agent orchestration with recommendations_json persistence in server/src/agents/scout-agent.js
+- [x] T013 [P] [US1] Create scout-recommend prompt and AiScoutService in server/prompts/scout-recommend.md and server/src/ai/ai-scout-service.js（BUG: keyStats 须按用户意图侧重，且保留基础数据）
+- [x] T014 [US1] Implement scout-context-builder with league filter and candidate cap in server/src/services/scout-context-builder.js（BUG: 从问题解析 statFocus）
+- [x] T015 [US1] Implement scout-agent orchestration with recommendations_json persistence in server/src/agents/scout-agent.js（BUG: 组装 keyStats 时强制保留基础项）
 - [x] T016 [US1] Extend conversation-service and conversations API for agentId=scout and feedback endpoint in server/src/services/conversation-service.js and server/src/api/conversations.js
 - [x] T017 [P] [US1] Extend web API clients for players and scout conversations in web/src/api/players.ts and web/src/api/conversations.ts（BUG: 创建含 initialMessage 的对话超时 30s 不足，改为 120s）
 - [x] T018 [P] [US1] Implement ScoutStartView and scout components in web/src/views/ScoutStartView.vue, web/src/components/scout/ScoutFilterForm.vue and web/src/components/scout/PlayerRecommendationCard.vue

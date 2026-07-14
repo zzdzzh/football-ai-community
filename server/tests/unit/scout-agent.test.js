@@ -41,7 +41,17 @@ describe('ScoutAgent', () => {
 
     expect(result.recommendations.length).toBeGreaterThanOrEqual(3);
     expect(result.recommendations[0].playerName).toBe('Martin Ødegaard');
+    expect(result.recommendations[0].keyStats.map((s) => s.name)).toEqual(
+      expect.arrayContaining(['进球', '助攻']),
+    );
     expect(result.confidence).toBe('high');
+    expect(mockAi.recommend).toHaveBeenCalledWith(expect.objectContaining({
+      filters: expect.objectContaining({
+        statFocus: expect.objectContaining({
+          focuses: expect.any(Array),
+        }),
+      }),
+    }));
   });
 
   it('throws 404 when league not found', async () => {
@@ -199,7 +209,7 @@ describe('ScoutAgent', () => {
     expect(result.confidence).toBe('medium');
   });
 
-  it('normalizes invalid keyStats to empty array', async () => {
+  it('fills base keyStats when AI returns invalid keyStats', async () => {
     mockAi.recommend.mockResolvedValueOnce({
       summary: '推荐。',
       recommendations: [
@@ -217,7 +227,9 @@ describe('ScoutAgent', () => {
       contextId: 'PL',
       userQuestion: '推荐',
     });
-    expect(result.recommendations[0].keyStats).toEqual([]);
+    expect(result.recommendations[0].keyStats.map((s) => s.name)).toEqual(
+      expect.arrayContaining(['进球', '助攻', '出场']),
+    );
   });
 
   it('createScoutAgent without overrides uses default factory', () => {
