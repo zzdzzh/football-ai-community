@@ -121,6 +121,8 @@ Team *──0..1 Conversation (scout context_type=team | tactical context_type=t
   "playerName": "string",
   "teamName": "string",
   "position": "string",
+  "statsSeason": "string|null",
+  "statsSeasonLabel": "string|null",
   "matchReason": "string",
   "keyStats": [{ "name": "string", "value": "number|string", "unit": "string?" }]
 }]

@@ -15,6 +15,10 @@ defineProps<{
           <span v-if="recommendation.position">{{ recommendation.position }}</span>
           <span v-if="recommendation.position && recommendation.teamName"> · </span>
           <span>{{ recommendation.teamName }}</span>
+          <template v-if="recommendation.statsSeasonLabel">
+            <span> · </span>
+            <span class="season-label">{{ recommendation.statsSeasonLabel }}</span>
+          </template>
         </p>
       </div>
     </header>
@@ -54,6 +58,11 @@ defineProps<{
   margin: 0.2rem 0 0;
   font-size: 0.85rem;
   color: var(--color-text-muted);
+}
+
+.season-label {
+  color: var(--color-primary-dark);
+  font-weight: 500;
 }
 
 .match-reason {

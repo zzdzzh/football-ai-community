@@ -84,15 +84,19 @@ describe('ScoutContextBuilder', () => {
     db.prepare(`
       INSERT OR REPLACE INTO players (
         id, name, team_id, position, date_of_birth, league_code, updated_at
-      ) VALUES ('pd-top-scorer', 'Alpha Top Scorer', 'cl-star-team', 'Forward', '1998-12-20', 'CL', ?)
-    `).run(now);
+      ) VALUES
+        ('pd-top-scorer', 'Alpha Top Scorer', 'cl-star-team', 'Forward', '1998-12-20', 'CL', ?),
+        ('pd-prev-scorer', 'Legacy High Scorer', 'cl-star-team', 'Forward', '1995-01-01', 'CL', ?)
+    `).run(now, now);
     db.prepare(`
       INSERT OR REPLACE INTO player_stats_snapshots (
         id, player_id, league_code, season, goals, assists, penalties, appearances, minutes, synced_at
       ) VALUES
         ('snap-pd-top', 'pd-top-scorer', 'PD', '25-26', 25, 5, 2, 30, 2600, ?),
-        ('snap-cl-side', 'pd-top-scorer', 'CL', '25-26', 10, 1, 0, 8, 700, ?)
-    `).run(now, now);
+        ('snap-cl-side', 'pd-top-scorer', 'CL', '25-26', 10, 1, 0, 8, 700, ?),
+        ('snap-pd-prev', 'pd-prev-scorer', 'PD', '2024', 19, 2, 0, 30, 1970, ?),
+        ('snap-pd-prev-cur', 'pd-prev-scorer', 'PD', '25-26', 5, 1, 0, 20, 1200, ?)
+    `).run(now, now, now, now);
 
     // 姓名排序会把 Bulk/阿字母选手顶在前面；按进球排序必须把「仅 PD 有统计」的球星放进候选池
     const context = buildScoutContext({
@@ -105,6 +109,37 @@ describe('ScoutContextBuilder', () => {
     expect(context.candidates[0]?.id).toBe('pd-top-scorer');
     const top = context.candidates.find((c) => c.id === 'pd-top-scorer');
     expect(top.stats.some((s) => s.name === '进球' && s.value === 25)).toBe(true);
+    expect(top.statsSeason).toBe('25-26');
+    expect(top.statsSeasonLabel).toBe('25/26 赛季');
+
+    // 上赛季 19 球不得压过当前赛季；有当季数据时展示当季 5 球
+    const legacy = context.candidates.find((c) => c.id === 'pd-prev-scorer');
+    expect(legacy).toBeDefined();
+    expect(legacy.statsSeason).toBe('25-26');
+    expect(legacy.stats.some((s) => s.name === '进球' && s.value === 5)).toBe(true);
+    expect(context.candidates.findIndex((c) => c.id === 'pd-prev-scorer'))
+      .toBeGreaterThan(context.candidates.findIndex((c) => c.id === 'pd-top-scorer'));
+
+    // 仅有历史赛季的高进球者，排在所有当前赛季有球者之后
+    db.prepare(`
+      INSERT OR REPLACE INTO players (
+        id, name, team_id, position, date_of_birth, league_code, updated_at
+      ) VALUES ('pd-hist-only', 'Hist Only Scorer', 'cl-star-team', 'Forward', '1993-01-01', 'CL', ?)
+    `).run(now);
+    db.prepare(`
+      INSERT OR REPLACE INTO player_stats_snapshots (
+        id, player_id, league_code, season, goals, assists, penalties, appearances, minutes, synced_at
+      ) VALUES ('snap-hist-only', 'pd-hist-only', 'PD', '2024', 30, 1, 0, 28, 2000, ?)
+    `).run(now);
+    const reranked = buildScoutContext({
+      contextType: 'league',
+      contextId: 'PD',
+      userQuestion: '西甲最佳射手是谁',
+    });
+    const histIdx = reranked.candidates.findIndex((c) => c.id === 'pd-hist-only');
+    const curIdx = reranked.candidates.findIndex((c) => c.id === 'pd-top-scorer');
+    expect(histIdx).toBeGreaterThan(curIdx);
+    expect(reranked.candidates.find((c) => c.id === 'pd-hist-only')?.statsSeasonLabel).toBe('2024 赛季');
   });
 
   it('filters candidates by league context', () => {

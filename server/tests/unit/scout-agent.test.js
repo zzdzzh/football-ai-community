@@ -276,4 +276,49 @@ describe('ScoutAgent', () => {
   it('createScoutAgent with defaults', () => {
     expect(createScoutAgent({ aiScoutService: mockAi })).toBeInstanceOf(ScoutAgent);
   });
+
+  it('passes statsSeason and appends note when historical season mixes with current', async () => {
+    const db = getDb();
+    const now = new Date().toISOString();
+    db.prepare(`
+      INSERT OR REPLACE INTO players (
+        id, name, team_id, position, date_of_birth, league_code, updated_at
+      ) VALUES
+        ('cur-scorer', 'Current Scorer', '57', 'Forward', '2001-01-01', 'PL', ?),
+        ('old-scorer', 'Old Season Scorer', '57', 'Forward', '1995-01-01', 'PL', ?)
+    `).run(now, now);
+    db.prepare(`
+      INSERT OR REPLACE INTO player_stats_snapshots (
+        id, player_id, league_code, season, goals, assists, penalties, appearances, minutes, synced_at
+      ) VALUES
+        ('snap-cur', 'cur-scorer', 'PL', '25-26', 12, 3, 0, 20, 1600, ?),
+        ('snap-old', 'old-scorer', 'PL', '2024', 19, 2, 0, 30, 1970, ?)
+    `).run(now, now);
+
+    mockAi.recommend.mockResolvedValueOnce({
+      summary: '对比如下。',
+      recommendations: [
+        { playerId: 'cur-scorer', matchReason: '当季进球领先', keyStats: [{ name: '进球', value: 12 }, { name: '助攻', value: 3 }, { name: '出场', value: 20 }] },
+        { playerId: 'old-scorer', matchReason: '进球很多', keyStats: [{ name: '进球', value: 19 }, { name: '助攻', value: 2 }, { name: '出场', value: 30 }] },
+        { playerId: 'p4', matchReason: '备选', keyStats: [{ name: '进球', value: 12 }, { name: '助攻', value: 6 }, { name: '出场', value: 30 }] },
+      ],
+      narrowHint: null,
+      confidence: 'high',
+    });
+
+    const agent = new ScoutAgent({ aiScoutService: mockAi });
+    const result = await agent.handleQuestion({
+      contextType: 'league',
+      contextId: 'PL',
+      userQuestion: '英超最佳射手是谁',
+    });
+
+    const current = result.recommendations.find((r) => r.playerId === 'cur-scorer');
+    const old = result.recommendations.find((r) => r.playerId === 'old-scorer');
+    expect(current?.statsSeasonLabel).toBe('25/26 赛季');
+    expect(old?.statsSeasonLabel).toBe('2024 赛季');
+    expect(old?.matchReason).toContain('2024 赛季');
+    expect(old?.matchReason).toContain('非当前赛季');
+    expect(current?.matchReason).not.toContain('非当前赛季');
+  });
 });

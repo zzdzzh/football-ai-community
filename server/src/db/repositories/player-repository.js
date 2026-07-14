@@ -223,8 +223,9 @@ export function searchPlayersForLeagueContext(leagueCode, {
 
   const rankColumn = orderBy === 'assists' ? 'assists' : 'goals';
   const useStatOrder = orderBy === 'goals' || orderBy === 'assists';
+  // 有当前赛季（xx-yy）快照的球员优先，避免上赛季高进球压过当季榜单
   const orderClause = useStatOrder
-    ? `(rank_stat IS NULL), rank_stat DESC, p.name COLLATE NOCASE ASC`
+    ? `(rank_stat IS NULL), rank_is_current DESC, rank_stat DESC, p.name COLLATE NOCASE ASC`
     : `p.name COLLATE NOCASE ASC`;
 
   const selectSql = useStatOrder
@@ -235,10 +236,19 @@ export function searchPlayersForLeagueContext(leagueCode, {
           FROM player_stats_snapshots s
           WHERE s.player_id = p.id AND s.league_code = ?
           ORDER BY
-            s.${rankColumn} DESC,
-            CASE WHEN s.season GLOB '[0-9][0-9]-[0-9][0-9]' THEN 0 ELSE 1 END
+            CASE WHEN s.season GLOB '[0-9][0-9]-[0-9][0-9]' THEN 0 ELSE 1 END,
+            s.${rankColumn} DESC
           LIMIT 1
-        ) AS rank_stat
+        ) AS rank_stat,
+        (
+          SELECT CASE WHEN s.season GLOB '[0-9][0-9]-[0-9][0-9]' THEN 1 ELSE 0 END
+          FROM player_stats_snapshots s
+          WHERE s.player_id = p.id AND s.league_code = ?
+          ORDER BY
+            CASE WHEN s.season GLOB '[0-9][0-9]-[0-9][0-9]' THEN 0 ELSE 1 END,
+            s.${rankColumn} DESC
+          LIMIT 1
+        ) AS rank_is_current
       FROM players p
       LEFT JOIN teams t ON t.id = p.team_id
       WHERE ${membershipClause}
@@ -257,7 +267,12 @@ export function searchPlayersForLeagueContext(leagueCode, {
     `;
 
   const rowParams = useStatOrder
-    ? [leagueCode, leagueCode, leagueCode, leagueCode, ...positionParams, safePageSize, offset]
+    ? [
+      leagueCode,
+      leagueCode,
+      leagueCode, leagueCode, leagueCode,
+      ...positionParams, safePageSize, offset,
+    ]
     : [leagueCode, leagueCode, leagueCode, ...positionParams, safePageSize, offset];
 
   const rows = db.prepare(selectSql).all(...rowParams);

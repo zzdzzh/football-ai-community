@@ -102,6 +102,19 @@ function resolveCandidateSnapshots(player, preferredLeagueCode = null) {
   return leagueSnapshots;
 }
 
+function isCurrentSeasonLabel(season) {
+  return typeof season === 'string' && /^\d{2}-\d{2}$/.test(season);
+}
+
+/** 赛季展示标签：25-26 → 25/26 赛季；2024 → 2024 赛季 */
+export function formatStatsSeasonLabel(season) {
+  if (!season) return null;
+  if (isCurrentSeasonLabel(season)) {
+    return `${season.replace('-', '/')} 赛季`;
+  }
+  return `${season} 赛季`;
+}
+
 function pickRankingSnapshot(snapshots = [], orderBy = 'name') {
   if (!snapshots.length) return null;
   if (orderBy !== 'goals' && orderBy !== 'assists') {
@@ -109,16 +122,15 @@ function pickRankingSnapshot(snapshots = [], orderBy = 'name') {
   }
   const trusted = snapshots.filter((s) => !isUntrustedThinSnapshot(s));
   const pool = trusted.length > 0 ? trusted : snapshots;
+  // 射手/助攻榜优先当前赛季（xx-yy）；无当前赛季再回退历史最高
+  const currentish = pool.filter((s) => isCurrentSeasonLabel(s.season));
+  const rankPool = currentish.length > 0 ? currentish : pool;
   const metric = orderBy === 'assists' ? 'assists' : 'goals';
-  const isCurrentish = (season) => typeof season === 'string' && /^\d{2}-\d{2}$/.test(season);
-  return pool.reduce((best, current) => {
+  return rankPool.reduce((best, current) => {
     const bestMetric = best[metric] ?? 0;
     const currentMetric = current[metric] ?? 0;
     if (currentMetric !== bestMetric) {
       return currentMetric > bestMetric ? current : best;
-    }
-    if (isCurrentish(current.season) !== isCurrentish(best.season)) {
-      return isCurrentish(current.season) ? current : best;
     }
     return scoreSnapshotRichness(current) > scoreSnapshotRichness(best) ? current : best;
   });
@@ -128,6 +140,7 @@ function mapCandidate(player, preferredLeagueCode = null, orderBy = 'name') {
   const snapshots = resolveCandidateSnapshots(player, preferredLeagueCode);
   const best = pickRankingSnapshot(snapshots, orderBy);
   const stats = best ? mapSnapshotToPlayerStats(best) : [];
+  const statsSeason = best?.season ?? null;
   return {
     id: player.id,
     name: player.name,
@@ -136,6 +149,8 @@ function mapCandidate(player, preferredLeagueCode = null, orderBy = 'name') {
     position: player.position,
     age: player.age,
     leagueCode: preferredLeagueCode || player.leagueCode,
+    statsSeason,
+    statsSeasonLabel: formatStatsSeasonLabel(statsSeason),
     stats,
   };
 }

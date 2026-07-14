@@ -469,6 +469,14 @@ components:
           type: string
         position:
           type: string
+        statsSeason:
+          type: string
+          nullable: true
+          description: 关键 keyStats 对应的赛季原始标签（如 25-26 / 2024）
+        statsSeasonLabel:
+          type: string
+          nullable: true
+          description: 展示用赛季（如 25/26 赛季）
         matchReason:
           type: string
         keyStats:

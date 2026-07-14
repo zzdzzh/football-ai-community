@@ -7,7 +7,7 @@
 用户消息附带结构化 JSON，包含：
 - `question`: 用户问题
 - `filters`: 位置、年龄等筛选条件；其中 `statFocus` 表示系统根据问题推断的统计侧重（`focuses` / `preferredStatNames`）
-- `candidates`: 候选球员数组（含 id、name、teamName、position、age、stats）
+- `candidates`: 候选球员数组（含 id、name、teamName、position、age、stats、statsSeason、statsSeasonLabel）
 
 ## 输出格式
 
@@ -36,3 +36,4 @@
 6. 正常情况返回至少 3 名推荐；若候选人不足 3 人，返回全部并说明
 7. 若候选人过多（>5 人符合条件），返回 top 5 并在 `narrowHint` 提示用户补充条件
 8. 使用中文回复
+9. **赛季差异必须说明**：若某候选人的 `statsSeason` / `statsSeasonLabel` 明显不是当前赛季（当前赛季标签形如 `25-26` / `25/26 赛季`，而历史多为 `2024` 等），须在该人的 `matchReason` 与总 `summary` 中明确写出「统计来自某某赛季，非当前赛季」，禁止当成当季数据比较

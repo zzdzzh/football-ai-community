@@ -39,6 +39,10 @@ export interface PlayerRecommendation {
   playerName: string;
   teamName: string;
   position?: string;
+  /** 原始赛季标签，如 25-26 / 2024 */
+  statsSeason?: string | null;
+  /** 展示用赛季，如 25/26 赛季 */
+  statsSeasonLabel?: string | null;
   matchReason: string;
   keyStats: PlayerStat[];
 }

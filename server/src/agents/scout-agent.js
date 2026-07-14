@@ -3,6 +3,25 @@ import { buildScoutContext } from '../services/scout-context-builder.js';
 import { composeKeyStats } from '../services/scout-key-stats.js';
 import { createAiScoutService } from '../ai/ai-scout-service.js';
 
+function isCurrentSeasonLabel(season) {
+  return typeof season === 'string' && /^\d{2}-\d{2}$/.test(season);
+}
+
+function appendSeasonNote(matchReason, player, candidates) {
+  const reason = matchReason ?? '';
+  if (!player?.statsSeasonLabel) return reason;
+  const seasons = candidates
+    .map((c) => c.statsSeason)
+    .filter(Boolean);
+  const hasCurrent = seasons.some((s) => isCurrentSeasonLabel(s));
+  const isHistorical = !isCurrentSeasonLabel(player.statsSeason);
+  // 候选池里已有当前赛季数据，但此人用了历史赛季 → 必须说明
+  if (!(hasCurrent && isHistorical)) return reason;
+  if (reason.includes(player.statsSeasonLabel) || reason.includes('赛季')) return reason;
+  const note = `（统计来自${player.statsSeasonLabel}，非当前赛季）`;
+  return reason ? `${reason}${note}` : note;
+}
+
 function enrichRecommendation(rec, candidates, preferredStatNames = []) {
   const player = candidates.find((c) => c.id === rec.playerId);
   const aiKeyStats = Array.isArray(rec.keyStats) ? rec.keyStats : [];
@@ -14,7 +33,9 @@ function enrichRecommendation(rec, candidates, preferredStatNames = []) {
     playerName: player?.name ?? rec.playerId,
     teamName: player?.teamName ?? '',
     position: player?.position,
-    matchReason: rec.matchReason ?? '',
+    statsSeason: player?.statsSeason ?? null,
+    statsSeasonLabel: player?.statsSeasonLabel ?? null,
+    matchReason: appendSeasonNote(rec.matchReason ?? '', player, candidates),
     keyStats,
   };
 }
