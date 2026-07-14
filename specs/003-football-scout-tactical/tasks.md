@@ -49,7 +49,7 @@
 - [x] T004 [P] Implement player, player-stats-snapshot and player-sync-meta repositories in server/src/db/repositories/player-repository.js, server/src/db/repositories/player-stats-snapshot-repository.js and server/src/db/repositories/player-sync-meta-repository.js（BUG: Scout keyStats 过贫，需优选富统计快照并扩展射门/防守等字段；BUG: Transfermarkt kader 误解析生涯/杂字段为赛季进球，需拒绝不可信薄快照；BUG: 联赛 Scout 需按 stats/球队归属检索并可按进球排序，避免姓名前 50 漏掉射手榜球星；BUG: 射手排序须优先当前赛季 xx-yy，避免上赛季进球挤进榜单）
 - [x] T005 [P] Implement message-feedback repository in server/src/db/repositories/message-feedback-repository.js
 - [x] T006 Extend FootballDataAdapter with squad and scorers endpoints in server/src/adapters/football-data-adapter.js
-- [x] T007 Implement player-sync job with daily cron and internal trigger route in server/src/jobs/player-sync.js and server/src/app.js（BUG: Transfermarkt scorers 误写入超高进球且无 minutes，污染 Scout；同步时须跳过/清理）
+- [x] T007 Implement player-sync job with daily cron and internal trigger route in server/src/jobs/player-sync.js and server/src/app.js（BUG: Transfermarkt scorers 误写入超高进球且无 minutes，污染 Scout；同步时须跳过/清理；BUG: SofaScore transfermarktId 空值映射成 "null" 导致球员错挂最后一支球队如 FC Noah；BUG: 球员同步须跳过 CL/WC，避免覆盖俱乐部归属）
 - [x] T008 Implement players list and detail API in server/src/api/players.js and mount route in server/src/app.js
 - [x] T009 Extend message-repository for recommendations_json and tactical_json persistence in server/src/db/repositories/message-repository.js
 
@@ -72,11 +72,11 @@
 ### Implementation for User Story 1
 
 - [x] T013 [P] [US1] Create scout-recommend prompt and AiScoutService in server/prompts/scout-recommend.md and server/src/ai/ai-scout-service.js（BUG: keyStats 须按用户意图侧重，且保留基础数据；BUG: 「射手/金靴」类问题未识别为 attack 侧重；BUG: 候选 statsSeason 非当前赛季时须在文案中说明）
-- [x] T014 [US1] Implement scout-context-builder with league filter and candidate cap in server/src/services/scout-context-builder.js（BUG: 从问题解析 statFocus；BUG: 后卫 SQL 误用 Defender 与真实 Left-Back/Centre-Back 不匹配导致候选为空；年龄范围/岁以内/边后卫解析；BUG: 联赛快照过贫时未回退跨联赛富统计导致 keyStats 为空；BUG: 「最佳射手」按姓名取前 50 且未偏好联赛进球快照，导致姆巴佩等球星不在候选池；BUG: 候选须带 statsSeason，且进球排序优先当前赛季）
+- [x] T014 [US1] Implement scout-context-builder with league filter and candidate cap in server/src/services/scout-context-builder.js（BUG: 从问题解析 statFocus；BUG: 后卫 SQL 误用 Defender 与真实 Left-Back/Centre-Back 不匹配导致候选为空；年龄范围/岁以内/边后卫解析；BUG: 联赛快照过贫时未回退跨联赛富统计导致 keyStats 为空；BUG: 「最佳射手」按姓名取前 50 且未偏好联赛进球快照，导致姆巴佩等球星不在候选池；BUG: 候选须带 statsSeason，且进球排序优先当前赛季；BUG: Scout 排除 CL/WC，避免国家队/欧冠球队与俱乐部归属混乱）
 - [x] T015 [US1] Implement scout-agent orchestration with recommendations_json persistence in server/src/agents/scout-agent.js（BUG: 组装 keyStats 时强制保留基础项；BUG: 透传 statsSeason 并在赛季不一致时补说明）
 - [x] T016 [US1] Extend conversation-service and conversations API for agentId=scout and feedback endpoint in server/src/services/conversation-service.js and server/src/api/conversations.js
 - [x] T017 [P] [US1] Extend web API clients for players and scout conversations in web/src/api/players.ts and web/src/api/conversations.ts（BUG: 创建含 initialMessage 的对话超时 30s 不足，改为 120s）
-- [x] T018 [P] [US1] Implement ScoutStartView and scout components in web/src/views/ScoutStartView.vue, web/src/components/scout/ScoutFilterForm.vue and web/src/components/scout/PlayerRecommendationCard.vue（BUG: 推荐卡片须展示 statsSeason，避免把上赛季进球当成当季）
+- [x] T018 [P] [US1] Implement ScoutStartView and scout components in web/src/views/ScoutStartView.vue, web/src/components/scout/ScoutFilterForm.vue and web/src/components/scout/PlayerRecommendationCard.vue（BUG: 推荐卡片须展示 statsSeason，避免把上赛季进球当成当季；BUG: Scout 筛选仅五大联赛，移除欧冠/世界杯）
 - [x] T019 [US1] Extend ConversationView for scout recommendations and register /scout route in web/src/views/ConversationView.vue and web/src/router/index.ts
 
 **Checkpoint**: User Story 1 fully functional — Scout 推荐闭环可独立验收（对齐 FR-013–015）

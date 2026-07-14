@@ -1,14 +1,16 @@
-import { getDb } from '../db/connection.js';
 import {
   findPlayerById,
   findPlayerBySofascoreId,
   upsertPlayer,
 } from '../db/repositories/player-repository.js';
+import { findTeamBySofascoreId } from '../db/repositories/team-repository.js';
 import {
   findPlayerStatsSnapshot,
   upsertPlayerStatsSnapshot,
 } from '../db/repositories/player-stats-snapshot-repository.js';
 import { buildPlayerNameIndex, resolvePlayerByName } from './fbref-player-matcher.js';
+import { isClubLeague, isCompetitionLeague } from '../constants/league-codes.js';
+import { getDb } from '../db/connection.js';
 
 function listLeaguePlayers(leagueCode) {
   const db = getDb();
@@ -35,6 +37,21 @@ function resolveSeasonLabel(stat, fallbackSeason) {
   return String(stat.season);
 }
 
+function resolveTeamIdFromSofaStat(stat, leagueCode, fallbackTeamId) {
+  if (!stat.teamSofascoreId) {
+    return fallbackTeamId;
+  }
+  const team = findTeamBySofascoreId(String(stat.teamSofascoreId));
+  if (!team) {
+    return fallbackTeamId;
+  }
+  // 优先采用当前联赛球队；其次允许用五大联赛球队修复杯赛错挂
+  if (team.leagueCode === leagueCode || isClubLeague(team.leagueCode)) {
+    return team.id;
+  }
+  return fallbackTeamId;
+}
+
 export function mergeSofaPlayerStatsForLeague({ leagueCode, season, sofaPlayerStats = [], now }) {
   if (!sofaPlayerStats.length) {
     return { matched: 0, unmatched: 0 };
@@ -49,7 +66,8 @@ export function mergeSofaPlayerStatsForLeague({ leagueCode, season, sofaPlayerSt
     let row = null;
     if (stat.sofascoreId) {
       const bySofa = findPlayerBySofascoreId(stat.sofascoreId);
-      if (bySofa && bySofa.leagueCode === leagueCode) {
+      // 允许跨赛事匹配：用五大联赛统计修复被 CL/WC 错挂球队的同一 sofascore 球员
+      if (bySofa && (bySofa.leagueCode === leagueCode || isCompetitionLeague(bySofa.leagueCode))) {
         row = { id: bySofa.id, name: bySofa.name, team_id: bySofa.teamId };
       }
     }
@@ -70,15 +88,19 @@ export function mergeSofaPlayerStatsForLeague({ leagueCode, season, sofaPlayerSt
     matched += 1;
     const targetSeason = resolveSeasonLabel(stat, season);
     const existing = findPlayerStatsSnapshot(player.id, leagueCode, targetSeason);
+    const teamId = resolveTeamIdFromSofaStat(stat, leagueCode, player.teamId);
+    const nextLeagueCode = (isClubLeague(leagueCode) && isCompetitionLeague(player.leagueCode))
+      ? leagueCode
+      : player.leagueCode;
 
     upsertPlayer({
       id: player.id,
       name: player.name,
-      teamId: player.teamId,
+      teamId,
       position: player.position,
       dateOfBirth: player.dateOfBirth,
       nationality: player.nationality,
-      leagueCode: player.leagueCode,
+      leagueCode: nextLeagueCode,
       sofascoreId: stat.sofascoreId ?? undefined,
       updatedAt: now,
     });

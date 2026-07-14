@@ -1,10 +1,9 @@
-import { ALLOWED_LEAGUES } from '../constants/league-codes.js';
+import { CLUB_LEAGUES, isClubLeague } from '../constants/league-codes.js';
 import { findTeamById } from '../db/repositories/team-repository.js';
 import {
   searchPlayers,
   calcPlayerAge,
   countPlayersByLeague,
-  searchPlayersByTeamLeague,
   searchPlayersForLeagueContext,
 } from '../db/repositories/player-repository.js';
 import {
@@ -29,9 +28,6 @@ function isLeaguePlayerDataNeverSynced(leagueCode) {
   const meta = findPlayerSyncMetaByLeague(leagueCode);
   if (meta?.lastSyncAt && (meta.playersCount ?? 0) > 0) {
     return false;
-  }
-  if (leagueCode === 'CL') {
-    return searchPlayersByTeamLeague('CL', { page: 1, pageSize: 1 }).total === 0;
   }
   return !meta?.lastSyncAt && countPlayersByLeague(leagueCode) === 0;
 }
@@ -259,7 +255,7 @@ export function buildScoutContext({ contextType, contextId, userQuestion = '' })
   }
 
   if (contextType === 'league') {
-    if (!contextId || !ALLOWED_LEAGUES.includes(contextId)) {
+    if (!contextId || !isClubLeague(contextId)) {
       return { notFound: true };
     }
     if (isLeaguePlayerDataNeverSynced(contextId)) {
@@ -286,6 +282,9 @@ export function buildScoutContext({ contextType, contextId, userQuestion = '' })
   if (contextType === 'team') {
     const team = findTeamById(contextId);
     if (!team) {
+      return { notFound: true };
+    }
+    if (!isClubLeague(team.leagueCode)) {
       return { notFound: true };
     }
     if (isLeaguePlayerDataNeverSynced(team.leagueCode)) {
@@ -341,4 +340,4 @@ export function buildScoutContext({ contextType, contextId, userQuestion = '' })
   return { invalid: true };
 }
 
-export { CANDIDATE_CAP, BROAD_POOL_THRESHOLD };
+export { CANDIDATE_CAP, BROAD_POOL_THRESHOLD, CLUB_LEAGUES };

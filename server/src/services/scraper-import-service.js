@@ -3,6 +3,7 @@ import {
   findTeamByNormalizedName,
   findTeamBySofascoreId,
   findTeamByTransfermarktId,
+  findTeamById,
   upsertTeam,
 } from '../db/repositories/team-repository.js';
 import {
@@ -23,40 +24,61 @@ import { syncLeagueFromScraper } from '../adapters/scraper-runner.js';
 import { mergeFbrefStatsForLeague } from './fbref-stats-import.js';
 import { mergeSofaPlayerStatsForLeague } from './sofa-stats-import.js';
 import { buildPlayerNameIndex, resolvePlayerByName } from './fbref-player-matcher.js';
+import { isClubLeague, isCompetitionLeague } from '../constants/league-codes.js';
+
+function hasExternalId(value) {
+  return value != null && String(value).trim() !== '' && String(value) !== 'null';
+}
 
 function resolveTeamId(scrapedTeam) {
   const { transfermarktId, sofascoreId, name, leagueCode } = scrapedTeam;
 
-  if (transfermarktId) {
+  if (hasExternalId(transfermarktId)) {
     const byTm = findTeamByTransfermarktId(String(transfermarktId));
     if (byTm) return byTm.id;
   }
-  if (sofascoreId) {
+  if (hasExternalId(sofascoreId)) {
     const bySofa = findTeamBySofascoreId(String(sofascoreId));
     if (bySofa) return bySofa.id;
   }
   const byName = findTeamByNormalizedName(name, leagueCode);
   if (byName) return byName.id;
 
-  if (sofascoreId) return `ss-${sofascoreId}`;
-  if (transfermarktId) return `tm-${transfermarktId}`;
+  if (hasExternalId(sofascoreId)) return `ss-${sofascoreId}`;
+  if (hasExternalId(transfermarktId)) return `tm-${transfermarktId}`;
   return `name-${leagueCode}-${name.toLowerCase().replace(/\s+/g, '-')}`;
+}
+
+function registerTeamIdKeys(map, team, id) {
+  if (hasExternalId(team.transfermarktId)) {
+    map.set(String(team.transfermarktId), id);
+  }
+  if (hasExternalId(team.sofascoreId)) {
+    map.set(`ss:${team.sofascoreId}`, id);
+  }
+  map.set(team.name, id);
+  if (team.transfermarktName) {
+    map.set(team.transfermarktName, id);
+  }
 }
 
 function buildTeamIdMap(payload) {
   const map = new Map();
   for (const team of payload.teams ?? []) {
-    const id = resolveTeamId(team);
-    map.set(String(team.transfermarktId), id);
-    if (team.sofascoreId) {
-      map.set(`ss:${team.sofascoreId}`, id);
-    }
-    map.set(team.name, id);
-    if (team.transfermarktName) {
-      map.set(team.transfermarktName, id);
-    }
+    registerTeamIdKeys(map, team, resolveTeamId(team));
   }
   return map;
+}
+
+function resolvePlayerTeamId(player, teamIdMap) {
+  if (hasExternalId(player.teamTransfermarktId)) {
+    const byTm = teamIdMap.get(String(player.teamTransfermarktId));
+    if (byTm) return byTm;
+  }
+  if (hasExternalId(player.teamSofascoreId)) {
+    return teamIdMap.get(`ss:${player.teamSofascoreId}`) ?? null;
+  }
+  return null;
 }
 
 function resolveMatchTeamId(teamRef, teamIdMap, leagueCode) {
@@ -110,15 +132,18 @@ export async function importLeagueFromScraper(leagueCode, { includeFbref = true,
     const tx = db.transaction(() => {
       for (const team of payload.teams ?? []) {
         const id = resolveTeamId(team);
-        teamIdMap.set(String(team.transfermarktId), id);
-      if (team.sofascoreId) teamIdMap.set(`ss:${team.sofascoreId}`, id);
-      teamIdMap.set(team.name, id);
-      if (team.transfermarktName) teamIdMap.set(team.transfermarktName, id);
+        registerTeamIdKeys(teamIdMap, team, id);
+        const existingTeam = findTeamById(id);
+        const leagueCode = (existingTeam
+          && isClubLeague(existingTeam.leagueCode)
+          && isCompetitionLeague(team.leagueCode))
+          ? existingTeam.leagueCode
+          : team.leagueCode;
         upsertTeam({
           id,
           name: team.name,
           shortName: team.shortName,
-          leagueCode: team.leagueCode,
+          leagueCode,
           sofascoreId: team.sofascoreId,
           transfermarktId: team.transfermarktId,
           updatedAt: now,
@@ -127,12 +152,18 @@ export async function importLeagueFromScraper(leagueCode, { includeFbref = true,
 
       const playerIdRemap = new Map();
       for (const player of payload.players ?? []) {
-        const teamId = teamIdMap.get(String(player.teamTransfermarktId))
-          ?? (player.teamSofascoreId ? teamIdMap.get(`ss:${player.teamSofascoreId}`) : null);
+        const teamId = resolvePlayerTeamId(player, teamIdMap);
         if (!teamId) continue;
         const resolvedId = findExistingPlayerId(player, teamId) ?? player.id;
         if (player.id && resolvedId !== player.id) {
           playerIdRemap.set(player.id, resolvedId);
+        }
+        const existingPlayer = findPlayerById(resolvedId);
+        // 杯赛/国家队阵容不得覆盖已有五大联赛俱乐部归属
+        if (existingPlayer
+          && isClubLeague(existingPlayer.leagueCode)
+          && isCompetitionLeague(player.leagueCode)) {
+          continue;
         }
         upsertPlayer({
           id: resolvedId,

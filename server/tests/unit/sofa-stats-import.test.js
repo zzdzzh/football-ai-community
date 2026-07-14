@@ -72,4 +72,42 @@ describe('sofa-stats-import', () => {
     const row = getDb().prepare('SELECT sofascore_id FROM players WHERE id = ?').get('tm-2');
     expect(row.sofascore_id).toBe('999');
   });
+
+  it('repairs competition-league players with club team from sofa teamSofascoreId', () => {
+    const db = getDb();
+    const now = new Date().toISOString();
+    db.prepare(`
+      INSERT OR REPLACE INTO teams (id, name, league_code, updated_at, sofascore_id)
+      VALUES
+        ('ss-noah', 'FC Noah', 'CL', ?, '262228'),
+        ('ss-arsenal', 'Arsenal', 'PL', ?, '42')
+    `).run(now, now);
+    db.prepare(`
+      INSERT OR REPLACE INTO players (
+        id, name, team_id, position, league_code, updated_at, sofascore_id
+      ) VALUES ('ss-star', 'Star Forward', 'ss-noah', 'Forward', 'CL', ?, '826643')
+    `).run(now);
+
+    const result = mergeSofaPlayerStatsForLeague({
+      leagueCode: 'PL',
+      season: '25-26',
+      sofaPlayerStats: [{
+        sofascoreId: '826643',
+        name: 'Star Forward',
+        teamSofascoreId: '42',
+        goals: 12,
+        assists: 3,
+        rating: 7.5,
+        season: '25-26',
+      }],
+      now,
+    });
+
+    expect(result.matched).toBe(1);
+    const player = db.prepare('SELECT team_id, league_code FROM players WHERE id = ?').get('ss-star');
+    expect(player.team_id).toBe('ss-arsenal');
+    expect(player.league_code).toBe('PL');
+    const snapshot = findPlayerStatsSnapshot('ss-star', 'PL', '25-26');
+    expect(snapshot.goals).toBe(12);
+  });
 });

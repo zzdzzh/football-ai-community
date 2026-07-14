@@ -321,30 +321,43 @@ describe('ScoutContextBuilder', () => {
     expect(candidate?.stats).toEqual([]);
   });
 
-  it('falls back to richer club snapshots when league-scoped stats are empty', () => {
+  it('rejects CL/WC league context to avoid club vs competition team confusion', () => {
+    expect(buildScoutContext({
+      contextType: 'league',
+      contextId: 'WC',
+      userQuestion: '推荐门将',
+    }).notFound).toBe(true);
+    expect(buildScoutContext({
+      contextType: 'league',
+      contextId: 'CL',
+      userQuestion: '推荐前锋',
+    }).notFound).toBe(true);
+  });
+
+  it('falls back to richer club snapshots when preferred-league stats are empty', () => {
     const db = getDb();
     const now = new Date().toISOString();
     db.prepare(`
       INSERT OR REPLACE INTO teams (id, name, league_code, updated_at)
-      VALUES ('wc-team', 'Brazil', 'WC', ?)
+      VALUES ('fl1-team', 'Demo FC', 'FL1', ?)
     `).run(now);
     db.prepare(`
       INSERT OR REPLACE INTO players (
         id, name, team_id, position, date_of_birth, league_code, updated_at
-      ) VALUES ('wc-gk-rich', 'WC Keeper', 'wc-team', 'Goalkeeper', '1992-01-01', 'WC', ?)
+      ) VALUES ('fl1-gk-rich', 'FL1 Keeper', 'fl1-team', 'Goalkeeper', '1992-01-01', 'FL1', ?)
     `).run(now);
     db.prepare(`
       INSERT OR REPLACE INTO player_stats_snapshots (
         id, player_id, league_code, season, goals, assists, penalties, appearances, minutes, synced_at
-      ) VALUES ('snap-club', 'wc-gk-rich', 'PL', '25-26', 0, 0, 0, 30, 2700, ?)
+      ) VALUES ('snap-club', 'fl1-gk-rich', 'PL', '25-26', 0, 0, 0, 30, 2700, ?)
     `).run(now);
 
     const context = buildScoutContext({
       contextType: 'league',
-      contextId: 'WC',
+      contextId: 'FL1',
       userQuestion: '30岁以上门将',
     });
-    const candidate = context.candidates.find((c) => c.id === 'wc-gk-rich');
+    const candidate = context.candidates.find((c) => c.id === 'fl1-gk-rich');
     expect(candidate).toBeDefined();
     expect(candidate.stats.some((s) => s.name === '出场分钟' && s.value === 2700)).toBe(true);
   });

@@ -2,7 +2,7 @@
 import type { LeagueCode } from '@/constants/leagues';
 import type { Team } from '@/types/stats';
 import type { ScoutContextType } from '@/types/scout';
-import { LEAGUE_OPTIONS_SHORT } from '@/constants/leagues';
+import { CLUB_LEAGUE_OPTIONS_SHORT } from '@/constants/leagues';
 
 defineProps<{
   teams: Team[];
@@ -18,7 +18,7 @@ defineEmits<{
   searchTeams: [];
 }>();
 
-const leagueOptions = LEAGUE_OPTIONS_SHORT;
+const leagueOptions = CLUB_LEAGUE_OPTIONS_SHORT;
 </script>
 
 <template>

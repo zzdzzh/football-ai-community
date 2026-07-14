@@ -5,8 +5,7 @@ import { config } from '../config/index.js';
 import { AppError } from '../middleware/error.js';
 import { createFootballDataAdapter, ALLOWED_LEAGUES } from '../adapters/football-data-adapter.js';
 import { importLeagueFromScraper } from '../services/scraper-import-service.js';
-import { refreshClPlayerSyncMeta } from '../services/cl-player-bridge.js';
-import { SEASON_REQUIRED_LEAGUES } from '../constants/league-codes.js';
+import { CLUB_LEAGUES, SEASON_REQUIRED_LEAGUES, isCompetitionLeague } from '../constants/league-codes.js';
 import { searchTeams, upsertTeam } from '../db/repositories/team-repository.js';
 import { upsertPlayer, countPlayersByLeague } from '../db/repositories/player-repository.js';
 import { upsertPlayerStatsSnapshot, isUntrustedThinSnapshot } from '../db/repositories/player-stats-snapshot-repository.js';
@@ -118,14 +117,22 @@ export async function executePlayerSyncJob({ league = null, adapter = null } = {
   }
 
   if (config.dataSource === 'scraper') {
-    const leagues = league ? [league] : ALLOWED_LEAGUES;
+    // 仅同步五大联赛球员；CL/WC 会覆盖俱乐部归属（国家队/错挂球队）
+    if (league && isCompetitionLeague(league)) {
+      return [{
+        leagueCode: league,
+        skipped: true,
+        reason: '欧冠/世界杯不参与球员归属同步，请使用五大联赛',
+      }];
+    }
+    const leagues = league ? [league] : CLUB_LEAGUES;
     runningJob = (async () => {
       const results = [];
       for (const leagueCode of leagues) {
         try {
           const result = await importLeagueFromScraper(leagueCode, {
             includeFbref: true,
-            playersOnly: leagueCode === 'WC',
+            playersOnly: false,
           });
           results.push({
             leagueCode,
@@ -137,12 +144,6 @@ export async function executePlayerSyncJob({ league = null, adapter = null } = {
           results.push({ leagueCode, error: err.message });
         }
       }
-      try {
-        const bridgeResult = refreshClPlayerSyncMeta();
-        results.push({ leagueCode: 'CL', ...bridgeResult });
-      } catch (err) {
-        results.push({ leagueCode: 'CL', bridgeError: err.message });
-      }
       return results;
     })().finally(() => {
       runningJob = null;
@@ -151,7 +152,14 @@ export async function executePlayerSyncJob({ league = null, adapter = null } = {
   }
 
   const footballAdapter = adapter ?? createFootballDataAdapter();
-  const leagues = league ? [league] : ALLOWED_LEAGUES;
+  if (league && isCompetitionLeague(league)) {
+    return [{
+      leagueCode: league,
+      skipped: true,
+      reason: '欧冠/世界杯不参与球员归属同步，请使用五大联赛',
+    }];
+  }
+  const leagues = league ? [league] : CLUB_LEAGUES;
 
   runningJob = (async () => {
     const results = [];
