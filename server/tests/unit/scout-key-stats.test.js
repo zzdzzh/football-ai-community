@@ -14,6 +14,7 @@ describe('scout-key-stats', () => {
 
   it('infers attack focus for finishing requests', () => {
     const focus = parseStatFocusFromQuestion('找一个射门终结能力强的前锋');
+    expect(parseStatFocusFromQuestion('西甲最佳射手是谁').focuses).toContain('attack');
     expect(focus.focuses).toContain('attack');
     expect(focus.preferredStatNames).toEqual(
       expect.arrayContaining(['射门', '射正', 'xG']),

@@ -181,6 +181,95 @@ export function searchPlayersByTeamLeague(teamLeagueCode, { page = 1, pageSize =
   };
 }
 
+/**
+ * 联赛 Scout 候选：同时覆盖球员 league_code、所属球队联赛、以及在该联赛有统计快照的球员。
+ * orderBy=goals|assists 时按该联赛快照排序（优先 xx-yy 赛季标签）。
+ */
+export function searchPlayersForLeagueContext(leagueCode, {
+  positionAny = null,
+  orderBy = 'name',
+  page = 1,
+  pageSize = 20,
+} = {}) {
+  const db = getDb();
+  const safePage = Math.max(1, page);
+  const safePageSize = Math.min(50, Math.max(1, pageSize));
+  const offset = (safePage - 1) * safePageSize;
+
+  const likeTerms = Array.isArray(positionAny) && positionAny.length > 0 ? positionAny : [];
+  const positionClause = likeTerms.length === 0
+    ? ''
+    : likeTerms.length === 1
+      ? 'AND p.position LIKE ? COLLATE NOCASE'
+      : `AND (${likeTerms.map(() => 'p.position LIKE ? COLLATE NOCASE').join(' OR ')})`;
+  const positionParams = likeTerms.map((term) => `%${term}%`);
+
+  const membershipClause = `(
+    p.league_code = ?
+    OR t.league_code = ?
+    OR EXISTS (
+      SELECT 1 FROM player_stats_snapshots sx
+      WHERE sx.player_id = p.id AND sx.league_code = ?
+    )
+  )`;
+
+  const total = db.prepare(`
+    SELECT COUNT(*) AS count
+    FROM players p
+    LEFT JOIN teams t ON t.id = p.team_id
+    WHERE ${membershipClause}
+    ${positionClause}
+  `).get(leagueCode, leagueCode, leagueCode, ...positionParams).count;
+
+  const rankColumn = orderBy === 'assists' ? 'assists' : 'goals';
+  const useStatOrder = orderBy === 'goals' || orderBy === 'assists';
+  const orderClause = useStatOrder
+    ? `(rank_stat IS NULL), rank_stat DESC, p.name COLLATE NOCASE ASC`
+    : `p.name COLLATE NOCASE ASC`;
+
+  const selectSql = useStatOrder
+    ? `
+      SELECT p.*, t.name AS team_name,
+        (
+          SELECT s.${rankColumn}
+          FROM player_stats_snapshots s
+          WHERE s.player_id = p.id AND s.league_code = ?
+          ORDER BY
+            s.${rankColumn} DESC,
+            CASE WHEN s.season GLOB '[0-9][0-9]-[0-9][0-9]' THEN 0 ELSE 1 END
+          LIMIT 1
+        ) AS rank_stat
+      FROM players p
+      LEFT JOIN teams t ON t.id = p.team_id
+      WHERE ${membershipClause}
+      ${positionClause}
+      ORDER BY ${orderClause}
+      LIMIT ? OFFSET ?
+    `
+    : `
+      SELECT p.*, t.name AS team_name
+      FROM players p
+      LEFT JOIN teams t ON t.id = p.team_id
+      WHERE ${membershipClause}
+      ${positionClause}
+      ORDER BY ${orderClause}
+      LIMIT ? OFFSET ?
+    `;
+
+  const rowParams = useStatOrder
+    ? [leagueCode, leagueCode, leagueCode, leagueCode, ...positionParams, safePageSize, offset]
+    : [leagueCode, leagueCode, leagueCode, ...positionParams, safePageSize, offset];
+
+  const rows = db.prepare(selectSql).all(...rowParams);
+
+  return {
+    items: rows.map((row) => mapPlayerRow(row)),
+    page: safePage,
+    pageSize: safePageSize,
+    total,
+  };
+}
+
 export function upsertPlayersInTransaction(players, handler = upsertPlayer) {
   const db = getDb();
   const tx = db.transaction((records) => {

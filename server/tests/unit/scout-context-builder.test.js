@@ -71,6 +71,40 @@ describe('ScoutContextBuilder', () => {
       expect.arrayContaining(['拦截', '抢断成功']),
     );
     expect(parseStatFocusFromQuestion('找一个进球能力强的前锋').focuses).toContain('attack');
+    expect(parseStatFocusFromQuestion('西甲最佳射手是谁').focuses).toContain('attack');
+  });
+
+  it('ranks league candidates by goals for top-scorer questions and includes stats-only membership', () => {
+    const db = getDb();
+    const now = new Date().toISOString();
+    db.prepare(`
+      INSERT OR REPLACE INTO teams (id, name, league_code, updated_at)
+      VALUES ('cl-star-team', 'CL Star Team', 'CL', ?)
+    `).run(now);
+    db.prepare(`
+      INSERT OR REPLACE INTO players (
+        id, name, team_id, position, date_of_birth, league_code, updated_at
+      ) VALUES ('pd-top-scorer', 'Alpha Top Scorer', 'cl-star-team', 'Forward', '1998-12-20', 'CL', ?)
+    `).run(now);
+    db.prepare(`
+      INSERT OR REPLACE INTO player_stats_snapshots (
+        id, player_id, league_code, season, goals, assists, penalties, appearances, minutes, synced_at
+      ) VALUES
+        ('snap-pd-top', 'pd-top-scorer', 'PD', '25-26', 25, 5, 2, 30, 2600, ?),
+        ('snap-cl-side', 'pd-top-scorer', 'CL', '25-26', 10, 1, 0, 8, 700, ?)
+    `).run(now, now);
+
+    // 姓名排序会把 Bulk/阿字母选手顶在前面；按进球排序必须把「仅 PD 有统计」的球星放进候选池
+    const context = buildScoutContext({
+      contextType: 'league',
+      contextId: 'PD',
+      userQuestion: '西甲最佳射手是谁',
+    });
+    expect(context.filters.statFocus.focuses).toContain('attack');
+    expect(context.candidates.some((c) => c.id === 'pd-top-scorer')).toBe(true);
+    expect(context.candidates[0]?.id).toBe('pd-top-scorer');
+    const top = context.candidates.find((c) => c.id === 'pd-top-scorer');
+    expect(top.stats.some((s) => s.name === '进球' && s.value === 25)).toBe(true);
   });
 
   it('filters candidates by league context', () => {

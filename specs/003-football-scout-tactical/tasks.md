@@ -46,7 +46,7 @@
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
 - [x] T003 Create SQLite migration for players, player_stats_snapshots, player_sync_meta, message_feedback and messages column extensions in server/src/db/migrations/006_scout_tactical.sql
-- [x] T004 [P] Implement player, player-stats-snapshot and player-sync-meta repositories in server/src/db/repositories/player-repository.js, server/src/db/repositories/player-stats-snapshot-repository.js and server/src/db/repositories/player-sync-meta-repository.js（BUG: Scout keyStats 过贫，需优选富统计快照并扩展射门/防守等字段；BUG: Transfermarkt kader 误解析生涯/杂字段为赛季进球，需拒绝不可信薄快照）
+- [x] T004 [P] Implement player, player-stats-snapshot and player-sync-meta repositories in server/src/db/repositories/player-repository.js, server/src/db/repositories/player-stats-snapshot-repository.js and server/src/db/repositories/player-sync-meta-repository.js（BUG: Scout keyStats 过贫，需优选富统计快照并扩展射门/防守等字段；BUG: Transfermarkt kader 误解析生涯/杂字段为赛季进球，需拒绝不可信薄快照；BUG: 联赛 Scout 需按 stats/球队归属检索并可按进球排序，避免姓名前 50 漏掉射手榜球星）
 - [x] T005 [P] Implement message-feedback repository in server/src/db/repositories/message-feedback-repository.js
 - [x] T006 Extend FootballDataAdapter with squad and scorers endpoints in server/src/adapters/football-data-adapter.js
 - [x] T007 Implement player-sync job with daily cron and internal trigger route in server/src/jobs/player-sync.js and server/src/app.js（BUG: Transfermarkt scorers 误写入超高进球且无 minutes，污染 Scout；同步时须跳过/清理）
@@ -71,8 +71,8 @@
 
 ### Implementation for User Story 1
 
-- [x] T013 [P] [US1] Create scout-recommend prompt and AiScoutService in server/prompts/scout-recommend.md and server/src/ai/ai-scout-service.js（BUG: keyStats 须按用户意图侧重，且保留基础数据）
-- [x] T014 [US1] Implement scout-context-builder with league filter and candidate cap in server/src/services/scout-context-builder.js（BUG: 从问题解析 statFocus；BUG: 后卫 SQL 误用 Defender 与真实 Left-Back/Centre-Back 不匹配导致候选为空；年龄范围/岁以内/边后卫解析；BUG: 联赛快照过贫时未回退跨联赛富统计导致 keyStats 为空）
+- [x] T013 [P] [US1] Create scout-recommend prompt and AiScoutService in server/prompts/scout-recommend.md and server/src/ai/ai-scout-service.js（BUG: keyStats 须按用户意图侧重，且保留基础数据；BUG: 「射手/金靴」类问题未识别为 attack 侧重）
+- [x] T014 [US1] Implement scout-context-builder with league filter and candidate cap in server/src/services/scout-context-builder.js（BUG: 从问题解析 statFocus；BUG: 后卫 SQL 误用 Defender 与真实 Left-Back/Centre-Back 不匹配导致候选为空；年龄范围/岁以内/边后卫解析；BUG: 联赛快照过贫时未回退跨联赛富统计导致 keyStats 为空；BUG: 「最佳射手」按姓名取前 50 且未偏好联赛进球快照，导致姆巴佩等球星不在候选池）
 - [x] T015 [US1] Implement scout-agent orchestration with recommendations_json persistence in server/src/agents/scout-agent.js（BUG: 组装 keyStats 时强制保留基础项）
 - [x] T016 [US1] Extend conversation-service and conversations API for agentId=scout and feedback endpoint in server/src/services/conversation-service.js and server/src/api/conversations.js
 - [x] T017 [P] [US1] Extend web API clients for players and scout conversations in web/src/api/players.ts and web/src/api/conversations.ts（BUG: 创建含 initialMessage 的对话超时 30s 不足，改为 120s）

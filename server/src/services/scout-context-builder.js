@@ -1,11 +1,18 @@
 import { ALLOWED_LEAGUES } from '../constants/league-codes.js';
 import { findTeamById } from '../db/repositories/team-repository.js';
-import { searchPlayers, calcPlayerAge, countPlayersByLeague, searchPlayersByTeamLeague } from '../db/repositories/player-repository.js';
+import {
+  searchPlayers,
+  calcPlayerAge,
+  countPlayersByLeague,
+  searchPlayersByTeamLeague,
+  searchPlayersForLeagueContext,
+} from '../db/repositories/player-repository.js';
 import {
   listPlayerStatsSnapshots,
   mapSnapshotToPlayerStats,
   pickBestPlayerStatsSnapshot,
   scoreSnapshotRichness,
+  isUntrustedThinSnapshot,
 } from '../db/repositories/player-stats-snapshot-repository.js';
 import {
   getAggregatePlayerSyncStatus,
@@ -76,13 +83,14 @@ export function parsePositionFromQuestion(question) {
   return keywords.find((kw) => question.includes(kw)) ?? null;
 }
 
-function resolveCandidateSnapshots(player) {
-  // 优先当前联赛快照；若明显更贫（如世界杯国脚无富统计、但有俱乐部赛季数据），跨联赛回退优选
+function resolveCandidateSnapshots(player, preferredLeagueCode = null) {
+  // 优先上下文联赛（或球员自身联赛）快照；若明显更贫则跨联赛回退
   const all = listPlayerStatsSnapshots(player.id);
-  if (!player.leagueCode || all.length <= 1) {
+  const preferred = preferredLeagueCode || player.leagueCode;
+  if (!preferred || all.length <= 1) {
     return all;
   }
-  const leagueSnapshots = all.filter((s) => s.leagueCode === player.leagueCode);
+  const leagueSnapshots = all.filter((s) => s.leagueCode === preferred);
   if (leagueSnapshots.length === 0) {
     return all;
   }
@@ -94,9 +102,31 @@ function resolveCandidateSnapshots(player) {
   return leagueSnapshots;
 }
 
-function mapCandidate(player) {
-  const snapshots = resolveCandidateSnapshots(player);
-  const best = pickBestPlayerStatsSnapshot(snapshots);
+function pickRankingSnapshot(snapshots = [], orderBy = 'name') {
+  if (!snapshots.length) return null;
+  if (orderBy !== 'goals' && orderBy !== 'assists') {
+    return pickBestPlayerStatsSnapshot(snapshots);
+  }
+  const trusted = snapshots.filter((s) => !isUntrustedThinSnapshot(s));
+  const pool = trusted.length > 0 ? trusted : snapshots;
+  const metric = orderBy === 'assists' ? 'assists' : 'goals';
+  const isCurrentish = (season) => typeof season === 'string' && /^\d{2}-\d{2}$/.test(season);
+  return pool.reduce((best, current) => {
+    const bestMetric = best[metric] ?? 0;
+    const currentMetric = current[metric] ?? 0;
+    if (currentMetric !== bestMetric) {
+      return currentMetric > bestMetric ? current : best;
+    }
+    if (isCurrentish(current.season) !== isCurrentish(best.season)) {
+      return isCurrentish(current.season) ? current : best;
+    }
+    return scoreSnapshotRichness(current) > scoreSnapshotRichness(best) ? current : best;
+  });
+}
+
+function mapCandidate(player, preferredLeagueCode = null, orderBy = 'name') {
+  const snapshots = resolveCandidateSnapshots(player, preferredLeagueCode);
+  const best = pickRankingSnapshot(snapshots, orderBy);
   const stats = best ? mapSnapshotToPlayerStats(best) : [];
   return {
     id: player.id,
@@ -105,9 +135,20 @@ function mapCandidate(player) {
     teamName: player.teamName,
     position: player.position,
     age: player.age,
-    leagueCode: player.leagueCode,
+    leagueCode: preferredLeagueCode || player.leagueCode,
     stats,
   };
+}
+
+function resolveCandidateOrderBy(statFocus, userQuestion = '') {
+  const focuses = statFocus?.focuses ?? [];
+  if (focuses.includes('attack') || /射手|金靴|进球榜|top\s*scorer/i.test(userQuestion)) {
+    return 'goals';
+  }
+  if (focuses.includes('playmaking') && /助攻/.test(userQuestion)) {
+    return 'assists';
+  }
+  return 'name';
 }
 
 const POSITION_ALIASES = {
@@ -175,14 +216,10 @@ function filterCandidates(candidates, { maxAge = null, minAge = null, position =
   return filtered;
 }
 
-function searchLeagueCandidates(leagueCode, { position = null } = {}) {
-  const positionAny = resolvePositionSqlLikeTerms(position);
-  if (leagueCode === 'CL') {
-    return searchPlayersByTeamLeague('CL', { page: 1, pageSize: CANDIDATE_CAP });
-  }
-  return searchPlayers({
-    league: leagueCode,
-    positionAny,
+function searchLeagueCandidates(leagueCode, { position = null, orderBy = 'name' } = {}) {
+  return searchPlayersForLeagueContext(leagueCode, {
+    positionAny: resolvePositionSqlLikeTerms(position),
+    orderBy,
     page: 1,
     pageSize: CANDIDATE_CAP,
   });
@@ -216,8 +253,9 @@ export function buildScoutContext({ contextType, contextId, userQuestion = '' })
     const { maxAge, minAge } = resolveAgeFilters(userQuestion);
     const position = parsePositionFromQuestion(userQuestion);
     const statFocus = parseStatFocusFromQuestion(userQuestion, position);
-    const result = searchLeagueCandidates(contextId, { position });
-    const candidates = result.items.map(mapCandidate);
+    const orderBy = resolveCandidateOrderBy(statFocus, userQuestion);
+    const result = searchLeagueCandidates(contextId, { position, orderBy });
+    const candidates = result.items.map((player) => mapCandidate(player, contextId, orderBy));
     const filtered = filterCandidates(candidates, { maxAge, minAge, position });
     return {
       contextType,
@@ -247,7 +285,7 @@ export function buildScoutContext({ contextType, contextId, userQuestion = '' })
       page: 1,
       pageSize: CANDIDATE_CAP,
     });
-    const candidates = result.items.map(mapCandidate);
+    const candidates = result.items.map((player) => mapCandidate(player, team.leagueCode));
     const filtered = filterCandidates(candidates, { maxAge, minAge, position });
     return {
       contextType,

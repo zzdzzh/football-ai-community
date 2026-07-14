@@ -15,7 +15,7 @@ const FOCUS_KEYWORDS = [
   { focus: 'goalkeeping', patterns: [/门将/, /扑救/, /零封/, /守门/, /goalkeeper/i, /keeper/i] },
   { focus: 'defense', patterns: [/后卫/, /防守/, /压迫/, /拦截/, /抢断/, /对抗/, /defender/i, /tackl/i, /press/i] },
   { focus: 'playmaking', patterns: [/组织/, /传球/, /创造力/, /助攻/, /串联/, /playmak/i, /creat/i, /pass/i] },
-  { focus: 'attack', patterns: [/前锋/, /边锋/, /进球/, /射门/, /终结/, /破门/, /火力/, /forward/i, /striker/i, /winger/i, /finish/i, /shoot/i, /goal/i] },
+  { focus: 'attack', patterns: [/前锋/, /边锋/, /进球/, /射门/, /终结/, /破门/, /火力/, /射手/, /金靴/, /进球榜/, /forward/i, /striker/i, /winger/i, /finish/i, /shoot/i, /goal/i, /top\s*scorer/i] },
   { focus: 'workload', patterns: [/出场/, /主力/, /分钟/, /耐力/, /铁人/, /minutes?/i, /starter/i] },
 ];
 
