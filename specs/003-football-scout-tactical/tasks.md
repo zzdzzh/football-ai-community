@@ -46,10 +46,10 @@
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
 - [x] T003 Create SQLite migration for players, player_stats_snapshots, player_sync_meta, message_feedback and messages column extensions in server/src/db/migrations/006_scout_tactical.sql
-- [x] T004 [P] Implement player, player-stats-snapshot and player-sync-meta repositories in server/src/db/repositories/player-repository.js, server/src/db/repositories/player-stats-snapshot-repository.js and server/src/db/repositories/player-sync-meta-repository.js（BUG: Scout keyStats 过贫，需优选富统计快照并扩展射门/防守等字段）
+- [x] T004 [P] Implement player, player-stats-snapshot and player-sync-meta repositories in server/src/db/repositories/player-repository.js, server/src/db/repositories/player-stats-snapshot-repository.js and server/src/db/repositories/player-sync-meta-repository.js（BUG: Scout keyStats 过贫，需优选富统计快照并扩展射门/防守等字段；BUG: Transfermarkt kader 误解析生涯/杂字段为赛季进球，需拒绝不可信薄快照）
 - [x] T005 [P] Implement message-feedback repository in server/src/db/repositories/message-feedback-repository.js
 - [x] T006 Extend FootballDataAdapter with squad and scorers endpoints in server/src/adapters/football-data-adapter.js
-- [x] T007 Implement player-sync job with daily cron and internal trigger route in server/src/jobs/player-sync.js and server/src/app.js
+- [x] T007 Implement player-sync job with daily cron and internal trigger route in server/src/jobs/player-sync.js and server/src/app.js（BUG: Transfermarkt scorers 误写入超高进球且无 minutes，污染 Scout；同步时须跳过/清理）
 - [x] T008 Implement players list and detail API in server/src/api/players.js and mount route in server/src/app.js
 - [x] T009 Extend message-repository for recommendations_json and tactical_json persistence in server/src/db/repositories/message-repository.js
 

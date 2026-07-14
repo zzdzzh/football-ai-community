@@ -29,7 +29,7 @@ describe('fbref-stats-import', () => {
     closeDb();
   });
 
-  it('merges fbref advanced stats without overwriting existing goals', () => {
+  it('merges fbref advanced stats and prefers FBref goals over existing', () => {
     const now = new Date().toISOString();
     const result = mergeFbrefStatsForLeague({
       leagueCode: 'PL',
@@ -53,10 +53,10 @@ describe('fbref-stats-import', () => {
     expect(result).toEqual({ matched: 1, unmatched: 0 });
 
     const snapshot = findPlayerStatsSnapshot('p1', 'PL', '2025');
-    expect(snapshot.goals).toBe(10);
-    expect(snapshot.assists).toBe(5);
+    expect(snapshot.goals).toBe(8);
+    expect(snapshot.assists).toBe(4);
     expect(snapshot.minutes).toBe(2800);
-    expect(snapshot.appearances).toBe(30);
+    expect(snapshot.appearances).toBe(35);
     expect(snapshot.xg).toBe(9.2);
     expect(snapshot.xa).toBe(6.1);
     expect(snapshot.extraStats).toEqual({ shots: 70, shotsOnTarget: 30 });

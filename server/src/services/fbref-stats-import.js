@@ -15,11 +15,12 @@ function listLeaguePlayers(leagueCode) {
   `).all(leagueCode);
 }
 
-function mergeStatValue(existingValue, incomingValue) {
-  if (existingValue != null && existingValue > 0) {
-    return existingValue;
+/** FBref 赛季表为权威；有值则覆盖既有（防止 Transfermarkt 误解析进球被长期保留）。 */
+function mergeFbrefStatValue(existingValue, incomingValue) {
+  if (incomingValue != null) {
+    return incomingValue;
   }
-  return incomingValue ?? existingValue ?? 0;
+  return existingValue ?? 0;
 }
 
 /** 用 FBref born 年回填缺失生日（取年中近似，供年龄筛选）。 */
@@ -83,10 +84,10 @@ export function mergeFbrefStatsForLeague({ leagueCode, season, fbrefStats = [], 
       playerId: player.id,
       leagueCode,
       season: targetSeason,
-      goals: mergeStatValue(existing?.goals, stat.goals),
-      assists: mergeStatValue(existing?.assists, stat.assists),
+      goals: mergeFbrefStatValue(existing?.goals, stat.goals),
+      assists: mergeFbrefStatValue(existing?.assists, stat.assists),
       penalties: existing?.penalties ?? 0,
-      appearances: existing?.appearances ?? stat.appearances ?? null,
+      appearances: stat.appearances ?? existing?.appearances ?? null,
       minutes: stat.minutes ?? existing?.minutes ?? null,
       xg: stat.xg ?? existing?.xg ?? null,
       xa: stat.xa ?? existing?.xa ?? null,

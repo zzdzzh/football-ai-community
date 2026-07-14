@@ -126,9 +126,25 @@ export function listPlayerStatsSnapshots(playerId, { leagueCode = null, season =
   return rows.map(mapPlayerStatsSnapshotRow);
 }
 
+/**
+ * 不可信「薄」快照：无分钟/评分/xG/扩展字段，却有偏高进球且助攻为 0。
+ * 典型来源：Transfermarkt kader 把球衣号等误解析为赛季进球。
+ */
+export function isUntrustedThinSnapshot(snapshot) {
+  if (!snapshot) return true;
+  if (snapshot.minutes != null) return false;
+  if (snapshot.rating != null) return false;
+  if (snapshot.xg != null || snapshot.xa != null) return false;
+  if (snapshot.extraStats && Object.keys(snapshot.extraStats).length > 0) return false;
+  const goals = snapshot.goals ?? 0;
+  const assists = snapshot.assists ?? 0;
+  return goals >= 8 && assists === 0;
+}
+
 /** 快照“信息丰富度”评分，用于在多赛季行中优选可展示的关键数据。 */
 export function scoreSnapshotRichness(snapshot) {
   if (!snapshot) return -1;
+  if (isUntrustedThinSnapshot(snapshot)) return -100;
   let score = 0;
   if (snapshot.minutes != null) score += 20;
   if (snapshot.rating != null) score += 15;
@@ -149,9 +165,28 @@ export function scoreSnapshotRichness(snapshot) {
 /** 从多赛季快照中选出信息最丰富的一条，供 Scout / 球员详情使用。 */
 export function pickBestPlayerStatsSnapshot(snapshots = []) {
   if (!snapshots.length) return null;
-  return snapshots.reduce((best, current) => (
+  const trusted = snapshots.filter((s) => !isUntrustedThinSnapshot(s));
+  const pool = trusted.length > 0 ? trusted : [];
+  if (!pool.length) return null;
+  return pool.reduce((best, current) => (
     scoreSnapshotRichness(current) > scoreSnapshotRichness(best) ? current : best
   ));
+}
+
+/** 删除 Transfermarkt kader 等误写入的不可信薄快照（无 minutes 等佐证却高进球）。 */
+export function deleteUntrustedThinSnapshots() {
+  const db = getDb();
+  const result = db.prepare(`
+    DELETE FROM player_stats_snapshots
+    WHERE minutes IS NULL
+      AND rating IS NULL
+      AND xg IS NULL
+      AND xa IS NULL
+      AND (extra_stats_json IS NULL OR extra_stats_json = '' OR extra_stats_json = '{}')
+      AND assists = 0
+      AND goals >= 8
+  `).run();
+  return result.changes ?? 0;
 }
 
 export function mapSnapshotToPlayerStats(snapshot) {

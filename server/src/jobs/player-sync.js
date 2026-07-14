@@ -9,7 +9,7 @@ import { refreshClPlayerSyncMeta } from '../services/cl-player-bridge.js';
 import { SEASON_REQUIRED_LEAGUES } from '../constants/league-codes.js';
 import { searchTeams, upsertTeam } from '../db/repositories/team-repository.js';
 import { upsertPlayer, countPlayersByLeague } from '../db/repositories/player-repository.js';
-import { upsertPlayerStatsSnapshot } from '../db/repositories/player-stats-snapshot-repository.js';
+import { upsertPlayerStatsSnapshot, isUntrustedThinSnapshot } from '../db/repositories/player-stats-snapshot-repository.js';
 import { upsertPlayerSyncMeta } from '../db/repositories/player-sync-meta-repository.js';
 import { getDb } from '../db/connection.js';
 
@@ -62,6 +62,18 @@ async function syncLeaguePlayers(adapter, leagueCode) {
         upsertPlayer(player);
       }
       for (const scorer of scorers) {
+        if (isUntrustedThinSnapshot({
+          goals: scorer.goals ?? 0,
+          assists: scorer.assists ?? 0,
+          appearances: scorer.appearances ?? null,
+          minutes: null,
+          rating: null,
+          xg: null,
+          xa: null,
+          extraStats: null,
+        })) {
+          continue;
+        }
         upsertPlayerStatsSnapshot({
           playerId: scorer.playerId,
           leagueCode: scorer.leagueCode,

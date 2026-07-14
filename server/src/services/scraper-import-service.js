@@ -11,7 +11,11 @@ import {
   findPlayerBySofascoreId,
   findPlayerById,
 } from '../db/repositories/player-repository.js';
-import { upsertPlayerStatsSnapshot } from '../db/repositories/player-stats-snapshot-repository.js';
+import {
+  upsertPlayerStatsSnapshot,
+  deleteUntrustedThinSnapshots,
+  isUntrustedThinSnapshot,
+} from '../db/repositories/player-stats-snapshot-repository.js';
 import { upsertPlayerSyncMeta } from '../db/repositories/player-sync-meta-repository.js';
 import { upsertMatch, findMatchById } from '../db/repositories/match-repository.js';
 import { upsertMatchSyncMeta } from '../db/repositories/match-sync-meta-repository.js';
@@ -97,6 +101,7 @@ function findExistingPlayerId(player, teamId) {
 export async function importLeagueFromScraper(leagueCode, { includeFbref = true, playersOnly = false } = {}) {
   const now = new Date().toISOString();
   try {
+    const purgedUntrusted = deleteUntrustedThinSnapshots();
     const payload = await syncLeagueFromScraper(leagueCode, { includeFbref, playersOnly });
     const teamIdMap = buildTeamIdMap(payload);
     const squadErrors = payload.squadErrors ?? [];
@@ -146,6 +151,19 @@ export async function importLeagueFromScraper(leagueCode, { includeFbref = true,
       for (const scorer of payload.scorers ?? []) {
         const playerId = playerIdRemap.get(scorer.playerId) ?? scorer.playerId;
         if (!findPlayerById(playerId)) continue;
+        // 跳过无佐证的高进球薄记录，避免再度写入污染数据
+        if (isUntrustedThinSnapshot({
+          goals: scorer.goals ?? 0,
+          assists: scorer.assists ?? 0,
+          appearances: scorer.appearances ?? null,
+          minutes: null,
+          rating: null,
+          xg: null,
+          xa: null,
+          extraStats: null,
+        })) {
+          continue;
+        }
         upsertPlayerStatsSnapshot({
           playerId,
           leagueCode: scorer.leagueCode,
@@ -230,6 +248,7 @@ export async function importLeagueFromScraper(leagueCode, { includeFbref = true,
       syncedPlayers: payload.players?.length ?? 0,
       syncedMatches: payload.matches?.length ?? 0,
       syncedScorers: payload.scorers?.length ?? 0,
+      purgedUntrusted,
       fbrefMatched: fbrefResult.matched,
       fbrefUnmatched: fbrefResult.unmatched,
       sofaMatched: sofaResult.matched,

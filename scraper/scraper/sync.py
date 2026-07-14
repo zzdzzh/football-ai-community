@@ -212,16 +212,7 @@ def _sync_squad_from_transfermarkt(
                 "nationality": player.nationality,
                 "leagueCode": league.code,
             })
-            if player.goals is not None or player.assists is not None or player.appearances is not None:
-                scorers.append({
-                    "playerId": player_id,
-                    "leagueCode": league.code,
-                    "season": str(season_year),
-                    "goals": player.goals or 0,
-                    "assists": player.assists or 0,
-                    "penalties": 0,
-                    "appearances": player.appearances,
-                })
+            # 不从 Transfermarkt kader 写入 scorers（易把球衣号等误当进球，污染赛季快照）
 
     linked = _link_sofascore_ids(players, teams)
     return teams, players, scorers, squad_errors, linked

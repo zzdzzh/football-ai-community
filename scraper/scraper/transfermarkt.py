@@ -129,10 +129,7 @@ def _parse_club_squad_rows(soup: BeautifulSoup, team_transfermarkt_id: str) -> l
         cells = row.select(":scope > td")
         dob = None
         nationality = None
-        appearances = None
-        goals = None
-        assists = None
-
+        # kader 页数字列常是球衣号等，不是赛季出场/进球；统计一律留给 FBref/Sofa
         for cell in cells:
             text = cell.get_text(strip=True)
             if re.fullmatch(r"\d{2}\.\d{2}\.\d{4}", text):
@@ -141,13 +138,6 @@ def _parse_club_squad_rows(soup: BeautifulSoup, team_transfermarkt_id: str) -> l
                 dob = text.split(" ")[0]
             elif cell.select_one("img.flaggenrahmen"):
                 nationality = cell.select_one("img.flaggenrahmen").get("title")
-            elif re.fullmatch(r"\d+", text):
-                if appearances is None:
-                    appearances = _parse_int(text)
-                elif goals is None:
-                    goals = _parse_int(text)
-                elif assists is None:
-                    assists = _parse_int(text)
 
         players.append(
             TmPlayer(
@@ -156,9 +146,9 @@ def _parse_club_squad_rows(soup: BeautifulSoup, team_transfermarkt_id: str) -> l
                 position=position,
                 date_of_birth=dob,
                 nationality=nationality,
-                appearances=appearances,
-                goals=goals,
-                assists=assists,
+                appearances=None,
+                goals=None,
+                assists=None,
                 team_transfermarkt_id=team_transfermarkt_id,
             )
         )
