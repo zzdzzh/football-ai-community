@@ -74,7 +74,8 @@ export async function syncLeagueFromScraper(leagueCode, { includeFbref = true, p
   if (config.scraper.useTransfermarkt) {
     args.push('--transfermarkt');
   }
-  const timeoutMs = leagueCode === 'WC' ? 1800000 : 600000;
+  // 含 FBref 时单联赛常超过 10 分钟；俱乐部联赛与世界杯统一给足超时
+  const timeoutMs = 1800000;
   return runScraperCli(args, { timeoutMs });
 }
 

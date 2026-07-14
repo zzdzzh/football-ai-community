@@ -49,7 +49,7 @@
 - [x] T004 [P] Implement player, player-stats-snapshot and player-sync-meta repositories in server/src/db/repositories/player-repository.js, server/src/db/repositories/player-stats-snapshot-repository.js and server/src/db/repositories/player-sync-meta-repository.js（BUG: Scout keyStats 过贫，需优选富统计快照并扩展射门/防守等字段；BUG: Transfermarkt kader 误解析生涯/杂字段为赛季进球，需拒绝不可信薄快照；BUG: 联赛 Scout 需按 stats/球队归属检索并可按进球排序，避免姓名前 50 漏掉射手榜球星；BUG: 射手排序须优先当前赛季 xx-yy，避免上赛季进球挤进榜单）
 - [x] T005 [P] Implement message-feedback repository in server/src/db/repositories/message-feedback-repository.js
 - [x] T006 Extend FootballDataAdapter with squad and scorers endpoints in server/src/adapters/football-data-adapter.js
-- [x] T007 Implement player-sync job with daily cron and internal trigger route in server/src/jobs/player-sync.js and server/src/app.js（BUG: Transfermarkt scorers 误写入超高进球且无 minutes，污染 Scout；同步时须跳过/清理；BUG: SofaScore transfermarktId 空值映射成 "null" 导致球员错挂最后一支球队如 FC Noah；BUG: 球员同步须跳过 CL/WC，避免覆盖俱乐部归属）
+- [x] T007 Implement player-sync job with daily cron and internal trigger route in server/src/jobs/player-sync.js and server/src/app.js（BUG: Transfermarkt scorers 误写入超高进球且无 minutes，污染 Scout；同步时须跳过/清理；BUG: SofaScore transfermarktId 空值映射成 "null" 导致球员错挂最后一支球队如 FC Noah；BUG: 球员同步须跳过 CL/WC，避免覆盖俱乐部归属；BUG: 含 FBref 时爬虫默认 10 分钟超时导致五大联赛同步失败，超时放宽至 30 分钟）
 - [x] T008 Implement players list and detail API in server/src/api/players.js and mount route in server/src/app.js
 - [x] T009 Extend message-repository for recommendations_json and tactical_json persistence in server/src/db/repositories/message-repository.js
 
