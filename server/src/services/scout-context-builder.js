@@ -43,6 +43,16 @@ export function parseMaxAgeFromQuestion(question) {
   return Number.isNaN(age) ? null : age;
 }
 
+export function parseMinAgeFromQuestion(question) {
+  if (!question) return null;
+  const match = question.match(
+    /(\d{1,2})\s*岁\s*以上|over\s*(\d{1,2})|≥\s*(\d{1,2})|至少\s*(\d{1,2})\s*岁/i,
+  );
+  if (!match) return null;
+  const age = Number(match[1] ?? match[2] ?? match[3] ?? match[4]);
+  return Number.isNaN(age) ? null : age;
+}
+
 export function parsePositionFromQuestion(question) {
   if (!question) return null;
   const keywords = ['中场', '前锋', '后卫', '门将', '边锋', 'Midfield', 'Forward', 'Defender', 'Goalkeeper', 'Winger'];
@@ -72,6 +82,22 @@ const POSITION_ALIASES = {
   边锋: ['winger'],
 };
 
+function resolvePositionSqlKeyword(keyword) {
+  const sqlTerms = {
+    中场: 'Midfield',
+    前锋: 'Forward',
+    后卫: 'Defender',
+    门将: 'Goalkeeper',
+    边锋: 'Winger',
+    Midfield: 'Midfield',
+    Forward: 'Forward',
+    Defender: 'Defender',
+    Goalkeeper: 'Goalkeeper',
+    Winger: 'Winger',
+  };
+  return sqlTerms[keyword] ?? keyword;
+}
+
 function matchPosition(playerPosition, keyword) {
   if (!keyword) return true;
   if (!playerPosition) return false;
@@ -80,15 +106,32 @@ function matchPosition(playerPosition, keyword) {
   return aliases.some((alias) => lower.includes(alias));
 }
 
-function filterCandidates(candidates, { maxAge = null, position = null } = {}) {
+function filterCandidates(candidates, { maxAge = null, minAge = null, position = null } = {}) {
   let filtered = candidates;
   if (maxAge != null) {
     filtered = filtered.filter((c) => c.age != null && c.age <= maxAge);
+  }
+  if (minAge != null) {
+    // 缺生日数据时保留候选，由 AI 说明无法确认年龄
+    filtered = filtered.filter((c) => c.age == null || c.age >= minAge);
   }
   if (position) {
     filtered = filtered.filter((c) => matchPosition(c.position, position));
   }
   return filtered;
+}
+
+function searchLeagueCandidates(leagueCode, { position = null } = {}) {
+  const positionTerm = position ? resolvePositionSqlKeyword(position) : null;
+  if (leagueCode === 'CL') {
+    return searchPlayersByTeamLeague('CL', { page: 1, pageSize: CANDIDATE_CAP });
+  }
+  return searchPlayers({
+    league: leagueCode,
+    position: positionTerm,
+    page: 1,
+    pageSize: CANDIDATE_CAP,
+  });
 }
 
 export function buildScoutContext({ contextType, contextId, userQuestion = '' }) {
@@ -105,13 +148,12 @@ export function buildScoutContext({ contextType, contextId, userQuestion = '' })
     if (isLeaguePlayerDataNeverSynced(contextId)) {
       return { syncMessage: PLAYER_DATA_NOT_SYNCED_MESSAGE };
     }
-    const result = contextId === 'CL'
-      ? searchPlayersByTeamLeague('CL', { page: 1, pageSize: CANDIDATE_CAP })
-      : searchPlayers({ league: contextId, page: 1, pageSize: CANDIDATE_CAP });
-    const candidates = result.items.map(mapCandidate);
     const maxAge = parseMaxAgeFromQuestion(userQuestion);
+    const minAge = parseMinAgeFromQuestion(userQuestion);
     const position = parsePositionFromQuestion(userQuestion);
-    const filtered = filterCandidates(candidates, { maxAge, position });
+    const result = searchLeagueCandidates(contextId, { position });
+    const candidates = result.items.map(mapCandidate);
+    const filtered = filterCandidates(candidates, { maxAge, minAge, position });
     return {
       contextType,
       contextId,
@@ -119,7 +161,7 @@ export function buildScoutContext({ contextType, contextId, userQuestion = '' })
       candidates: filtered.slice(0, CANDIDATE_CAP),
       poolSize: filtered.length,
       tooBroad: filtered.length > BROAD_POOL_THRESHOLD,
-      filters: { maxAge, position, leagueCode: contextId },
+      filters: { maxAge, minAge, position, leagueCode: contextId },
     };
   }
 
@@ -131,11 +173,17 @@ export function buildScoutContext({ contextType, contextId, userQuestion = '' })
     if (isLeaguePlayerDataNeverSynced(team.leagueCode)) {
       return { syncMessage: PLAYER_DATA_NOT_SYNCED_MESSAGE };
     }
-    const result = searchPlayers({ teamId: contextId, page: 1, pageSize: CANDIDATE_CAP });
-    const candidates = result.items.map(mapCandidate);
     const maxAge = parseMaxAgeFromQuestion(userQuestion);
+    const minAge = parseMinAgeFromQuestion(userQuestion);
     const position = parsePositionFromQuestion(userQuestion);
-    const filtered = filterCandidates(candidates, { maxAge, position });
+    const result = searchPlayers({
+      teamId: contextId,
+      position: position ? resolvePositionSqlKeyword(position) : null,
+      page: 1,
+      pageSize: CANDIDATE_CAP,
+    });
+    const candidates = result.items.map(mapCandidate);
+    const filtered = filterCandidates(candidates, { maxAge, minAge, position });
     return {
       contextType,
       contextId,
@@ -144,7 +192,7 @@ export function buildScoutContext({ contextType, contextId, userQuestion = '' })
       candidates: filtered.slice(0, CANDIDATE_CAP),
       poolSize: filtered.length,
       tooBroad: filtered.length > BROAD_POOL_THRESHOLD,
-      filters: { maxAge, position, teamId: contextId },
+      filters: { maxAge, minAge, position, teamId: contextId },
     };
   }
 
@@ -152,18 +200,23 @@ export function buildScoutContext({ contextType, contextId, userQuestion = '' })
     if (isGlobalPlayerDataNeverSynced()) {
       return { syncMessage: PLAYER_DATA_NOT_SYNCED_MESSAGE };
     }
-    const result = searchPlayers({ page: 1, pageSize: CANDIDATE_CAP });
-    const candidates = result.items.map(mapCandidate);
     const maxAge = parseMaxAgeFromQuestion(userQuestion);
+    const minAge = parseMinAgeFromQuestion(userQuestion);
     const position = parsePositionFromQuestion(userQuestion);
-    const filtered = filterCandidates(candidates, { maxAge, position });
+    const result = searchPlayers({
+      position: position ? resolvePositionSqlKeyword(position) : null,
+      page: 1,
+      pageSize: CANDIDATE_CAP,
+    });
+    const candidates = result.items.map(mapCandidate);
+    const filtered = filterCandidates(candidates, { maxAge, minAge, position });
     return {
       contextType,
       contextId: null,
       candidates: filtered.slice(0, CANDIDATE_CAP),
       poolSize: filtered.length,
       tooBroad: filtered.length > BROAD_POOL_THRESHOLD,
-      filters: { maxAge, position },
+      filters: { maxAge, minAge, position },
     };
   }
 

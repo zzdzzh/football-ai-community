@@ -33,6 +33,9 @@ function collectMatchDataLimitations(match) {
   if (!match.stats || match.stats.length === 0) {
     limitations.push('缺少比赛统计数据');
   }
+  if (!match.lineups?.homeFormation && !match.lineups?.awayFormation) {
+    limitations.push('缺少阵容阵型数据');
+  }
   return limitations;
 }
 
@@ -50,6 +53,28 @@ function deriveMaxConfidence(match) {
   return 'high';
 }
 
+function summarizeLineups(lineups) {
+  if (!lineups) return undefined;
+  const summarizeSide = (side) => {
+    if (!side) return undefined;
+    const starters = (side.players ?? []).filter((p) => !p.substitute).slice(0, 11);
+    return {
+      formation: side.formation ?? null,
+      starters: starters.map((p) => ({
+        name: p.name,
+        position: p.position,
+        jerseyNumber: p.jerseyNumber,
+      })),
+    };
+  };
+  return {
+    homeFormation: lineups.homeFormation ?? lineups.home?.formation ?? null,
+    awayFormation: lineups.awayFormation ?? lineups.away?.formation ?? null,
+    home: summarizeSide(lineups.home),
+    away: summarizeSide(lineups.away),
+  };
+}
+
 function buildMatchPayload(match) {
   return {
     id: match.id,
@@ -62,6 +87,7 @@ function buildMatchPayload(match) {
     awayScore: match.awayScore,
     stats: match.stats ?? [],
     events: match.events ?? [],
+    lineups: summarizeLineups(match.lineups),
     dataCompleteness: match.dataCompleteness,
   };
 }

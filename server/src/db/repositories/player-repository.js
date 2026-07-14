@@ -69,6 +69,18 @@ export function findPlayerById(id) {
   return row ? mapPlayerRow(row) : null;
 }
 
+export function findPlayerBySofascoreId(sofascoreId) {
+  if (!sofascoreId) return null;
+  const db = getDb();
+  const row = db.prepare(`
+    SELECT p.*, t.name AS team_name
+    FROM players p
+    LEFT JOIN teams t ON t.id = p.team_id
+    WHERE p.sofascore_id = ?
+  `).get(String(sofascoreId));
+  return row ? mapPlayerRow(row) : null;
+}
+
 export function searchPlayers({ league = null, teamId = null, position = null, q = null, page = 1, pageSize = 20 } = {}) {
   const db = getDb();
   const safePage = Math.max(1, page);

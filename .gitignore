@@ -23,6 +23,7 @@ Thumbs.db
 scraper/__pycache__/
 scraper/**/__pycache__/
 scraper/.venv/
+scraper/.venv-soccerdata/
 scraper/_probe.py
 scraper/_sample_*.html
 scraper/_tm.html

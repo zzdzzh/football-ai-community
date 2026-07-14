@@ -21,6 +21,11 @@ def main() -> None:
     sync_parser.add_argument("--league", required=True, choices=list_league_codes())
     sync_parser.add_argument("--no-fbref", action="store_true")
     sync_parser.add_argument("--players-only", action="store_true", help="仅同步球队/球员（世界杯加速）")
+    sync_parser.add_argument(
+        "--transfermarkt",
+        action="store_true",
+        help="启用 Transfermarkt（默认关闭；站点有人机验证，不稳定）",
+    )
     sync_parser.add_argument("--delay", type=float, default=1.5)
 
     match_parser = sub.add_parser("match-detail", help="获取比赛详情")
@@ -35,6 +40,7 @@ def main() -> None:
                 args.league,
                 include_fbref=not args.no_fbref,
                 players_only=args.players_only,
+                use_transfermarkt=True if args.transfermarkt else None,
             )
         elif args.command == "match-detail":
             payload = fetch_match_detail(args.match_id)

@@ -5,12 +5,20 @@ import {
   findTeamByTransfermarktId,
   upsertTeam,
 } from '../db/repositories/team-repository.js';
-import { upsertPlayer, countPlayersByLeague } from '../db/repositories/player-repository.js';
+import {
+  upsertPlayer,
+  countPlayersByLeague,
+  findPlayerBySofascoreId,
+  findPlayerById,
+} from '../db/repositories/player-repository.js';
 import { upsertPlayerStatsSnapshot } from '../db/repositories/player-stats-snapshot-repository.js';
 import { upsertPlayerSyncMeta } from '../db/repositories/player-sync-meta-repository.js';
-import { upsertMatch } from '../db/repositories/match-repository.js';
+import { upsertMatch, findMatchById } from '../db/repositories/match-repository.js';
 import { upsertMatchSyncMeta } from '../db/repositories/match-sync-meta-repository.js';
 import { syncLeagueFromScraper } from '../adapters/scraper-runner.js';
+import { mergeFbrefStatsForLeague } from './fbref-stats-import.js';
+import { mergeSofaPlayerStatsForLeague } from './sofa-stats-import.js';
+import { buildPlayerNameIndex, resolvePlayerByName } from './fbref-player-matcher.js';
 
 function resolveTeamId(scrapedTeam) {
   const { transfermarktId, sofascoreId, name, leagueCode } = scrapedTeam;
@@ -70,7 +78,23 @@ function resolveMatchTeamId(teamRef, teamIdMap, leagueCode) {
   return resolved;
 }
 
-export async function importLeagueFromScraper(leagueCode, { includeFbref = false, playersOnly = false } = {}) {
+function findExistingPlayerId(player, teamId) {
+  if (player.sofascoreId) {
+    const bySofa = findPlayerBySofascoreId(String(player.sofascoreId));
+    if (bySofa) return bySofa.id;
+  }
+  if (player.id) {
+    const byId = findPlayerById(player.id);
+    if (byId) return byId.id;
+  }
+  const rows = getDb().prepare(`
+    SELECT id, name FROM players WHERE team_id = ?
+  `).all(teamId);
+  const match = resolvePlayerByName(player.name, buildPlayerNameIndex(rows));
+  return match?.id ?? null;
+}
+
+export async function importLeagueFromScraper(leagueCode, { includeFbref = true, playersOnly = false } = {}) {
   const now = new Date().toISOString();
   try {
     const payload = await syncLeagueFromScraper(leagueCode, { includeFbref, playersOnly });
@@ -96,11 +120,17 @@ export async function importLeagueFromScraper(leagueCode, { includeFbref = false
         });
       }
 
+      const playerIdRemap = new Map();
       for (const player of payload.players ?? []) {
-        const teamId = teamIdMap.get(String(player.teamTransfermarktId));
+        const teamId = teamIdMap.get(String(player.teamTransfermarktId))
+          ?? (player.teamSofascoreId ? teamIdMap.get(`ss:${player.teamSofascoreId}`) : null);
         if (!teamId) continue;
+        const resolvedId = findExistingPlayerId(player, teamId) ?? player.id;
+        if (player.id && resolvedId !== player.id) {
+          playerIdRemap.set(player.id, resolvedId);
+        }
         upsertPlayer({
-          id: player.id,
+          id: resolvedId,
           name: player.name,
           teamId,
           position: player.position,
@@ -108,13 +138,16 @@ export async function importLeagueFromScraper(leagueCode, { includeFbref = false
           nationality: player.nationality,
           leagueCode: player.leagueCode,
           transfermarktId: player.transfermarktId,
+          sofascoreId: player.sofascoreId,
           updatedAt: now,
         });
       }
 
       for (const scorer of payload.scorers ?? []) {
+        const playerId = playerIdRemap.get(scorer.playerId) ?? scorer.playerId;
+        if (!findPlayerById(playerId)) continue;
         upsertPlayerStatsSnapshot({
-          playerId: scorer.playerId,
+          playerId,
           leagueCode: scorer.leagueCode,
           season: scorer.season,
           goals: scorer.goals,
@@ -129,6 +162,7 @@ export async function importLeagueFromScraper(leagueCode, { includeFbref = false
         const homeTeamId = resolveMatchTeamId(match.homeTeam, teamIdMap, match.leagueCode);
         const awayTeamId = resolveMatchTeamId(match.awayTeam, teamIdMap, match.leagueCode);
         if (!homeTeamId || !awayTeamId) continue;
+        const existing = findMatchById(match.id);
         upsertMatch({
           id: match.id,
           leagueCode: match.leagueCode,
@@ -142,7 +176,10 @@ export async function importLeagueFromScraper(leagueCode, { includeFbref = false
           awayScore: match.awayScore,
           statsJson: null,
           eventsJson: null,
-          dataCompleteness: match.dataCompleteness ?? 'partial',
+          lineupsJson: null,
+          dataCompleteness: existing?.stats?.length
+            ? existing.dataCompleteness
+            : (match.dataCompleteness ?? 'partial'),
           lastSyncedAt: now,
         });
       }
@@ -166,12 +203,38 @@ export async function importLeagueFromScraper(leagueCode, { includeFbref = false
     });
     tx();
 
+    const seasonYear = payload.scorers?.[0]?.season
+      ?? payload.fbrefStats?.[0]?.season
+      ?? String(new Date().getFullYear());
+    const fbrefResult = includeFbref && payload.fbrefStats?.length
+      ? mergeFbrefStatsForLeague({
+        leagueCode,
+        season: seasonYear,
+        fbrefStats: payload.fbrefStats,
+        now,
+      })
+      : { matched: 0, unmatched: 0 };
+
+    const sofaResult = payload.sofaPlayerStats?.length
+      ? mergeSofaPlayerStatsForLeague({
+        leagueCode,
+        season: seasonYear,
+        sofaPlayerStats: payload.sofaPlayerStats,
+        now,
+      })
+      : { matched: 0, unmatched: 0 };
+
     return {
       leagueCode,
       syncedTeams: payload.teams?.length ?? 0,
       syncedPlayers: payload.players?.length ?? 0,
       syncedMatches: payload.matches?.length ?? 0,
       syncedScorers: payload.scorers?.length ?? 0,
+      fbrefMatched: fbrefResult.matched,
+      fbrefUnmatched: fbrefResult.unmatched,
+      sofaMatched: sofaResult.matched,
+      sofaUnmatched: sofaResult.unmatched,
+      linkedSofascoreIds: payload.linkedSofascoreIds ?? 0,
       squadErrors,
       sources: payload.sources ?? {},
     };

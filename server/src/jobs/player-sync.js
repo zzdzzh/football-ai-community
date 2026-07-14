@@ -112,6 +112,7 @@ export async function executePlayerSyncJob({ league = null, adapter = null } = {
       for (const leagueCode of leagues) {
         try {
           const result = await importLeagueFromScraper(leagueCode, {
+            includeFbref: true,
             playersOnly: leagueCode === 'WC',
           });
           results.push({

@@ -35,6 +35,7 @@ describe('TacticalContextBuilder', () => {
     expect(context.analysisType).toBe('post_match');
     expect(context.payload.match.homeTeam.name).toBe('Arsenal FC');
     expect(context.payload.match.events.length).toBeGreaterThan(0);
+    expect(context.payload.match.lineups.homeFormation).toBe('4-3-3');
     expect(context.maxConfidence).toBe('high');
   });
 

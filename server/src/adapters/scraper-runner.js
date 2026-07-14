@@ -16,6 +16,7 @@ export function runScraperCli(args, { timeoutMs = 600000 } = {}) {
           ...process.env,
           PYTHONIOENCODING: 'utf-8',
           PYTHONUTF8: '1',
+          SCRAPER_USE_TRANSFERMARKT: config.scraper.useTransfermarkt ? '1' : '0',
         },
       },
     );
@@ -61,13 +62,17 @@ export function runScraperCli(args, { timeoutMs = 600000 } = {}) {
   });
 }
 
-export async function syncLeagueFromScraper(leagueCode, { includeFbref = false, playersOnly = false } = {}) {
+export async function syncLeagueFromScraper(leagueCode, { includeFbref = true, playersOnly = false } = {}) {
   const args = ['sync-league', '--league', leagueCode, '--delay', String(config.scraper.requestDelaySec)];
   if (!includeFbref) {
     args.push('--no-fbref');
   }
   if (playersOnly) {
     args.push('--players-only');
+  }
+  // 默认不启 Transfermarkt；仅当显式配置时附加（避免人机验证拖垮同步）
+  if (config.scraper.useTransfermarkt) {
+    args.push('--transfermarkt');
   }
   const timeoutMs = leagueCode === 'WC' ? 1800000 : 600000;
   return runScraperCli(args, { timeoutMs });

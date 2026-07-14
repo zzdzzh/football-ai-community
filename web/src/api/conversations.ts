@@ -8,6 +8,9 @@ import type {
 import type { MessageFeedbackResponse, CreateScoutConversationRequest } from '@/types/scout';
 import type { CreateTacticalConversationRequest } from '@/types/tactical';
 
+/** Scout/Tactical 首轮含 AI 生成，需与 server AI_TIMEOUT_MS 对齐 */
+const AGENT_CONVERSATION_TIMEOUT_MS = 120000;
+
 export async function fetchConversations(params?: {
   agentId?: 'stats' | 'scout' | 'tactical';
   page?: number;
@@ -25,7 +28,14 @@ export async function fetchConversation(conversationId: string): Promise<Convers
 export async function createConversation(
   payload: CreateConversationRequest,
 ): Promise<ConversationDetail> {
-  const { data } = await apiClient.post<ConversationDetail>('/conversations', payload);
+  const timeout = payload.initialMessage?.trim()
+    ? AGENT_CONVERSATION_TIMEOUT_MS
+    : undefined;
+  const { data } = await apiClient.post<ConversationDetail>(
+    '/conversations',
+    payload,
+    timeout ? { timeout } : undefined,
+  );
   return data;
 }
 
@@ -36,7 +46,7 @@ export async function sendMessage(
   const { data } = await apiClient.post<SendMessageResponse>(
     `/conversations/${conversationId}/messages`,
     { content },
-    { timeout: 35000 },
+    { timeout: AGENT_CONVERSATION_TIMEOUT_MS },
   );
   return data;
 }

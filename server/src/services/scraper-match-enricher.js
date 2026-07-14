@@ -60,10 +60,12 @@ export function mapScraperMatchDetail(payload) {
   const status = statusType === 'finished' ? 'FINISHED' : 'SCHEDULED';
   const homeScore = event.homeScore?.current ?? event.homeScore?.display ?? null;
   const awayScore = event.awayScore?.current ?? event.awayScore?.display ?? null;
+  const lineups = mapLineups(payload?.lineups);
 
   return {
     stats,
     events,
+    lineups,
     dataCompleteness: inferDataCompleteness({
       status,
       stats,
@@ -71,6 +73,39 @@ export function mapScraperMatchDetail(payload) {
       homeScore,
       awayScore,
     }),
+  };
+}
+
+function mapLineupSide(side) {
+  if (!side) return null;
+  const players = [];
+  for (const item of side.players ?? []) {
+    const player = item.player ?? item;
+    const name = player.name ?? player.shortName;
+    if (!name) continue;
+    players.push({
+      name,
+      position: item.position ?? player.position ?? undefined,
+      jerseyNumber: item.jerseyNumber ?? player.jerseyNumber ?? undefined,
+      substitute: Boolean(item.substitute),
+    });
+  }
+  return {
+    formation: side.formation ?? null,
+    players,
+  };
+}
+
+export function mapLineups(lineupsPayload) {
+  if (!lineupsPayload) return null;
+  const home = mapLineupSide(lineupsPayload.home);
+  const away = mapLineupSide(lineupsPayload.away);
+  if (!home && !away) return null;
+  return {
+    homeFormation: home?.formation ?? null,
+    awayFormation: away?.formation ?? null,
+    home: home,
+    away: away,
   };
 }
 
@@ -143,6 +178,7 @@ export async function enrichScraperFinishedMatches({ limit = 5 } = {}) {
         awayScore: match.awayScore,
         statsJson: mapped.stats.length > 0 ? mapped.stats : null,
         eventsJson: mapped.events.length > 0 ? mapped.events : null,
+        lineupsJson: mapped.lineups ?? null,
         dataCompleteness: mapped.dataCompleteness,
         lastSyncedAt: now,
       });
@@ -150,6 +186,7 @@ export async function enrichScraperFinishedMatches({ limit = 5 } = {}) {
         matchId: match.id,
         statsCount: mapped.stats.length,
         eventsCount: mapped.events.length,
+        hasLineups: Boolean(mapped.lineups),
         dataCompleteness: mapped.dataCompleteness,
       });
     } catch (err) {

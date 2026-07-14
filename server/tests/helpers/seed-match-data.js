@@ -14,11 +14,11 @@ export function seedTeamsAndMatches() {
     INSERT OR REPLACE INTO matches (
       id, league_code, season, matchday, utc_date, status,
       home_team_id, away_team_id, home_score, away_score,
-      stats_json, events_json, data_completeness, last_synced_at, created_at, updated_at
+      stats_json, events_json, lineups_json, data_completeness, last_synced_at, created_at, updated_at
     ) VALUES (
       '1001', 'PL', '2025', 10, '2026-07-01T15:00:00.000Z', 'FINISHED',
       '57', '61', 2, 1,
-      ?, ?, 'complete', ?, ?, ?
+      ?, ?, ?, 'complete', ?, ?, ?
     )
   `).run(
     JSON.stringify([
@@ -30,6 +30,24 @@ export function seedTeamsAndMatches() {
       { minute: 23, type: 'GOAL', teamId: '57', playerName: 'Saka' },
       { minute: 67, type: 'GOAL', teamId: '61', playerName: 'Palmer' },
     ]),
+    JSON.stringify({
+      homeFormation: '4-3-3',
+      awayFormation: '4-2-3-1',
+      home: {
+        formation: '4-3-3',
+        players: [
+          { name: 'Raya', position: 'G', jerseyNumber: 1, substitute: false },
+          { name: 'Saka', position: 'F', jerseyNumber: 7, substitute: false },
+        ],
+      },
+      away: {
+        formation: '4-2-3-1',
+        players: [
+          { name: 'Sanchez', position: 'G', jerseyNumber: 1, substitute: false },
+          { name: 'Palmer', position: 'M', jerseyNumber: 20, substitute: false },
+        ],
+      },
+    }),
     now,
     now,
     now,

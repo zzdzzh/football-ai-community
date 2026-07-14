@@ -30,6 +30,7 @@ const envSchema = z.object({
   SCRAPER_PYTHON: z.string().default('python'),
   SCRAPER_DIR: z.string().default('../scraper'),
   SCRAPER_REQUEST_DELAY_SEC: z.coerce.number().default(1.5),
+  SCRAPER_USE_TRANSFERMARKT: z.enum(['0', '1', 'true', 'false', 'yes', 'no', 'on', 'off']).default('0'),
   FAN_CONTINUE_TIMEOUT_MS: z.coerce.number().default(30000),
   CONTENT_MODERATION_BLOCKLIST: z.string().default('./config/content-blocklist.txt'),
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
@@ -73,6 +74,9 @@ export const config = {
     pythonPath: env.SCRAPER_PYTHON,
     dir: resolve(__dirname, '../..', env.SCRAPER_DIR),
     requestDelaySec: env.SCRAPER_REQUEST_DELAY_SEC,
+    useTransfermarkt: ['1', 'true', 'yes', 'on'].includes(
+      String(env.SCRAPER_USE_TRANSFERMARKT).toLowerCase(),
+    ),
   },
   fan: {
     continueTimeoutMs: env.FAN_CONTINUE_TIMEOUT_MS,

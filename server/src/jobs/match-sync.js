@@ -124,7 +124,7 @@ export async function executeMatchSyncJob({ league = null, adapter = null } = {}
           results.push({ leagueCode, error: err.message });
         }
       }
-      const enriched = await enrichScraperFinishedMatches({ limit: 8 });
+      const enriched = await enrichScraperFinishedMatches({ limit: 30 });
       return { results, enriched };
     })().finally(() => {
       runningJob = null;

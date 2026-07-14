@@ -24,6 +24,7 @@ export function mapMatchRow(row, { homeTeam = null, awayTeam = null } = {}) {
     awayScore: row.away_score ?? null,
     stats: parseJson(row.stats_json) ?? undefined,
     events: parseJson(row.events_json) ?? undefined,
+    lineups: parseJson(row.lineups_json) ?? undefined,
     dataCompleteness: row.data_completeness,
     lastSyncedAt: row.last_synced_at,
     createdAt: row.created_at,
@@ -48,8 +49,8 @@ export function upsertMatch(match) {
     INSERT INTO matches (
       id, league_code, season, matchday, utc_date, status,
       home_team_id, away_team_id, home_score, away_score,
-      stats_json, events_json, data_completeness, last_synced_at, created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      stats_json, events_json, lineups_json, data_completeness, last_synced_at, created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(id) DO UPDATE SET
       league_code = excluded.league_code,
       season = excluded.season,
@@ -60,8 +61,9 @@ export function upsertMatch(match) {
       away_team_id = excluded.away_team_id,
       home_score = excluded.home_score,
       away_score = excluded.away_score,
-      stats_json = excluded.stats_json,
-      events_json = excluded.events_json,
+      stats_json = COALESCE(excluded.stats_json, matches.stats_json),
+      events_json = COALESCE(excluded.events_json, matches.events_json),
+      lineups_json = COALESCE(excluded.lineups_json, matches.lineups_json),
       data_completeness = excluded.data_completeness,
       last_synced_at = excluded.last_synced_at,
       updated_at = excluded.updated_at
@@ -78,6 +80,7 @@ export function upsertMatch(match) {
     match.awayScore ?? null,
     match.statsJson ? JSON.stringify(match.statsJson) : null,
     match.eventsJson ? JSON.stringify(match.eventsJson) : null,
+    match.lineupsJson ? JSON.stringify(match.lineupsJson) : null,
     match.dataCompleteness ?? 'pending',
     match.lastSyncedAt ?? now,
     match.createdAt ?? now,

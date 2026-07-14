@@ -35,7 +35,43 @@ def _throttle() -> None:
 
 
 def fetch_html(url: str, *, timeout: int = 30, max_retries: int = 3) -> str:
-    """Transfermarkt 等静态页面。"""
+    """Transfermarkt 等静态页面。优先 curl_cffi，失败再回退 urllib。"""
+    last_err: Exception | None = None
+    for attempt in range(max_retries):
+        _throttle()
+        try:
+            resp = cffi_requests.get(
+                url,
+                impersonate="chrome120",
+                headers={
+                    "User-Agent": DEFAULT_UA,
+                    "Accept-Language": "en-US,en;q=0.9",
+                    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                },
+                timeout=timeout,
+            )
+            if resp.status_code == 405 and attempt < max_retries - 1:
+                last_err = RuntimeError(f"HTTP {resp.status_code} 获取失败: {url}")
+                time.sleep(2 * (attempt + 1))
+                continue
+            if resp.status_code >= 400:
+                raise RuntimeError(f"HTTP {resp.status_code} 获取失败: {url}")
+            return resp.text
+        except RuntimeError as err:
+            last_err = err
+            if "HTTP 5" in str(err) and attempt < max_retries - 1:
+                time.sleep(3 * (attempt + 1))
+                continue
+            if attempt >= max_retries - 1:
+                break
+        except Exception as err:
+            last_err = err
+            if attempt < max_retries - 1:
+                time.sleep(2 * (attempt + 1))
+                continue
+            break
+
+    # 回退 urllib（少数环境 curl_cffi 异常时）
     _throttle()
     req = urllib.request.Request(
         url,
@@ -44,24 +80,11 @@ def fetch_html(url: str, *, timeout: int = 30, max_retries: int = 3) -> str:
             "Accept-Language": "en-US,en;q=0.9",
         },
     )
-    last_err: Exception | None = None
-    for attempt in range(max_retries):
-        try:
-            with urllib.request.urlopen(req, timeout=timeout) as resp:
-                return resp.read().decode("utf-8", errors="replace")
-        except urllib.error.HTTPError as err:
-            if err.code >= 500 and attempt < max_retries - 1:
-                last_err = err
-                time.sleep(3 * (attempt + 1))
-                continue
-            raise RuntimeError(f"HTTP {err.code} 获取失败: {url}") from err
-        except (TimeoutError, http.client.IncompleteRead, ConnectionResetError, OSError) as err:
-            last_err = err
-            if attempt < max_retries - 1:
-                time.sleep(2 * (attempt + 1))
-                continue
-            break
-    raise RuntimeError(f"获取失败（重试 {max_retries} 次）: {url}") from last_err
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            return resp.read().decode("utf-8", errors="replace")
+    except Exception as err:
+        raise RuntimeError(f"获取失败（重试 {max_retries} 次）: {url}") from (last_err or err)
 
 
 def fetch_json(url: str, *, timeout: int = 30) -> Any:

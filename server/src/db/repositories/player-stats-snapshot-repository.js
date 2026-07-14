@@ -11,6 +11,10 @@ export function mapPlayerStatsSnapshotRow(row) {
     assists: row.assists ?? 0,
     penalties: row.penalties ?? 0,
     appearances: row.appearances ?? undefined,
+    minutes: row.minutes ?? undefined,
+    xg: row.xg ?? undefined,
+    xa: row.xa ?? undefined,
+    rating: row.rating ?? undefined,
     syncedAt: row.synced_at,
   };
 }
@@ -21,13 +25,18 @@ export function upsertPlayerStatsSnapshot(snapshot) {
   const now = new Date().toISOString();
   db.prepare(`
     INSERT INTO player_stats_snapshots (
-      id, player_id, league_code, season, goals, assists, penalties, appearances, synced_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      id, player_id, league_code, season, goals, assists, penalties, appearances,
+      minutes, xg, xa, rating, synced_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(player_id, league_code, season) DO UPDATE SET
       goals = excluded.goals,
       assists = excluded.assists,
       penalties = excluded.penalties,
-      appearances = excluded.appearances,
+      appearances = COALESCE(excluded.appearances, player_stats_snapshots.appearances),
+      minutes = COALESCE(excluded.minutes, player_stats_snapshots.minutes),
+      xg = COALESCE(excluded.xg, player_stats_snapshots.xg),
+      xa = COALESCE(excluded.xa, player_stats_snapshots.xa),
+      rating = COALESCE(excluded.rating, player_stats_snapshots.rating),
       synced_at = excluded.synced_at
   `).run(
     id,
@@ -38,6 +47,10 @@ export function upsertPlayerStatsSnapshot(snapshot) {
     snapshot.assists ?? 0,
     snapshot.penalties ?? 0,
     snapshot.appearances ?? null,
+    snapshot.minutes ?? null,
+    snapshot.xg ?? null,
+    snapshot.xa ?? null,
+    snapshot.rating ?? null,
     snapshot.syncedAt ?? now,
   );
   return findPlayerStatsSnapshot(snapshot.playerId, snapshot.leagueCode, snapshot.season);
@@ -82,6 +95,18 @@ export function mapSnapshotToPlayerStats(snapshot) {
   ];
   if (snapshot.appearances != null) {
     stats.push({ name: '出场', value: snapshot.appearances });
+  }
+  if (snapshot.minutes != null) {
+    stats.push({ name: '出场分钟', value: snapshot.minutes });
+  }
+  if (snapshot.xg != null) {
+    stats.push({ name: 'xG', value: snapshot.xg });
+  }
+  if (snapshot.xa != null) {
+    stats.push({ name: 'xA', value: snapshot.xa });
+  }
+  if (snapshot.rating != null) {
+    stats.push({ name: '评分', value: snapshot.rating });
   }
   return stats;
 }

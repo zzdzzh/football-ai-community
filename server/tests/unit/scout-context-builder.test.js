@@ -3,6 +3,7 @@ import { closeDb, getDb } from '../../src/db/connection.js';
 import {
   buildScoutContext,
   parseMaxAgeFromQuestion,
+  parseMinAgeFromQuestion,
   parsePositionFromQuestion,
   CANDIDATE_CAP,
 } from '../../src/services/scout-context-builder.js';
@@ -30,6 +31,12 @@ describe('ScoutContextBuilder', () => {
   it('parses max age from Chinese question', () => {
     expect(parseMaxAgeFromQuestion('需要25岁以下的中场')).toBe(25);
     expect(parseMaxAgeFromQuestion('推荐球员')).toBeNull();
+  });
+
+  it('parses min age from Chinese question', () => {
+    expect(parseMinAgeFromQuestion('需要一个30岁以上门将')).toBe(30);
+    expect(parseMinAgeFromQuestion('over 28 goalkeepers')).toBe(28);
+    expect(parseMinAgeFromQuestion('至少35岁')).toBe(35);
   });
 
   it('parses position keyword from question', () => {
@@ -88,6 +95,29 @@ describe('ScoutContextBuilder', () => {
       userQuestion: '25岁以下的中场',
     });
     expect(context.candidates.every((c) => c.age == null || c.age <= 25)).toBe(true);
+  });
+
+  it('applies min age filter from question', () => {
+    const db = getDb();
+    const now = new Date().toISOString();
+    db.prepare(`
+      INSERT OR REPLACE INTO players (
+        id, name, team_id, position, date_of_birth, league_code, updated_at
+      ) VALUES ('gk-old', 'Old Keeper', '57', 'Goalkeeper', '1988-01-01', 'PL', ?)
+    `).run(now);
+    db.prepare(`
+      INSERT OR REPLACE INTO players (
+        id, name, team_id, position, date_of_birth, league_code, updated_at
+      ) VALUES ('gk-young', 'Young Keeper', '57', 'Goalkeeper', '2005-01-01', 'PL', ?)
+    `).run(now);
+    const context = buildScoutContext({
+      contextType: 'league',
+      contextId: 'PL',
+      userQuestion: '30岁以上的门将',
+    });
+    expect(context.filters.minAge).toBe(30);
+    expect(context.candidates.some((c) => c.id === 'gk-old')).toBe(true);
+    expect(context.candidates.some((c) => c.id === 'gk-young')).toBe(false);
   });
 
   it('caps candidates at CANDIDATE_CAP', () => {

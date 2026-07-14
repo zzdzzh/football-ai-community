@@ -68,4 +68,41 @@ describe('scraper-match-enricher', () => {
     });
     expect(mapped.dataCompleteness).toBe('complete');
   });
+
+  it('mapScraperMatchDetail maps lineups and formations', () => {
+    const mapped = mapScraperMatchDetail({
+      event: {
+        status: { type: 'finished' },
+        homeTeam: { id: 1 },
+        awayTeam: { id: 2 },
+        homeScore: { current: 2 },
+        awayScore: { current: 1 },
+      },
+      statistics: { statistics: [] },
+      incidents: { incidents: [] },
+      lineups: {
+        home: {
+          formation: '4-3-3',
+          players: [
+            { player: { name: 'Raya' }, position: 'G', jerseyNumber: 1, substitute: false },
+            { player: { name: 'Saka' }, position: 'F', jerseyNumber: 7, substitute: false },
+            { player: { name: 'Bench' }, position: 'M', jerseyNumber: 20, substitute: true },
+          ],
+        },
+        away: {
+          formation: '4-2-3-1',
+          players: [
+            { player: { name: 'Alisson' }, position: 'G', jerseyNumber: 1, substitute: false },
+          ],
+        },
+      },
+    });
+
+    expect(mapped.lineups).toMatchObject({
+      homeFormation: '4-3-3',
+      awayFormation: '4-2-3-1',
+    });
+    expect(mapped.lineups.home.players).toHaveLength(3);
+    expect(mapped.lineups.home.players[0].name).toBe('Raya');
+  });
 });
