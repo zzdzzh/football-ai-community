@@ -2,6 +2,7 @@ import { runMigrations } from '../../src/db/migrate.js';
 import { closeDb, getDb } from '../../src/db/connection.js';
 import {
   buildScoutContext,
+  parseAgeRangeFromQuestion,
   parseMaxAgeFromQuestion,
   parseMinAgeFromQuestion,
   parsePositionFromQuestion,
@@ -31,6 +32,7 @@ describe('ScoutContextBuilder', () => {
 
   it('parses max age from Chinese question', () => {
     expect(parseMaxAgeFromQuestion('需要25岁以下的中场')).toBe(25);
+    expect(parseMaxAgeFromQuestion('27岁以内的边后卫')).toBe(27);
     expect(parseMaxAgeFromQuestion('推荐球员')).toBeNull();
   });
 
@@ -40,9 +42,22 @@ describe('ScoutContextBuilder', () => {
     expect(parseMinAgeFromQuestion('至少35岁')).toBe(35);
   });
 
+  it('parses age range from Chinese question', () => {
+    expect(parseAgeRangeFromQuestion('20-27岁以内的进攻性边后卫')).toEqual({
+      minAge: 20,
+      maxAge: 27,
+    });
+    expect(parseAgeRangeFromQuestion('22到25岁中场')).toEqual({
+      minAge: 22,
+      maxAge: 25,
+    });
+    expect(parseAgeRangeFromQuestion('25岁以下')).toBeNull();
+  });
+
   it('parses position keyword from question', () => {
     expect(parsePositionFromQuestion('擅长压迫的中场')).toBe('中场');
     expect(parsePositionFromQuestion('前锋推荐')).toBe('前锋');
+    expect(parsePositionFromQuestion('进攻性边后卫')).toBe('边后卫');
   });
 
   it('attaches statFocus from user question into filters', () => {
@@ -109,6 +124,39 @@ describe('ScoutContextBuilder', () => {
       userQuestion: '25岁以下的中场',
     });
     expect(context.candidates.every((c) => c.age == null || c.age <= 25)).toBe(true);
+  });
+
+  it('matches full-back style positions for 后卫/边后卫 filters', () => {
+    const db = getDb();
+    const now = new Date().toISOString();
+    db.prepare(`
+      INSERT OR REPLACE INTO players (
+        id, name, team_id, position, date_of_birth, league_code, updated_at
+      ) VALUES
+        ('lb-young', 'Young Left Back', '57', 'Left-Back', '2003-01-01', 'PL', ?),
+        ('cb-old', 'Old Centre Back', '57', 'Centre-Back', '1990-01-01', 'PL', ?)
+    `).run(now, now);
+
+    const defenders = buildScoutContext({
+      contextType: 'league',
+      contextId: 'PL',
+      userQuestion: '后卫',
+    });
+    expect(defenders.candidates.some((c) => c.id === 'lb-young')).toBe(true);
+    expect(defenders.candidates.some((c) => c.id === 'cb-old')).toBe(true);
+
+    const fullbacks = buildScoutContext({
+      contextType: 'league',
+      contextId: 'PL',
+      userQuestion: '20-27岁以内的进攻性边后卫',
+    });
+    expect(fullbacks.filters).toMatchObject({
+      minAge: 20,
+      maxAge: 27,
+      position: '边后卫',
+    });
+    expect(fullbacks.candidates.some((c) => c.id === 'lb-young')).toBe(true);
+    expect(fullbacks.candidates.some((c) => c.id === 'cb-old')).toBe(false);
   });
 
   it('applies min age filter from question', () => {

@@ -23,6 +23,7 @@ const POSITION_DEFAULT_FOCUS = {
   门将: 'goalkeeping',
   Goalkeeper: 'goalkeeping',
   后卫: 'defense',
+  边后卫: 'defense',
   Defender: 'defense',
   中场: 'playmaking',
   Midfield: 'playmaking',

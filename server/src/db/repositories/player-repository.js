@@ -81,7 +81,15 @@ export function findPlayerBySofascoreId(sofascoreId) {
   return row ? mapPlayerRow(row) : null;
 }
 
-export function searchPlayers({ league = null, teamId = null, position = null, q = null, page = 1, pageSize = 20 } = {}) {
+export function searchPlayers({
+  league = null,
+  teamId = null,
+  position = null,
+  positionAny = null,
+  q = null,
+  page = 1,
+  pageSize = 20,
+} = {}) {
   const db = getDb();
   const safePage = Math.max(1, page);
   const safePageSize = Math.min(50, Math.max(1, pageSize));
@@ -98,9 +106,17 @@ export function searchPlayers({ league = null, teamId = null, position = null, q
     conditions.push('p.team_id = ?');
     params.push(teamId);
   }
-  if (position) {
+  const likeTerms = Array.isArray(positionAny) && positionAny.length > 0
+    ? positionAny
+    : (position ? [position] : []);
+  if (likeTerms.length === 1) {
     conditions.push('p.position LIKE ? COLLATE NOCASE');
-    params.push(`%${position}%`);
+    params.push(`%${likeTerms[0]}%`);
+  } else if (likeTerms.length > 1) {
+    conditions.push(`(${likeTerms.map(() => 'p.position LIKE ? COLLATE NOCASE').join(' OR ')})`);
+    for (const term of likeTerms) {
+      params.push(`%${term}%`);
+    }
   }
   if (q) {
     conditions.push('p.name LIKE ? COLLATE NOCASE');

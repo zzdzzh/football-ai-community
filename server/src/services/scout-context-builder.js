@@ -37,9 +37,19 @@ function isGlobalPlayerDataNeverSynced() {
   return metas.length === 0 || metas.every((meta) => !meta.lastSyncAt);
 }
 
+export function parseAgeRangeFromQuestion(question) {
+  if (!question) return null;
+  const match = question.match(/(\d{1,2})\s*[-~～—–到至]\s*(\d{1,2})\s*岁/);
+  if (!match) return null;
+  const a = Number(match[1]);
+  const b = Number(match[2]);
+  if (Number.isNaN(a) || Number.isNaN(b)) return null;
+  return { minAge: Math.min(a, b), maxAge: Math.max(a, b) };
+}
+
 export function parseMaxAgeFromQuestion(question) {
   if (!question) return null;
-  const match = question.match(/(\d{1,2})\s*岁\s*以下|under\s*(\d{1,2})|≤\s*(\d{1,2})/i);
+  const match = question.match(/(\d{1,2})\s*岁\s*(?:以下|以内|之内)|under\s*(\d{1,2})|≤\s*(\d{1,2})/i);
   if (!match) return null;
   const age = Number(match[1] ?? match[2] ?? match[3]);
   return Number.isNaN(age) ? null : age;
@@ -57,7 +67,11 @@ export function parseMinAgeFromQuestion(question) {
 
 export function parsePositionFromQuestion(question) {
   if (!question) return null;
-  const keywords = ['中场', '前锋', '后卫', '门将', '边锋', 'Midfield', 'Forward', 'Defender', 'Goalkeeper', 'Winger'];
+  // 边后卫须在后卫之前，避免被更宽泛关键词抢先匹配
+  const keywords = [
+    '边后卫', '中场', '前锋', '后卫', '门将', '边锋',
+    'Midfield', 'Forward', 'Defender', 'Goalkeeper', 'Winger',
+  ];
   return keywords.find((kw) => question.includes(kw)) ?? null;
 }
 
@@ -79,32 +93,50 @@ function mapCandidate(player) {
 
 const POSITION_ALIASES = {
   中场: ['midfield'],
-  前锋: ['forward', 'striker', 'attacking'],
+  前锋: ['forward', 'striker'],
   后卫: ['defender', 'back'],
+  边后卫: ['left-back', 'right-back', 'wing-back', 'full-back', 'fullback'],
   门将: ['goalkeeper'],
   边锋: ['winger'],
 };
 
-function resolvePositionSqlKeyword(keyword) {
-  const sqlTerms = {
-    中场: 'Midfield',
-    前锋: 'Forward',
-    后卫: 'Defender',
-    门将: 'Goalkeeper',
-    边锋: 'Winger',
-    Midfield: 'Midfield',
-    Forward: 'Forward',
-    Defender: 'Defender',
-    Goalkeeper: 'Goalkeeper',
-    Winger: 'Winger',
-  };
-  return sqlTerms[keyword] ?? keyword;
+// 数据源可能存简称（D/M/F/G）或完整位名（Left-Back 等），SQL LIKE 需覆盖两者常见形态
+const POSITION_SQL_LIKE_TERMS = {
+  中场: ['Midfield'],
+  前锋: ['Forward', 'Striker'],
+  后卫: ['Back', 'Defender'],
+  边后卫: ['Left-Back', 'Right-Back', 'Wing-Back', 'Full-Back'],
+  门将: ['Goalkeeper'],
+  边锋: ['Winger'],
+  Midfield: ['Midfield'],
+  Forward: ['Forward', 'Striker'],
+  Defender: ['Back', 'Defender'],
+  Goalkeeper: ['Goalkeeper'],
+  Winger: ['Winger'],
+};
+
+const POSITION_EXACT_CODES = {
+  中场: ['m'],
+  Midfield: ['m'],
+  前锋: ['f'],
+  Forward: ['f'],
+  后卫: ['d'],
+  Defender: ['d'],
+  门将: ['g'],
+  Goalkeeper: ['g'],
+};
+
+function resolvePositionSqlLikeTerms(keyword) {
+  if (!keyword) return null;
+  return POSITION_SQL_LIKE_TERMS[keyword] ?? [keyword];
 }
 
 function matchPosition(playerPosition, keyword) {
   if (!keyword) return true;
   if (!playerPosition) return false;
   const lower = playerPosition.toLowerCase();
+  const exactCodes = POSITION_EXACT_CODES[keyword] ?? [];
+  if (exactCodes.includes(lower)) return true;
   const aliases = POSITION_ALIASES[keyword] ?? [keyword.toLowerCase()];
   return aliases.some((alias) => lower.includes(alias));
 }
@@ -125,16 +157,27 @@ function filterCandidates(candidates, { maxAge = null, minAge = null, position =
 }
 
 function searchLeagueCandidates(leagueCode, { position = null } = {}) {
-  const positionTerm = position ? resolvePositionSqlKeyword(position) : null;
+  const positionAny = resolvePositionSqlLikeTerms(position);
   if (leagueCode === 'CL') {
     return searchPlayersByTeamLeague('CL', { page: 1, pageSize: CANDIDATE_CAP });
   }
   return searchPlayers({
     league: leagueCode,
-    position: positionTerm,
+    positionAny,
     page: 1,
     pageSize: CANDIDATE_CAP,
   });
+}
+
+function resolveAgeFilters(userQuestion) {
+  const range = parseAgeRangeFromQuestion(userQuestion);
+  if (range) {
+    return { minAge: range.minAge, maxAge: range.maxAge };
+  }
+  return {
+    minAge: parseMinAgeFromQuestion(userQuestion),
+    maxAge: parseMaxAgeFromQuestion(userQuestion),
+  };
 }
 
 export function buildScoutContext({ contextType, contextId, userQuestion = '' }) {
@@ -151,8 +194,7 @@ export function buildScoutContext({ contextType, contextId, userQuestion = '' })
     if (isLeaguePlayerDataNeverSynced(contextId)) {
       return { syncMessage: PLAYER_DATA_NOT_SYNCED_MESSAGE };
     }
-    const maxAge = parseMaxAgeFromQuestion(userQuestion);
-    const minAge = parseMinAgeFromQuestion(userQuestion);
+    const { maxAge, minAge } = resolveAgeFilters(userQuestion);
     const position = parsePositionFromQuestion(userQuestion);
     const statFocus = parseStatFocusFromQuestion(userQuestion, position);
     const result = searchLeagueCandidates(contextId, { position });
@@ -177,13 +219,12 @@ export function buildScoutContext({ contextType, contextId, userQuestion = '' })
     if (isLeaguePlayerDataNeverSynced(team.leagueCode)) {
       return { syncMessage: PLAYER_DATA_NOT_SYNCED_MESSAGE };
     }
-    const maxAge = parseMaxAgeFromQuestion(userQuestion);
-    const minAge = parseMinAgeFromQuestion(userQuestion);
+    const { maxAge, minAge } = resolveAgeFilters(userQuestion);
     const position = parsePositionFromQuestion(userQuestion);
     const statFocus = parseStatFocusFromQuestion(userQuestion, position);
     const result = searchPlayers({
       teamId: contextId,
-      position: position ? resolvePositionSqlKeyword(position) : null,
+      positionAny: resolvePositionSqlLikeTerms(position),
       page: 1,
       pageSize: CANDIDATE_CAP,
     });
@@ -205,12 +246,11 @@ export function buildScoutContext({ contextType, contextId, userQuestion = '' })
     if (isGlobalPlayerDataNeverSynced()) {
       return { syncMessage: PLAYER_DATA_NOT_SYNCED_MESSAGE };
     }
-    const maxAge = parseMaxAgeFromQuestion(userQuestion);
-    const minAge = parseMinAgeFromQuestion(userQuestion);
+    const { maxAge, minAge } = resolveAgeFilters(userQuestion);
     const position = parsePositionFromQuestion(userQuestion);
     const statFocus = parseStatFocusFromQuestion(userQuestion, position);
     const result = searchPlayers({
-      position: position ? resolvePositionSqlKeyword(position) : null,
+      positionAny: resolvePositionSqlLikeTerms(position),
       page: 1,
       pageSize: CANDIDATE_CAP,
     });
