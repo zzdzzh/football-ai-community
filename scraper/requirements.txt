@@ -2,3 +2,5 @@ beautifulsoup4>=4.12.0
 lxml>=5.0.0
 curl_cffi>=0.7.0
 playwright>=1.49.0
+# 可选：优先用 soccerdata 拉 FBref；未安装时回退 Playwright
+soccerdata>=1.9.0

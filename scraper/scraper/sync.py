@@ -10,7 +10,7 @@ from __future__ import annotations
 import os
 from datetime import datetime
 
-from scraper.fbref import fetch_league_player_stats
+from scraper.fbref import fetch_league_player_stats, fbref_stat_to_payload
 from scraper.leagues import LeagueConfig, get_league
 from scraper.sofascore import (
     fetch_league_matches,
@@ -275,18 +275,10 @@ def sync_league(
 
     fbref_stats: list[dict] = []
     if include_fbref and not (players_only and league.code == "WC"):
-        for stat in fetch_league_player_stats(league):
-            fbref_stats.append({
-                "fbrefId": stat.fbref_id,
-                "name": stat.name,
-                "goals": stat.goals,
-                "assists": stat.assists,
-                "minutes": stat.minutes,
-                "xg": stat.xg,
-                "xa": stat.xa,
-                "leagueCode": league.code,
-                "season": str(season_year),
-            })
+        for stat in fetch_league_player_stats(league, season_year=season_year):
+            fbref_stats.append(
+                fbref_stat_to_payload(stat, league.code, str(season_year))
+            )
 
     matches: list[dict] = []
     for match in sofa_matches:

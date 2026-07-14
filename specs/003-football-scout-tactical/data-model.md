@@ -58,6 +58,10 @@ Team *──0..1 Conversation (scout context_type=team | tactical context_type=t
 | assists | INTEGER | DEFAULT 0 | |
 | penalties | INTEGER | DEFAULT 0 | |
 | appearances | INTEGER | NULL | 若 API 提供 |
+| minutes | INTEGER | NULL | FBref 出场分钟 |
+| xg / xa | REAL | NULL | FBref 期望进球/助攻（若数据源提供） |
+| rating | REAL | NULL | Sofascore 评分 |
+| extra_stats_json | TEXT (JSON) | NULL | 扩展指标：首发/射门/射正/拦截/抢断/扑救/零封等 |
 | synced_at | TEXT (ISO8601) | NOT NULL | |
 
 **唯一约束**: `(player_id, league_code, season)`

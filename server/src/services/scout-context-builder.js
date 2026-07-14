@@ -4,6 +4,7 @@ import { searchPlayers, calcPlayerAge, countPlayersByLeague, searchPlayersByTeam
 import {
   listPlayerStatsSnapshots,
   mapSnapshotToPlayerStats,
+  pickBestPlayerStatsSnapshot,
 } from '../db/repositories/player-stats-snapshot-repository.js';
 import {
   getAggregatePlayerSyncStatus,
@@ -61,7 +62,8 @@ export function parsePositionFromQuestion(question) {
 
 function mapCandidate(player) {
   const snapshots = listPlayerStatsSnapshots(player.id, { leagueCode: player.leagueCode });
-  const stats = snapshots.length > 0 ? mapSnapshotToPlayerStats(snapshots[0]) : [];
+  const best = pickBestPlayerStatsSnapshot(snapshots);
+  const stats = best ? mapSnapshotToPlayerStats(best) : [];
   return {
     id: player.id,
     name: player.name,

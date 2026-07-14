@@ -22,6 +22,22 @@ function mergeStatValue(existingValue, incomingValue) {
   return incomingValue ?? existingValue ?? 0;
 }
 
+/** 用 FBref born 年回填缺失生日（取年中近似，供年龄筛选）。 */
+export function deriveDateOfBirthFromBorn(born) {
+  const year = Number(born);
+  if (!Number.isInteger(year) || year < 1950 || year > 2020) {
+    return null;
+  }
+  return `${year}-07-01`;
+}
+
+function mergeExtraStats(existing, incoming) {
+  if (!incoming || typeof incoming !== 'object') {
+    return existing ?? null;
+  }
+  return { ...(existing ?? {}), ...incoming };
+}
+
 export function mergeFbrefStatsForLeague({ leagueCode, season, fbrefStats = [], now }) {
   if (!fbrefStats.length) {
     return { matched: 0, unmatched: 0 };
@@ -47,16 +63,19 @@ export function mergeFbrefStatsForLeague({ leagueCode, season, fbrefStats = [], 
     matched += 1;
     const targetSeason = stat.season ?? season;
     const existing = findPlayerStatsSnapshot(player.id, leagueCode, targetSeason);
+    const dateOfBirth = player.dateOfBirth
+      ?? deriveDateOfBirthFromBorn(stat.born)
+      ?? null;
 
     upsertPlayer({
       id: player.id,
       name: player.name,
       teamId: player.teamId,
       position: player.position,
-      dateOfBirth: player.dateOfBirth,
+      dateOfBirth,
       nationality: player.nationality,
       leagueCode: player.leagueCode,
-      fbrefId: stat.fbrefId,
+      fbrefId: stat.fbrefId || undefined,
       updatedAt: now,
     });
 
@@ -67,11 +86,12 @@ export function mergeFbrefStatsForLeague({ leagueCode, season, fbrefStats = [], 
       goals: mergeStatValue(existing?.goals, stat.goals),
       assists: mergeStatValue(existing?.assists, stat.assists),
       penalties: existing?.penalties ?? 0,
-      appearances: existing?.appearances ?? null,
+      appearances: existing?.appearances ?? stat.appearances ?? null,
       minutes: stat.minutes ?? existing?.minutes ?? null,
       xg: stat.xg ?? existing?.xg ?? null,
       xa: stat.xa ?? existing?.xa ?? null,
       rating: existing?.rating ?? null,
+      extraStats: mergeExtraStats(existing?.extraStats, stat.extraStats),
       syncedAt: now,
     });
   }

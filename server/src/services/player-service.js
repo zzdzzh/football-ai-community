@@ -5,6 +5,7 @@ import {
 import {
   listPlayerStatsSnapshots,
   mapSnapshotToPlayerStats,
+  pickBestPlayerStatsSnapshot,
 } from '../db/repositories/player-stats-snapshot-repository.js';
 import { getAggregatePlayerSyncStatus } from '../db/repositories/player-sync-meta-repository.js';
 
@@ -38,9 +39,8 @@ export function getPlayerDetail(playerId) {
   if (!player) return null;
 
   const snapshots = listPlayerStatsSnapshots(playerId);
-  const stats = snapshots.length > 0
-    ? mapSnapshotToPlayerStats(snapshots[0])
-    : [];
+  const best = pickBestPlayerStatsSnapshot(snapshots);
+  const stats = best ? mapSnapshotToPlayerStats(best) : [];
 
   const { status: syncStatus } = getAggregatePlayerSyncStatus();
   const syncMessage = stats.length === 0 && syncStatus !== 'ok'

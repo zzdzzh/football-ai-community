@@ -78,6 +78,14 @@ export async function syncLeagueFromScraper(leagueCode, { includeFbref = true, p
   return runScraperCli(args, { timeoutMs });
 }
 
+export async function fetchFbrefStatsFromScraper(leagueCode, { seasonYear } = {}) {
+  const args = ['fbref-stats', '--league', leagueCode];
+  if (seasonYear != null) {
+    args.push('--season-year', String(seasonYear));
+  }
+  return runScraperCli(args, { timeoutMs: 300000 });
+}
+
 export async function fetchScraperMatchDetail(sofascoreMatchId) {
   return runScraperCli(['match-detail', '--match-id', sofascoreMatchId], { timeoutMs: 60000 });
 }

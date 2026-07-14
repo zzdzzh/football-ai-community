@@ -40,8 +40,10 @@ describe('fbref-stats-import', () => {
         goals: 8,
         assists: 4,
         minutes: 2800,
+        appearances: 35,
         xg: 9.2,
         xa: 6.1,
+        extraStats: { shots: 70, shotsOnTarget: 30 },
         leagueCode: 'PL',
         season: '2025',
       }],
@@ -54,13 +56,49 @@ describe('fbref-stats-import', () => {
     expect(snapshot.goals).toBe(10);
     expect(snapshot.assists).toBe(5);
     expect(snapshot.minutes).toBe(2800);
+    expect(snapshot.appearances).toBe(30);
     expect(snapshot.xg).toBe(9.2);
     expect(snapshot.xa).toBe(6.1);
+    expect(snapshot.extraStats).toEqual({ shots: 70, shotsOnTarget: 30 });
 
     const player = findPlayerById('p1');
     expect(player).toBeTruthy();
     const row = getDb().prepare('SELECT fbref_id FROM players WHERE id = ?').get('p1');
     expect(row.fbref_id).toBe('abc123');
+  });
+
+  it('backfills missing date_of_birth from born year', () => {
+    const db = getDb();
+    const now = new Date().toISOString();
+    db.prepare(`
+      INSERT OR REPLACE INTO players (
+        id, name, team_id, position, date_of_birth, nationality, league_code, updated_at
+      ) VALUES ('p2', 'Gabriel Martinelli', '57', 'Left Winger', NULL, 'Brazil', 'PL', ?)
+    `).run(now);
+
+    const result = mergeFbrefStatsForLeague({
+      leagueCode: 'PL',
+      season: '2025',
+      fbrefStats: [{
+        name: 'Gabriel Martinelli',
+        goals: 8,
+        assists: 4,
+        minutes: 2000,
+        appearances: 28,
+        born: 2001,
+        leagueCode: 'PL',
+        season: '2025',
+      }],
+      now,
+    });
+
+    expect(result).toEqual({ matched: 1, unmatched: 0 });
+    const player = findPlayerById('p2');
+    expect(player.dateOfBirth).toBe('2001-07-01');
+    expect(player.age).toBeGreaterThan(20);
+    const snapshot = findPlayerStatsSnapshot('p2', 'PL', '2025');
+    expect(snapshot.appearances).toBe(28);
+    expect(snapshot.minutes).toBe(2000);
   });
 
   it('counts unmatched fbref rows', () => {
