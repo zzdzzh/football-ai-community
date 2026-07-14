@@ -16,7 +16,7 @@ export function mapFanPersonaRow(row) {
     displayName: row.display_name,
     teamId: row.team_id,
     teamName: row.team_name,
-    leagueCode: row.league_code,
+    leagueCode: row.persona_league_code ?? row.league_code,
     styleTraits: parseJsonArray(row.style_traits_json),
     accentPhrases: parseJsonArray(row.accent_phrases_json),
     enabled: row.enabled === 1,
@@ -29,7 +29,8 @@ export function listFanPersonas({ league = null, teamId = null } = {}) {
   const params = [];
 
   if (league) {
-    conditions.push('t.league_code = ?');
+    // 优先用 persona 自带联赛码，避免 teams 被 CL/WC sync 覆盖后筛不到国内联赛角色
+    conditions.push('COALESCE(fp.league_code, t.league_code) = ?');
     params.push(league);
   }
   if (teamId) {
@@ -39,11 +40,12 @@ export function listFanPersonas({ league = null, teamId = null } = {}) {
 
   const whereClause = `WHERE ${conditions.join(' AND ')}`;
   const rows = db.prepare(`
-    SELECT fp.*, t.name AS team_name, t.league_code
+    SELECT fp.*, t.name AS team_name, t.league_code,
+           fp.league_code AS persona_league_code
     FROM fan_personas fp
     JOIN teams t ON t.id = fp.team_id
     ${whereClause}
-    ORDER BY t.league_code ASC, t.name ASC, fp.display_name ASC
+    ORDER BY COALESCE(fp.league_code, t.league_code) ASC, t.name ASC, fp.display_name ASC
   `).all(...params);
 
   return rows.map(mapFanPersonaRow);
@@ -52,7 +54,8 @@ export function listFanPersonas({ league = null, teamId = null } = {}) {
 export function findFanPersonaById(id) {
   const db = getDb();
   const row = db.prepare(`
-    SELECT fp.*, t.name AS team_name, t.league_code
+    SELECT fp.*, t.name AS team_name, t.league_code,
+           fp.league_code AS persona_league_code
     FROM fan_personas fp
     JOIN teams t ON t.id = fp.team_id
     WHERE fp.id = ?
@@ -65,7 +68,8 @@ export function findFanPersonasByIds(ids) {
   const db = getDb();
   const placeholders = ids.map(() => '?').join(', ');
   const rows = db.prepare(`
-    SELECT fp.*, t.name AS team_name, t.league_code
+    SELECT fp.*, t.name AS team_name, t.league_code,
+           fp.league_code AS persona_league_code
     FROM fan_personas fp
     JOIN teams t ON t.id = fp.team_id
     WHERE fp.id IN (${placeholders}) AND fp.enabled = 1

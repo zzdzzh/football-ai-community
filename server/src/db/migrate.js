@@ -16,6 +16,7 @@ const MIGRATION_FILES = [
   '010_player_stats_extended.sql',
   '011_sofa_lineups_rating.sql',
   '012_player_stats_extra.sql',
+  '013_fan_personas_expand.sql',
 ];
 
 function ensureMigrationTable(db) {

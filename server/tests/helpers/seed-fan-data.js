@@ -8,15 +8,17 @@ export function seedFanPersonas() {
 
   db.prepare(`
     INSERT OR REPLACE INTO teams (id, name, short_name, tla, league_code, updated_at)
-    VALUES ('64', 'Liverpool FC', 'Liverpool', 'LIV', 'PL', ?)
-  `).run(now);
+    VALUES
+      ('fan-pl-arsenal', 'Arsenal FC', 'Arsenal', 'ARS', 'PL', ?),
+      ('fan-pl-liverpool', 'Liverpool FC', 'Liverpool', 'LIV', 'PL', ?)
+  `).run(now, now);
 
   db.prepare(`
     INSERT OR REPLACE INTO fan_personas (
-      id, team_id, display_name, style_traits_json, accent_phrases_json, enabled, created_at, updated_at
+      id, team_id, display_name, style_traits_json, accent_phrases_json, enabled, created_at, updated_at, league_code
     ) VALUES
-      ('persona-arsenal', '57', '枪手铁杆小明', '["乐观","护短"]', '["塔子哥有东西"]', 1, ?, ?),
-      ('persona-liverpool', '64', '红军KOP老张', '["激情","历史党"]', '["YNWA"]', 1, ?, ?)
+      ('persona-arsenal', 'fan-pl-arsenal', '枪手铁杆小明', '["乐观","护短"]', '["塔子哥有东西"]', 1, ?, ?, 'PL'),
+      ('persona-liverpool', 'fan-pl-liverpool', '红军KOP老张', '["激情","历史党"]', '["YNWA"]', 1, ?, ?, 'PL')
   `).run(now, now, now, now);
 
   return {
