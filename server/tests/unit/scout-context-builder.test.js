@@ -252,6 +252,34 @@ describe('ScoutContextBuilder', () => {
     expect(candidate?.stats).toEqual([]);
   });
 
+  it('falls back to richer club snapshots when league-scoped stats are empty', () => {
+    const db = getDb();
+    const now = new Date().toISOString();
+    db.prepare(`
+      INSERT OR REPLACE INTO teams (id, name, league_code, updated_at)
+      VALUES ('wc-team', 'Brazil', 'WC', ?)
+    `).run(now);
+    db.prepare(`
+      INSERT OR REPLACE INTO players (
+        id, name, team_id, position, date_of_birth, league_code, updated_at
+      ) VALUES ('wc-gk-rich', 'WC Keeper', 'wc-team', 'Goalkeeper', '1992-01-01', 'WC', ?)
+    `).run(now);
+    db.prepare(`
+      INSERT OR REPLACE INTO player_stats_snapshots (
+        id, player_id, league_code, season, goals, assists, penalties, appearances, minutes, synced_at
+      ) VALUES ('snap-club', 'wc-gk-rich', 'PL', '25-26', 0, 0, 0, 30, 2700, ?)
+    `).run(now);
+
+    const context = buildScoutContext({
+      contextType: 'league',
+      contextId: 'WC',
+      userQuestion: '30岁以上门将',
+    });
+    const candidate = context.candidates.find((c) => c.id === 'wc-gk-rich');
+    expect(candidate).toBeDefined();
+    expect(candidate.stats.some((s) => s.name === '出场分钟' && s.value === 2700)).toBe(true);
+  });
+
   it('still returns candidates when sync is down but league data exists', () => {
     const db = getDb();
     db.prepare("UPDATE player_sync_meta SET status = 'down'").run();

@@ -5,6 +5,7 @@ import {
   listPlayerStatsSnapshots,
   mapSnapshotToPlayerStats,
   pickBestPlayerStatsSnapshot,
+  scoreSnapshotRichness,
 } from '../db/repositories/player-stats-snapshot-repository.js';
 import {
   getAggregatePlayerSyncStatus,
@@ -75,8 +76,26 @@ export function parsePositionFromQuestion(question) {
   return keywords.find((kw) => question.includes(kw)) ?? null;
 }
 
+function resolveCandidateSnapshots(player) {
+  // 优先当前联赛快照；若明显更贫（如世界杯国脚无富统计、但有俱乐部赛季数据），跨联赛回退优选
+  const all = listPlayerStatsSnapshots(player.id);
+  if (!player.leagueCode || all.length <= 1) {
+    return all;
+  }
+  const leagueSnapshots = all.filter((s) => s.leagueCode === player.leagueCode);
+  if (leagueSnapshots.length === 0) {
+    return all;
+  }
+  const bestLeague = pickBestPlayerStatsSnapshot(leagueSnapshots);
+  const bestAll = pickBestPlayerStatsSnapshot(all);
+  if (scoreSnapshotRichness(bestAll) > scoreSnapshotRichness(bestLeague) + 10) {
+    return all;
+  }
+  return leagueSnapshots;
+}
+
 function mapCandidate(player) {
-  const snapshots = listPlayerStatsSnapshots(player.id, { leagueCode: player.leagueCode });
+  const snapshots = resolveCandidateSnapshots(player);
   const best = pickBestPlayerStatsSnapshot(snapshots);
   const stats = best ? mapSnapshotToPlayerStats(best) : [];
   return {
