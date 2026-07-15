@@ -251,6 +251,7 @@ function persistAnalysis(playerA, playerB, result, dataFreshness) {
 }
 
 async function analyzePair(playerIdA, playerIdB, { forceRecompute = false } = {}) {
+  const startedAt = Date.now();
   assertNotSelfPair(playerIdA, playerIdB);
 
   const metaA = findCareerPlayerById(playerIdA);
@@ -288,6 +289,15 @@ async function analyzePair(playerIdA, playerIdB, { forceRecompute = false } = {}
       const bSynced = playerB.syncedAt ? Date.parse(playerB.syncedAt) : 0;
       const computed = cached.computedAt ? Date.parse(cached.computedAt) : 0;
       if (computed >= aSynced && computed >= bSynced) {
+        console.log(JSON.stringify({
+          level: 'info',
+          type: 'pair_analysis_metrics',
+          pair_analysis_latency_ms: Date.now() - startedAt,
+          cache_hit: true,
+          playerIdA,
+          playerIdB,
+          status: 'ready',
+        }));
         return buildResponse(
           playerIdA,
           playerIdB,
@@ -301,6 +311,16 @@ async function analyzePair(playerIdA, playerIdB, { forceRecompute = false } = {}
   const result = computeAnalysisResult(playerA, playerB);
   const dataFreshness = buildDataFreshness(playerA, playerB, false);
   const analysis = persistAnalysis(playerA, playerB, result, dataFreshness);
+  console.log(JSON.stringify({
+    level: 'info',
+    type: 'pair_analysis_metrics',
+    pair_analysis_latency_ms: Date.now() - startedAt,
+    cache_hit: false,
+    playerIdA,
+    playerIdB,
+    status: 'ready',
+    pathStatus: result.pathStatus,
+  }));
   return buildResponse(playerIdA, playerIdB, analysis, dataFreshness);
 }
 

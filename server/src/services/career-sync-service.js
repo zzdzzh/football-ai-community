@@ -96,6 +96,13 @@ export function createCareerSyncService(deps = {}) {
             lastSyncError: message.slice(0, 500),
           });
         }
+        console.log(JSON.stringify({
+          level: 'info',
+          type: 'career_sync_failure',
+          playerId: player?.id ?? null,
+          externalId: tmId,
+          message: message.slice(0, 200),
+        }));
         const error = Object.assign(new Error(message), {
           code: 'CAREER_SYNC_FAILED',
           playerId: player?.id ?? null,
@@ -177,6 +184,14 @@ export function createCareerSyncService(deps = {}) {
 
         return syncedPlayer;
       })();
+
+      console.log(JSON.stringify({
+        level: 'info',
+        type: 'career_sync_success',
+        playerId: persisted.id,
+        externalId: persisted.externalId,
+        clubStintCount: Array.isArray(profile.clubStints) ? profile.clubStints.length : 0,
+      }));
 
       return { player: persisted, skipped: false, reason: 'synced' };
     },
