@@ -90,3 +90,22 @@ export async function fetchFbrefStatsFromScraper(leagueCode, { seasonYear } = {}
 export async function fetchScraperMatchDetail(sofascoreMatchId) {
   return runScraperCli(['match-detail', '--match-id', sofascoreMatchId], { timeoutMs: 60000 });
 }
+
+export async function searchCareerFromScraper(query, { limit = 20, timeoutMs = 15000 } = {}) {
+  return runScraperCli(
+    ['career-search', '--q', String(query), '--limit', String(limit), '--delay', String(config.scraper.requestDelaySec)],
+    { timeoutMs },
+  );
+}
+
+export async function fetchCareerProfileFromScraper(tmId, { slug = '-', timeoutMs = 20000 } = {}) {
+  return runScraperCli(
+    [
+      'career-profile',
+      '--tm-id', String(tmId),
+      '--slug', String(slug || '-'),
+      '--delay', String(config.scraper.requestDelaySec),
+    ],
+    { timeoutMs },
+  );
+}

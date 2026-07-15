@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import http.client
+import json
 import time
 import urllib.error
 import urllib.request
@@ -99,3 +100,31 @@ def fetch_json(url: str, *, timeout: int = 30) -> Any:
     if resp.status_code >= 400:
         raise RuntimeError(f"HTTP {resp.status_code} 获取失败: {url}")
     return resp.json()
+
+
+def fetch_tm_json(url: str, *, referer: str, timeout: int = 30) -> Any:
+    """Transfermarkt ceapi JSON。优先 urllib（curl_cffi 易触发 WAF 405）。"""
+    last_err: Exception | None = None
+    for attempt in range(3):
+        _throttle()
+        req = urllib.request.Request(
+            url,
+            headers={
+                "User-Agent": DEFAULT_UA,
+                "Accept": "application/json, text/plain, */*",
+                "X-Requested-With": "XMLHttpRequest",
+                "Referer": referer,
+                "Accept-Language": "en-US,en;q=0.9",
+            },
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=timeout) as resp:
+                raw = resp.read().decode("utf-8", errors="replace")
+            return json.loads(raw)
+        except Exception as err:
+            last_err = err
+            if attempt < 2:
+                time.sleep(2 * (attempt + 1))
+                continue
+            break
+    raise RuntimeError(f"TM JSON 获取失败: {url}") from last_err

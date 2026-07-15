@@ -44,6 +44,16 @@ def main() -> None:
         help="输出到文件（推荐，避免大 JSON 管道阻塞）；默认 stdout",
     )
 
+    career_search = sub.add_parser("career-search", help="Transfermarkt 球员履历搜索")
+    career_search.add_argument("--q", required=True, help="球员姓名关键词")
+    career_search.add_argument("--limit", type=int, default=20)
+    career_search.add_argument("--delay", type=float, default=1.5)
+
+    career_profile = sub.add_parser("career-profile", help="Transfermarkt 球员履历详情")
+    career_profile.add_argument("--tm-id", required=True, help="Transfermarkt 球员 ID")
+    career_profile.add_argument("--slug", default="-", help="URL slug（可选）")
+    career_profile.add_argument("--delay", type=float, default=1.5)
+
     args = parser.parse_args()
 
     try:
@@ -80,6 +90,18 @@ def main() -> None:
                 ],
                 "sources": {"fbref": len(stats) > 0, "soccerdata": True},
             }
+        elif args.command == "career-search":
+            from scraper.http import set_request_delay
+            from scraper.transfermarkt_career import search_players
+
+            set_request_delay(args.delay)
+            payload = search_players(args.q, limit=args.limit)
+        elif args.command == "career-profile":
+            from scraper.http import set_request_delay
+            from scraper.transfermarkt_career import fetch_player_profile
+
+            set_request_delay(args.delay)
+            payload = fetch_player_profile(args.tm_id, slug=args.slug)
         else:
             raise ValueError(f"未知命令: {args.command}")
 
