@@ -6,6 +6,7 @@ from __future__ import annotations
 import hashlib
 import re
 import unicodedata
+from datetime import datetime, timezone
 from typing import Any, Optional
 from urllib.parse import quote_plus
 
@@ -14,6 +15,77 @@ from bs4 import BeautifulSoup
 from scraper.http import fetch_html, fetch_tm_json
 
 TM_BASE = "https://www.transfermarkt.com"
+
+# Transfermarkt countryId → 展示名（国家队队友匹配用；未收录则回退 Country {id}）
+TM_COUNTRY_NAMES: dict[str, str] = {
+    "1": "Afghanistan",
+    "3": "Albania",
+    "4": "Algeria",
+    "9": "Argentina",
+    "11": "Armenia",
+    "12": "Australia",
+    "13": "Austria",
+    "14": "Azerbaijan",
+    "18": "Belgium",
+    "26": "Bosnia-Herzegovina",
+    "27": "Brazil",
+    "32": "Cameroon",
+    "36": "Chile",
+    "37": "China",
+    "38": "Colombia",
+    "40": "Congo DR",
+    "44": "Croatia",
+    "45": "Cuba",
+    "47": "Czech Republic",
+    "48": "Denmark",
+    "50": "Ecuador",
+    "51": "Egypt",
+    "53": "England",
+    "62": "Finland",
+    "63": "France",
+    "66": "Georgia",
+    "67": "Germany",
+    "68": "Ghana",
+    "70": "Greece",
+    "86": "Iceland",
+    "89": "Iran",
+    "92": "Ireland",
+    "93": "Israel",
+    "94": "Italy",
+    "96": "Ivory Coast",
+    "97": "Jamaica",
+    "98": "Japan",
+    "113": "South Korea",
+    "117": "Mali",
+    "122": "Mexico",
+    "124": "Montenegro",
+    "125": "Morocco",
+    "126": "Netherlands",
+    "132": "Nigeria",
+    "134": "Northern Ireland",
+    "135": "North Macedonia",
+    "136": "Norway",
+    "141": "Paraguay",
+    "144": "Peru",
+    "145": "Poland",
+    "146": "Portugal",
+    "148": "Romania",
+    "149": "Russia",
+    "152": "Saudi Arabia",
+    "153": "Scotland",
+    "154": "Senegal",
+    "155": "Serbia",
+    "157": "Spain",
+    "159": "Sweden",
+    "160": "Switzerland",
+    "166": "Tunisia",
+    "167": "Turkey",
+    "170": "Ukraine",
+    "171": "United States",
+    "172": "Uruguay",
+    "174": "Venezuela",
+    "176": "Wales",
+}
 
 
 def _normalize_name(name: str) -> str:
@@ -476,6 +548,72 @@ def _parse_national_team_stints(soup: BeautifulSoup) -> list[dict[str, Any]]:
     return unique
 
 
+def _unix_to_iso_date(ts: Any) -> Optional[str]:
+    try:
+        value = int(ts)
+    except (TypeError, ValueError):
+        return None
+    if value <= 0:
+        return None
+    return datetime.fromtimestamp(value, tz=timezone.utc).strftime("%Y-%m-%d")
+
+
+def _country_name(country_id: Optional[str]) -> str:
+    cid = str(country_id or "").strip()
+    if not cid:
+        return "Unknown"
+    return TM_COUNTRY_NAMES.get(cid, f"Country {cid}")
+
+
+def _stints_from_ceapi_national_career(payload: dict[str, Any]) -> list[dict[str, Any]]:
+    """解析 ceapi/player/nationalCareer：优先现属代表队，再按国家合并最早 debut。"""
+    career = payload.get("career")
+    if not isinstance(career, list) or not career:
+        return []
+
+    header = payload.get("header") if isinstance(payload.get("header"), dict) else {}
+    status = header.get("status") if isinstance(header.get("status"), dict) else {}
+    preferred_team_id = str(status.get("teamId") or "").strip()
+
+    selected: list[dict[str, Any]] = []
+    if preferred_team_id:
+        selected = [
+            item for item in career
+            if str((item.get("team") or {}).get("teamId") or "") == preferred_team_id
+        ]
+    if not selected:
+        selected = [item for item in career if item.get("squad")]
+    if not selected:
+        selected = [item for item in career if isinstance(item, dict)]
+
+    # 同一 countryId 合并为一段（取最早 debut），便于国家队队友匹配
+    by_country: dict[str, dict[str, Any]] = {}
+    for item in selected:
+        team = item.get("team") if isinstance(item.get("team"), dict) else {}
+        country_id = str(team.get("countryId") or "").strip()
+        if not country_id:
+            continue
+        debut = item.get("debut") if isinstance(item.get("debut"), dict) else {}
+        joined_raw = _unix_to_iso_date(debut.get("date"))
+        nation_name = _country_name(country_id)
+        nation_key = _normalize_name(nation_name).replace(" ", "_")
+        existing = by_country.get(country_id)
+        if existing is None:
+            by_country[country_id] = {
+                "nationKey": nation_key,
+                "nationName": nation_name,
+                "joinedRaw": joined_raw,
+                "leftRaw": None,
+            }
+            continue
+        if joined_raw and (
+            not existing.get("joinedRaw") or joined_raw < existing["joinedRaw"]
+        ):
+            existing["joinedRaw"] = joined_raw
+
+    return list(by_country.values())
+
+
 def fetch_player_profile(tm_id: str, *, slug: str = "-") -> dict[str, Any]:
     player_id = str(tm_id).strip()
     if not player_id:
@@ -509,12 +647,26 @@ def fetch_player_profile(tm_id: str, *, slug: str = "-") -> dict[str, Any]:
         transfers_html = fetch_html(f"{transfers_page}/plus/1", timeout=40)
         club_stints = _parse_transfer_rows(BeautifulSoup(transfers_html, "lxml"))
 
+    # 国家队履历：Svelte + ceapi/player/nationalCareer；HTML 表格多为空壳
     national_stints: list[dict[str, Any]] = []
     try:
-        national_html = fetch_html(national_url, timeout=30)
-        national_stints = _parse_national_team_stints(BeautifulSoup(national_html, "lxml"))
+        fetch_html(national_url, timeout=30)
+        national_payload = fetch_tm_json(
+            f"{TM_BASE}/ceapi/player/nationalCareer/{player_id}",
+            referer=national_url,
+            timeout=40,
+        )
+        if isinstance(national_payload, dict):
+            national_stints = _stints_from_ceapi_national_career(national_payload)
     except Exception:
         national_stints = []
+
+    if not national_stints:
+        try:
+            national_html = fetch_html(national_url, timeout=30)
+            national_stints = _parse_national_team_stints(BeautifulSoup(national_html, "lxml"))
+        except Exception:
+            national_stints = []
 
     return {
         "externalSource": "transfermarkt",
