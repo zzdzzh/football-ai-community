@@ -17,23 +17,18 @@ const loading = ref(false);
 const sending = ref(false);
 const errorMessage = ref('');
 
-const agentId = computed<AgentId>(() => conversation.value?.agentId ?? 'stats');
+const agentId = computed<AgentId>(() => conversation.value?.agentId ?? 'tactical');
 const isScout = computed(() => agentId.value === 'scout');
-const isTactical = computed(() => agentId.value === 'tactical');
 
 const backPath = computed(() => {
   if (isScout.value) return '/scout';
-  if (isTactical.value) {
-    const matchId = route.query.matchId as string | undefined;
-    if (matchId) return `/matches/${matchId}`;
-    return '/tactical';
-  }
-  return '/stats';
+  const matchId = route.query.matchId as string | undefined;
+  if (matchId) return `/matches/${matchId}`;
+  return '/tactical';
 });
 const defaultTitle = computed(() => {
   if (isScout.value) return 'Scout 对话';
-  if (isTactical.value) return 'Tactical 对话';
-  return 'Stats 对话';
+  return 'Tactical 对话';
 });
 
 async function loadConversation() {
@@ -73,7 +68,7 @@ async function handleSend(content: string) {
     if (response?.status === 503) {
       ElMessage.warning(response.data?.message || '数据同步中，请稍后再试');
     } else if (response?.status === 408) {
-      const label = isScout.value ? 'Scout' : isTactical.value ? 'Tactical' : 'Stats';
+      const label = isScout.value ? 'Scout' : 'Tactical';
       ElMessage.error(`${label} Agent 响应超时，请重试`);
     } else {
       ElMessage.error(response?.data?.message || '发送失败');
@@ -124,11 +119,7 @@ onMounted(() => {
       <ChatInput
         :loading="sending"
         :placeholder="
-          isScout
-            ? '补充位置、年龄或风格要求…'
-            : isTactical
-              ? '追问压迫、出球或转换阶段…'
-              : '输入关于比赛数据的问题…'
+          isScout ? '补充位置、年龄或风格要求…' : '追问压迫、出球或转换阶段…'
         "
         @send="handleSend"
       />

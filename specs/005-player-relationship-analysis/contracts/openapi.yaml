@@ -1,0 +1,604 @@
+openapi: 3.0.3
+info:
+  title: 足球社区 球员关系分析 API
+  description: |
+    Feature 005 REST API 契约（履历球员搜索、按需同步、双球员关系分析）。
+    认证：JWT Bearer Token（所有端点需登录）。
+    共享 ErrorResponse / Unauthorized 语义与
+    [001-football-feed-mvp](../001-football-feed-mvp/contracts/openapi.yaml) 保持一致。
+    本文件不修改、不复用 [003-football-scout-tactical](../003-football-scout-tactical/contracts/openapi.yaml)
+    的 `/players` 资源；履历球员使用 `/career-players`。
+  version: 1.0.0-005
+  contact:
+    name: Football AI Community
+
+servers:
+  - url: http://localhost:3000/api
+    description: 本地开发
+
+tags:
+  - name: CareerPlayers
+  - name: PlayerPairAnalyses
+
+paths:
+  /career-players:
+    get:
+      tags: [CareerPlayers]
+      summary: 搜索履历球员（消歧候选）
+      description: |
+        按姓名查询本地缓存；本地不足时按需触发 Transfermarkt 搜索并入库候选摘要。
+        多命中时返回完整候选列表，客户端必须让用户显式选择后再分析。
+      operationId: searchCareerPlayers
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 100
+          description: 球员姓名关键字
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 20
+            default: 10
+      responses:
+        '200':
+          description: 候选列表（可能为空）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CareerPlayerSearchResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '503':
+          description: 外部履历源暂不可用且本地无候选
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /career-players/{playerId}:
+    get:
+      tags: [CareerPlayers]
+      summary: 获取履历球员详情与效力段
+      operationId: getCareerPlayer
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PlayerId'
+      responses:
+        '200':
+          description: 球员详情
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CareerPlayerDetail'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /career-players/{playerId}/sync:
+    post:
+      tags: [CareerPlayers]
+      summary: 强制同步单球员履历
+      description: 从 Transfermarkt 拉取并替换本地效力段；失败不写入虚构数据。
+      operationId: syncCareerPlayer
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PlayerId'
+      responses:
+        '200':
+          description: 同步成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CareerPlayerDetail'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '408':
+          description: 外部源超时
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+
+  /player-pair-analyses/{playerIdA}/{playerIdB}:
+    get:
+      tags: [PlayerPairAnalyses]
+      summary: 获取双球员关系分析（可重入）
+      description: |
+        URL 中两个球员 ID 为页面核心 ID。服务端按字典序规范化缓存键。
+        若需同步履历，响应 `status` 可为 `computing`，客户端轮询本接口直至 `ready` 或 `failed`。
+        同一球员 ID 两次传入返回 400。
+      operationId: getPlayerPairAnalysis
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: playerIdA
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: playerIdB
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: 分析状态与（可用时）完整结论
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlayerPairAnalysisResponse'
+        '400':
+          description: 同一球员或非法 ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '503':
+          description: 无可用履历且外部源失败
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /player-pair-analyses:
+    post:
+      tags: [PlayerPairAnalyses]
+      summary: 强制重算双球员关系分析
+      description: 用于重试；写入/更新快照后返回与 GET 相同结构。
+      operationId: createPlayerPairAnalysis
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePlayerPairAnalysisRequest'
+      responses:
+        '200':
+          description: 分析完成或进行中
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlayerPairAnalysisResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    PlayerId:
+      name: playerId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+  schemas:
+    ErrorResponse:
+      type: object
+      required: [error, message]
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+        traceId:
+          type: string
+
+    CareerPlayerSearchResponse:
+      type: object
+      required: [items, sourceNote]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/CareerPlayerCandidate'
+        sourceNote:
+          type: string
+          description: 如 local_only / mixed / external
+
+    CareerPlayerCandidate:
+      type: object
+      required: [id, name]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        dateOfBirth:
+          type: string
+          nullable: true
+        nationality:
+          type: string
+          nullable: true
+        currentClubName:
+          type: string
+          nullable: true
+        primaryClubHint:
+          type: string
+          nullable: true
+          description: 消歧用主要俱乐部线索
+        externalId:
+          type: string
+          nullable: true
+
+    CareerPlayerDetail:
+      type: object
+      required: [id, name, syncStatus, clubStints, nationalTeamStints]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        dateOfBirth:
+          type: string
+          nullable: true
+        nationality:
+          type: string
+          nullable: true
+        position:
+          type: string
+          nullable: true
+        currentClubName:
+          type: string
+          nullable: true
+        syncedAt:
+          type: string
+          format: date-time
+          nullable: true
+        syncStatus:
+          type: string
+          enum: [ready, stale, syncing, failed]
+        lastSyncError:
+          type: string
+          nullable: true
+        dataFreshnessLabel:
+          type: string
+          nullable: true
+          description: 人类可读新鲜度摘要
+        clubStints:
+          type: array
+          items:
+            $ref: '#/components/schemas/ClubStint'
+        nationalTeamStints:
+          type: array
+          items:
+            $ref: '#/components/schemas/NationalTeamStint'
+
+    ClubStint:
+      type: object
+      required: [id, clubId, clubName, timePrecision]
+      properties:
+        id:
+          type: string
+        clubId:
+          type: string
+        clubName:
+          type: string
+        joinedOn:
+          type: string
+          nullable: true
+        leftOn:
+          type: string
+          nullable: true
+        joinedRaw:
+          type: string
+          nullable: true
+        leftRaw:
+          type: string
+          nullable: true
+        timePrecision:
+          type: string
+          enum: [exact, month, year, season, open_ended, unparseable]
+        transferType:
+          type: string
+          nullable: true
+        transferFee:
+          type: string
+          nullable: true
+
+    NationalTeamStint:
+      type: object
+      required: [id, nationKey, nationName, timePrecision]
+      properties:
+        id:
+          type: string
+        nationKey:
+          type: string
+        nationName:
+          type: string
+        joinedOn:
+          type: string
+          nullable: true
+        leftOn:
+          type: string
+          nullable: true
+        timePrecision:
+          type: string
+          enum: [exact, month, year, season, open_ended, unparseable]
+
+    CreatePlayerPairAnalysisRequest:
+      type: object
+      required: [playerIdA, playerIdB]
+      properties:
+        playerIdA:
+          type: string
+          format: uuid
+        playerIdB:
+          type: string
+          format: uuid
+
+    PlayerPairAnalysisResponse:
+      type: object
+      required: [status, playerIdA, playerIdB]
+      properties:
+        status:
+          type: string
+          enum: [ready, computing, failed]
+        analysisId:
+          type: string
+          format: uuid
+          nullable: true
+        playerIdA:
+          type: string
+          format: uuid
+        playerIdB:
+          type: string
+          format: uuid
+        computedAt:
+          type: string
+          format: date-time
+          nullable: true
+        dataFreshness:
+          $ref: '#/components/schemas/DataFreshness'
+        result:
+          nullable: true
+          allOf:
+            - $ref: '#/components/schemas/PlayerPairResult'
+        error:
+          type: string
+          nullable: true
+          description: status=failed 时的友好说明
+
+    DataFreshness:
+      type: object
+      required: [playerASyncedAt, playerBSyncedAt, summary]
+      properties:
+        playerASyncedAt:
+          type: string
+          format: date-time
+          nullable: true
+        playerBSyncedAt:
+          type: string
+          format: date-time
+          nullable: true
+        summary:
+          type: string
+        usedCacheOnly:
+          type: boolean
+          description: 是否在外部源失败时仅用缓存完成
+
+    PlayerPairResult:
+      type: object
+      required:
+        - clubmates
+        - nationalTeammates
+        - transfer
+        - pathStatus
+      properties:
+        clubmates:
+          $ref: '#/components/schemas/DirectRelationVerdict'
+        nationalTeammates:
+          $ref: '#/components/schemas/DirectRelationVerdict'
+        clubmateDetails:
+          type: array
+          items:
+            $ref: '#/components/schemas/OverlapDetail'
+        nationalTeammateDetails:
+          type: array
+          items:
+            $ref: '#/components/schemas/OverlapDetail'
+        transfer:
+          $ref: '#/components/schemas/TransferLink'
+        pathStatus:
+          type: string
+          enum: [found, no_path, skipped]
+        relationDistance:
+          type: integer
+          nullable: true
+        indirectPath:
+          nullable: true
+          allOf:
+            - $ref: '#/components/schemas/RelationPath'
+        timeline:
+          $ref: '#/components/schemas/TimelinePayload'
+        graph:
+          $ref: '#/components/schemas/GraphPayload'
+
+    DirectRelationVerdict:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [established, not_established, unknown]
+        reason:
+          type: string
+          nullable: true
+
+    OverlapDetail:
+      type: object
+      required: [entityId, entityName, overlapFrom, overlapTo]
+      properties:
+        entityId:
+          type: string
+        entityName:
+          type: string
+        overlapFrom:
+          type: string
+        overlapTo:
+          type: string
+        precision:
+          type: string
+          description: 若较低精度，前端提示「时间精度较低」
+
+    TransferLink:
+      type: object
+      required: [directTransferLink, successiveSameClub, evidence]
+      properties:
+        directTransferLink:
+          type: boolean
+        successiveSameClub:
+          type: boolean
+        evidence:
+          type: array
+          items:
+            type: string
+
+    RelationPath:
+      type: object
+      required: [distance, nodes, edges]
+      properties:
+        distance:
+          type: integer
+          minimum: 0
+        nodes:
+          type: array
+          items:
+            $ref: '#/components/schemas/PathNode'
+        edges:
+          type: array
+          items:
+            $ref: '#/components/schemas/PathEdge'
+
+    PathNode:
+      type: object
+      required: [type, id, name]
+      properties:
+        type:
+          type: string
+          enum: [player, club]
+        id:
+          type: string
+        name:
+          type: string
+
+    PathEdge:
+      type: object
+      required: [from, to]
+      properties:
+        from:
+          type: string
+        to:
+          type: string
+
+    TimelinePayload:
+      type: object
+      description: 供时间线组件渲染；无共同关系时仍可含各自履历轨
+      properties:
+        playerATrack:
+          type: array
+          items:
+            $ref: '#/components/schemas/TimelineItem'
+        playerBTrack:
+          type: array
+          items:
+            $ref: '#/components/schemas/TimelineItem'
+        sharedHighlights:
+          type: array
+          items:
+            $ref: '#/components/schemas/OverlapDetail'
+
+    TimelineItem:
+      type: object
+      required: [clubName, from, to]
+      properties:
+        clubId:
+          type: string
+          nullable: true
+        clubName:
+          type: string
+        from:
+          type: string
+        to:
+          type: string
+        timePrecision:
+          type: string
+
+    GraphPayload:
+      type: object
+      description: 与文字路径一致的节点边；无路径时 nodes 可仅含两名球员
+      properties:
+        nodes:
+          type: array
+          items:
+            $ref: '#/components/schemas/PathNode'
+        edges:
+          type: array
+          items:
+            $ref: '#/components/schemas/PathEdge'
+
+  responses:
+    BadRequest:
+      description: 请求参数错误
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Unauthorized:
+      description: 未认证
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotFound:
+      description: 资源不存在
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    ServiceUnavailable:
+      description: 外部履历源不可用
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'

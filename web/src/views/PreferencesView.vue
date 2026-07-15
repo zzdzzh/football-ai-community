@@ -21,7 +21,6 @@ const leagueOptions = LEAGUE_OPTIONS;
 
 const agentOptions = [
   { value: 'news', label: '新闻 Agent' },
-  { value: 'stats', label: '数据 Agent' },
   { value: 'scout', label: '球探 Agent' },
   { value: 'tactical', label: '战术 Agent' },
   { value: 'fan', label: '球迷 Agent' },
@@ -42,7 +41,7 @@ async function loadPreferences() {
     const data = await fetchPreferences();
     form.followedTeams = [...data.followedTeams];
     form.followedLeagues = [...data.followedLeagues];
-    form.enabledAgents = [...data.enabledAgents];
+    form.enabledAgents = data.enabledAgents.filter((id) => id !== 'stats');
     form.notifyMatchReport = data.notifyMatchReport ?? true;
   } catch {
     errorMessage.value = '加载偏好失败，请重新登录后再试';

@@ -7,14 +7,14 @@ alwaysApply: false
 
 # Football AI Community Development Guidelines
 
-Auto-generated from feature plans. Last updated: 2026-07-10
+Auto-generated from feature plans. Last updated: 2026-07-15
 
 ## Active Technologies
 
 - **后台**: Node.js 20 LTS, Express 4.x, better-sqlite3, Jest
 - **前台**: Vue 3.4+, TypeScript 5.x, Vite 5.x, Element Plus, Pinia, Vue Router
-- **AI**: OpenAI 兼容 API（统一抽象层 `server/src/ai/`）
-- **外部数据**: football-data.org（比赛统计）, RSS（新闻）
+- **AI**: OpenAI 兼容 API（统一抽象层 `server/src/ai/`）；005 MVP 不新增 LLM 解读
+- **外部数据**: football-data.org（比赛统计）, RSS（新闻）, Transfermarkt（005 履历按需采集）
 - **认证**: JWT Bearer + bcrypt, RBAC (user/moderator/admin)
 
 ## Project Structure
@@ -22,23 +22,16 @@ Auto-generated from feature plans. Last updated: 2026-07-10
 ```text
 server/          # Node.js 后台（业务、Agent、API）
 web/             # Vue 3 前台（Vite host: 0.0.0.0）
+scraper/         # Python 爬虫 CLI（含 Transfermarkt 履历扩展）
 specs/000-football-community-vision/   # 产品愿景（非可执行）
-specs/001-football-feed-mvp/           # 当前可执行 feature（MVP-1）
-  plan.md        # 实现方案
-  contracts/     # OpenAPI 契约
-  data-model.md  # 数据模型
+specs/001-football-feed-mvp/           # MVP-1 Feed
 specs/002-football-stats-content/      # MVP-2（Stats + Content）
-  plan.md        # 实现方案
-  contracts/     # OpenAPI 契约
-  data-model.md  # 数据模型
 specs/003-football-scout-tactical/     # MVP-3（Scout + Tactical）
-  plan.md        # 实现方案
-  contracts/     # OpenAPI 契约
-  data-model.md  # 数据模型
 specs/004-football-fan-community/      # MVP-4（Fan Agent + 社区治理）
-  plan.md        # 实现方案
-  contracts/     # OpenAPI 契约
-  data-model.md  # 数据模型
+specs/005-player-relationship-analysis/ # 球员关系分析（当前 Active Plan）
+  plan.md
+  contracts/
+  data-model.md
 ```
 
 ## Commands
@@ -66,6 +59,7 @@ cd web; npm run dev
 
 ## Recent Changes
 
+- **005-player-relationship-analysis** (2026-07-15): 球员关系分析（TM 履历、队友/路径、可视化）plan 完成
 - **004-football-fan-community** (2026-07-10): Fan Agent 模拟讨论 + 内容举报/管理员审核 plan 完成
 - **003-football-scout-tactical** (2026-07-10): Scout Agent 球员推荐 + Tactical Agent 战术分析 plan 完成
 - **002-football-stats-content** (2026-07-10): Stats Agent 对话 + Content Agent 赛后报道 plan 完成
@@ -76,10 +70,10 @@ cd web; npm run dev
 ## Active Plan
 
 - **Vision**: [000-football-community-vision](../../specs/000-football-community-vision/spec.md)
-- **Feature**: [004-football-fan-community](../../specs/004-football-fan-community/plan.md)
-- **Spec**: [spec.md](../../specs/004-football-fan-community/spec.md)
-- **Data Model**: [data-model.md](../../specs/004-football-fan-community/data-model.md)
-- **Contracts**: [openapi.yaml](../../specs/004-football-fan-community/contracts/openapi.yaml)
+- **Feature**: [005-player-relationship-analysis](../../specs/005-player-relationship-analysis/plan.md)
+- **Spec**: [spec.md](../../specs/005-player-relationship-analysis/spec.md)
+- **Data Model**: [data-model.md](../../specs/005-player-relationship-analysis/data-model.md)
+- **Contracts**: [openapi.yaml](../../specs/005-player-relationship-analysis/contracts/openapi.yaml)
 <!-- SPECKIT END -->
 
 <!-- MANUAL ADDITIONS START -->

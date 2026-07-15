@@ -10,8 +10,8 @@ import { LEAGUE_OPTIONS_SHORT } from '@/constants/leagues';
 
 const router = useRouter();
 
-const activeTab = ref<'match' | 'team'>('match');
 const loading = ref(false);
+const teamSearching = ref(false);
 const creating = ref(false);
 
 const league = ref<LeagueCode>('PL');
@@ -19,11 +19,10 @@ const matchStatus = ref<'FINISHED' | 'LIVE' | 'SCHEDULED' | ''>('FINISHED');
 const matches = ref<MatchSummary[]>([]);
 const syncWarnings = ref<string[]>([]);
 
-const teamQuery = ref('');
-const teams = ref<Team[]>([]);
+const selectedTeamId = ref<string | null>(null);
+const teamOptions = ref<Team[]>([]);
 
 const selectedMatchId = ref<string | null>(null);
-const selectedTeamId = ref<string | null>(null);
 const initialQuestion = ref('');
 
 const leagueOptions = LEAGUE_OPTIONS_SHORT;
@@ -37,44 +36,47 @@ function formatMatchLabel(match: MatchSummary) {
   return `${match.homeTeam.name} vs ${match.awayTeam.name}${score} · ${date}`;
 }
 
+async function searchTeamOptions(query: string) {
+  const q = query.trim();
+  if (!q) {
+    teamOptions.value = [];
+    return;
+  }
+  teamSearching.value = true;
+  try {
+    const result = await searchTeams({
+      q,
+      league: league.value,
+      pageSize: 20,
+    });
+    teamOptions.value = result.items;
+  } catch {
+    ElMessage.error('搜索球队失败');
+  } finally {
+    teamSearching.value = false;
+  }
+}
+
+async function onLeagueChange() {
+  selectedTeamId.value = null;
+  teamOptions.value = [];
+  await loadMatches();
+}
+
 async function loadMatches() {
   loading.value = true;
   try {
     const result = await fetchMatches({
       league: league.value,
       status: matchStatus.value || undefined,
+      teamId: selectedTeamId.value || undefined,
       pageSize: 30,
     });
     matches.value = result.items;
     syncWarnings.value = result.warnings ?? [];
-    if (result.items.length > 0) {
-      selectedMatchId.value = result.items[0].id;
-    }
+    selectedMatchId.value = result.items.length > 0 ? result.items[0].id : null;
   } catch {
     ElMessage.error('加载比赛列表失败');
-  } finally {
-    loading.value = false;
-  }
-}
-
-async function loadTeams() {
-  if (!teamQuery.value.trim()) {
-    teams.value = [];
-    return;
-  }
-  loading.value = true;
-  try {
-    const result = await searchTeams({
-      q: teamQuery.value.trim(),
-      league: league.value,
-      pageSize: 20,
-    });
-    teams.value = result.items;
-    if (result.items.length > 0) {
-      selectedTeamId.value = result.items[0].id;
-    }
-  } catch {
-    ElMessage.error('搜索球队失败');
   } finally {
     loading.value = false;
   }
@@ -83,22 +85,20 @@ async function loadTeams() {
 async function startConversation() {
   creating.value = true;
   try {
-    const contextId =
-      activeTab.value === 'match' ? selectedMatchId.value : selectedTeamId.value;
-    if (!contextId) {
-      ElMessage.warning('请先选择比赛或球队');
+    if (!selectedMatchId.value) {
+      ElMessage.warning('请先选择比赛');
       return;
     }
 
     const conversation = await createTacticalConversation({
       agentId: 'tactical',
-      contextType: activeTab.value,
-      contextId,
+      contextType: 'match',
+      contextId: selectedMatchId.value,
       initialMessage: initialQuestion.value.trim() || undefined,
     });
     await router.push({
       path: `/conversations/${conversation.id}`,
-      query: { from: 'tactical' },
+      query: { from: 'tactical', matchId: selectedMatchId.value },
     });
   } catch (err: unknown) {
     const msg =
@@ -119,7 +119,7 @@ onMounted(() => {
 <template>
   <section class="tactical-start-view">
     <h1 class="page-title">Tactical 战术分析</h1>
-    <p class="page-subtitle">选择比赛或球队，获取阵型与战术阶段结构化分析</p>
+    <p class="page-subtitle">选择比赛，获取阵型与战术阶段结构化分析</p>
 
     <el-alert
       v-for="(warning, idx) in syncWarnings"
@@ -131,103 +131,85 @@ onMounted(() => {
       class="sync-banner"
     />
 
-    <el-tabs v-model="activeTab" class="tactical-tabs">
-      <el-tab-pane label="按比赛" name="match">
-        <div class="filter-grid">
-          <div class="filter-field">
-            <label class="field-label">联赛</label>
-            <el-select v-model="league" @change="loadMatches">
-              <el-option
-                v-for="opt in leagueOptions"
-                :key="opt.value"
-                :label="opt.label"
-                :value="opt.value"
-              />
-            </el-select>
-          </div>
-          <div class="filter-field">
-            <label class="field-label">状态</label>
-            <el-select v-model="matchStatus" @change="loadMatches">
-              <el-option label="已结束" value="FINISHED" />
-              <el-option label="进行中" value="LIVE" />
-              <el-option label="未开赛" value="SCHEDULED" />
-              <el-option label="全部" value="" />
-            </el-select>
-          </div>
-          <div class="filter-actions">
-            <el-button :loading="loading" @click="loadMatches">刷新</el-button>
-          </div>
-        </div>
-
-        <div v-loading="loading" class="select-panel">
-          <label class="field-label">选择比赛</label>
-          <el-radio-group v-if="matches.length" v-model="selectedMatchId" class="option-list">
-            <el-radio
-              v-for="match in matches"
-              :key="match.id"
-              :label="match.id"
-              class="option-item"
-            >
-              {{ formatMatchLabel(match) }}
-              <el-tag
-                v-if="match.dataCompleteness !== 'complete'"
-                size="small"
-                type="warning"
-                class="data-tag"
-              >
-                数据不全
-              </el-tag>
-              <router-link
-                class="match-link"
-                :to="`/matches/${match.id}`"
-                @click.stop
-              >
-                详情
-              </router-link>
-            </el-radio>
-          </el-radio-group>
-          <el-empty v-else description="暂无比赛数据" />
-        </div>
-      </el-tab-pane>
-
-      <el-tab-pane label="按球队" name="team">
-        <div class="filter-grid">
-          <div class="filter-field">
-            <label class="field-label">联赛</label>
-            <el-select v-model="league">
-              <el-option
-                v-for="opt in leagueOptions"
-                :key="opt.value"
-                :label="opt.label"
-                :value="opt.value"
-              />
-            </el-select>
-          </div>
-          <div class="filter-field filter-field-grow">
-            <label class="field-label">球队名称</label>
-            <el-input
-              v-model="teamQuery"
-              placeholder="输入球队名称搜索"
-              clearable
-              @keyup.enter="loadTeams"
+    <div class="filter-panel">
+      <div class="filter-grid">
+        <div class="filter-field">
+          <label class="field-label">联赛</label>
+          <el-select v-model="league" @change="onLeagueChange">
+            <el-option
+              v-for="opt in leagueOptions"
+              :key="opt.value"
+              :label="opt.label"
+              :value="opt.value"
             />
-          </div>
-          <div class="filter-actions">
-            <el-button type="primary" :loading="loading" @click="loadTeams">搜索</el-button>
-          </div>
+          </el-select>
         </div>
+        <div class="filter-field">
+          <label class="field-label">状态</label>
+          <el-select v-model="matchStatus" @change="loadMatches">
+            <el-option label="已结束" value="FINISHED" />
+            <el-option label="进行中" value="LIVE" />
+            <el-option label="未开赛" value="SCHEDULED" />
+            <el-option label="全部" value="" />
+          </el-select>
+        </div>
+        <div class="filter-field filter-field-grow">
+          <label class="field-label">球队（可选）</label>
+          <el-select
+            v-model="selectedTeamId"
+            filterable
+            remote
+            clearable
+            reserve-keyword
+            placeholder="输入球队名筛选比赛"
+            :remote-method="searchTeamOptions"
+            :loading="teamSearching"
+            @change="loadMatches"
+            @clear="loadMatches"
+          >
+            <el-option
+              v-for="team in teamOptions"
+              :key="team.id"
+              :label="`${team.name} (${team.leagueCode})`"
+              :value="team.id"
+            />
+          </el-select>
+        </div>
+        <div class="filter-actions">
+          <el-button :loading="loading" @click="loadMatches">刷新</el-button>
+        </div>
+      </div>
 
-        <div v-loading="loading" class="select-panel">
-          <label class="field-label">选择球队</label>
-          <el-radio-group v-if="teams.length" v-model="selectedTeamId" class="option-list">
-            <el-radio v-for="team in teams" :key="team.id" :label="team.id" class="option-item">
-              {{ team.name }} ({{ team.leagueCode }})
-            </el-radio>
-          </el-radio-group>
-          <el-empty v-else description="搜索球队后开始分析" />
-        </div>
-      </el-tab-pane>
-    </el-tabs>
+      <div v-loading="loading" class="select-panel">
+        <label class="field-label">选择比赛</label>
+        <el-radio-group v-if="matches.length" v-model="selectedMatchId" class="option-list">
+          <el-radio
+            v-for="match in matches"
+            :key="match.id"
+            :label="match.id"
+            class="option-item"
+          >
+            {{ formatMatchLabel(match) }}
+            <el-tag
+              v-if="match.dataCompleteness !== 'complete'"
+              size="small"
+              type="warning"
+              class="data-tag"
+            >
+              数据不全
+            </el-tag>
+            <router-link
+              class="match-link"
+              :to="`/matches/${match.id}`"
+              @click.stop
+            >
+              详情
+            </router-link>
+          </el-radio>
+        </el-radio-group>
+        <el-empty v-else description="暂无比赛数据" />
+      </div>
+    </div>
 
     <div class="start-footer">
       <div class="question-field">
@@ -258,7 +240,7 @@ onMounted(() => {
   margin-bottom: 0.25rem;
 }
 
-.tactical-tabs {
+.filter-panel {
   background: var(--color-surface);
   padding: 1rem;
   border-radius: var(--radius-md);
