@@ -13,6 +13,8 @@ import {
 import {
   analyzeDirectRelations,
   analyzeTransferLink,
+  buildGraphPayload,
+  buildTimelinePayload,
   findShortestRelationPath,
 } from '../services/relationship-analysis-service.js';
 import { careerSyncService } from '../services/career-sync-service.js';
@@ -180,6 +182,8 @@ function computeAnalysisResult(playerA, playerB) {
     pathStatus: pathResult.pathStatus,
     relationDistance: pathResult.relationDistance,
     indirectPath: pathResult.indirectPath,
+    timeline: buildTimelinePayload(playerA, playerB, direct.clubmateDetails ?? []),
+    graph: buildGraphPayload(playerA, playerB, pathResult),
   };
 }
 

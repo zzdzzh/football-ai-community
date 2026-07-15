@@ -97,13 +97,13 @@
 
 ### Tests for User Story 2
 
-- [ ] T022 [P] [US2] Extend unit tests for transfer link, successiveSameClub and BFS indirect path (maxHops/no_path) with 100% branch coverage in server/tests/unit/relationship-analysis.test.js
+- [x] T022 [P] [US2] Extend unit tests for transfer link, successiveSameClub and BFS indirect path (maxHops/no_path) with 100% branch coverage in server/tests/unit/relationship-analysis.test.js
 
 ### Implementation for User Story 2
 
-- [ ] T023 [US2] Extend RelationshipAnalysisService for TransferLink, successiveSameClub and bipartite BFS path in server/src/services/relationship-analysis-service.js
-- [ ] T024 [US2] Persist and return transfer/indirectPath/relationDistance/pathStatus on pair analysis responses (cache key by sorted IDs) in server/src/services/relationship-analysis-service.js and server/src/api/player-pair-analyses.js
-- [ ] T025 [US2] Display transfer conclusions and indirect path/distance on RelationshipAnalysisView in web/src/views/RelationshipAnalysisView.vue
+- [x] T023 [US2] Extend RelationshipAnalysisService for TransferLink, successiveSameClub and bipartite BFS path in server/src/services/relationship-analysis-service.js
+- [x] T024 [US2] Persist and return transfer/indirectPath/relationDistance/pathStatus on pair analysis responses (cache key by sorted IDs) in server/src/services/relationship-analysis-service.js and server/src/api/player-pair-analyses.js
+- [x] T025 [US2] Display transfer conclusions and indirect path/distance on RelationshipAnalysisView in web/src/views/RelationshipAnalysisView.vue
 
 **Checkpoint**: User Stories 1+2 独立可验收 — 转会关联 + 间接最短路径 + 可重入（对齐 FR-012～014、SC-003）
 
@@ -119,9 +119,9 @@
 
 ### Implementation for User Story 3
 
-- [ ] T026 [P] [US3] Implement RelationshipTimeline SVG/CSS dual-track component in web/src/components/relationship/RelationshipTimeline.vue
-- [ ] T027 [P] [US3] Implement RelationGraph SVG layered layout from relationPath nodes/edges in web/src/components/relationship/RelationGraph.vue
-- [ ] T028 [US3] Integrate timeline, graph, loading/empty/error states into RelationshipAnalysisView in web/src/views/RelationshipAnalysisView.vue
+- [x] T026 [P] [US3] Implement RelationshipTimeline SVG/CSS dual-track component in web/src/components/relationship/RelationshipTimeline.vue
+- [x] T027 [P] [US3] Implement RelationGraph SVG layered layout from relationPath nodes/edges in web/src/components/relationship/RelationGraph.vue
+- [x] T028 [US3] Integrate timeline, graph, loading/empty/error states into RelationshipAnalysisView in web/src/views/RelationshipAnalysisView.vue
 
 **Checkpoint**: All user stories independently functional — 时间线与关系图与文字结论零矛盾（对齐 FR-015～017、SC-004）
 

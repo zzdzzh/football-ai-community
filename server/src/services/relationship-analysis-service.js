@@ -315,10 +315,59 @@ export function findShortestRelationPath({
   };
 }
 
+function mapClubStintsToTimelineTrack(stints) {
+  return (stints ?? [])
+    .filter((s) => s.joinedOn && s.leftOn)
+    .map((s) => ({
+      clubId: s.clubId ?? null,
+      clubName: s.clubName ?? 'Unknown Club',
+      from: s.joinedOn,
+      to: s.leftOn,
+      timePrecision: s.timePrecision ?? null,
+    }));
+}
+
+/**
+ * @param {{ id: string, name: string, clubStints?: object[] }} playerA
+ * @param {{ id: string, name: string, clubStints?: object[] }} playerB
+ * @param {object[]} [clubmateDetails]
+ */
+export function buildTimelinePayload(playerA, playerB, clubmateDetails = []) {
+  return {
+    playerATrack: mapClubStintsToTimelineTrack(playerA.clubStints),
+    playerBTrack: mapClubStintsToTimelineTrack(playerB.clubStints),
+    sharedHighlights: clubmateDetails,
+  };
+}
+
+/**
+ * @param {{ id: string, name: string }} playerA
+ * @param {{ id: string, name: string }} playerB
+ * @param {{ pathStatus: string, indirectPath?: object | null }} pathResult
+ */
+export function buildGraphPayload(playerA, playerB, pathResult) {
+  if (pathResult.pathStatus === 'found' && pathResult.indirectPath) {
+    return {
+      nodes: pathResult.indirectPath.nodes,
+      edges: pathResult.indirectPath.edges,
+    };
+  }
+
+  return {
+    nodes: [
+      { type: 'player', id: playerA.id, name: playerA.name },
+      { type: 'player', id: playerB.id, name: playerB.name },
+    ],
+    edges: [],
+  };
+}
+
 export function createRelationshipAnalysisService(deps = {}) {
   return {
     analyzeDirectRelations,
     analyzeTransferLink,
     findShortestRelationPath,
+    buildTimelinePayload,
+    buildGraphPayload,
   };
 }

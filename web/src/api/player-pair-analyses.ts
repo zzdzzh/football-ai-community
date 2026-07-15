@@ -36,6 +36,25 @@ export interface RelationPath {
   edges: PathEdge[];
 }
 
+export interface TimelineItem {
+  clubId?: string | null;
+  clubName: string;
+  from: string;
+  to: string;
+  timePrecision?: string;
+}
+
+export interface TimelinePayload {
+  playerATrack: TimelineItem[];
+  playerBTrack: TimelineItem[];
+  sharedHighlights: OverlapDetail[];
+}
+
+export interface GraphPayload {
+  nodes: PathNode[];
+  edges: PathEdge[];
+}
+
 export interface PlayerPairResult {
   clubmates: DirectRelationVerdict;
   nationalTeammates: DirectRelationVerdict;
@@ -45,6 +64,8 @@ export interface PlayerPairResult {
   pathStatus?: 'found' | 'no_path' | 'skipped';
   relationDistance?: number | null;
   indirectPath?: RelationPath | null;
+  timeline?: TimelinePayload;
+  graph?: GraphPayload;
 }
 
 export interface PlayerPairAnalysisResponse {

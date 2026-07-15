@@ -1,16 +1,21 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { ElMessage } from 'element-plus';
+import { fetchCareerPlayer } from '@/api/career-players';
 import {
   createPlayerPairAnalysis,
   getPlayerPairAnalysis,
   type DirectRelationVerdict,
+  type GraphPayload,
   type OverlapDetail,
   type PathNode,
   type PlayerPairAnalysisResponse,
+  type TimelinePayload,
 } from '@/api/player-pair-analyses';
 import FreshnessBanner from '@/components/relationship/FreshnessBanner.vue';
+import RelationGraph from '@/components/relationship/RelationGraph.vue';
+import RelationshipTimeline from '@/components/relationship/RelationshipTimeline.vue';
 
 const route = useRoute();
 
@@ -21,6 +26,10 @@ const analysis = ref<PlayerPairAnalysisResponse | null>(null);
 const loading = ref(false);
 const retrying = ref(false);
 const errorMessage = ref('');
+const playerAName = ref('');
+const playerBName = ref('');
+const fallbackTimeline = ref<TimelinePayload | null>(null);
+const timelineLoading = ref(false);
 
 let pollTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -58,6 +67,83 @@ function transferLinkLabel(linked: boolean): string {
 function formatPathNodes(nodes: PathNode[]): string {
   return nodes.map((n) => n.name).join(' → ');
 }
+
+const timelineData = computed<TimelinePayload | null>(() => {
+  if (analysis.value?.status !== 'ready' || !analysis.value.result) return null;
+  if (analysis.value.result.timeline) return analysis.value.result.timeline;
+  return fallbackTimeline.value;
+});
+
+const graphData = computed<GraphPayload | null>(() => {
+  if (analysis.value?.status !== 'ready' || !analysis.value.result) return null;
+  if (analysis.value.result.graph) return analysis.value.result.graph;
+  const result = analysis.value.result;
+  if (result.indirectPath) {
+    return {
+      nodes: result.indirectPath.nodes,
+      edges: result.indirectPath.edges,
+    };
+  }
+  return {
+    nodes: [
+      { type: 'player', id: playerIdA.value, name: playerAName.value || playerIdA.value },
+      { type: 'player', id: playerIdB.value, name: playerBName.value || playerIdB.value },
+    ],
+    edges: [],
+  };
+});
+
+async function loadPlayerNamesAndFallbackTimeline() {
+  if (analysis.value?.status !== 'ready' || !analysis.value.result) return;
+
+  timelineLoading.value = true;
+  try {
+    const [playerA, playerB] = await Promise.all([
+      fetchCareerPlayer(playerIdA.value),
+      fetchCareerPlayer(playerIdB.value),
+    ]);
+    playerAName.value = playerA.name;
+    playerBName.value = playerB.name;
+
+    if (!analysis.value.result.timeline) {
+      fallbackTimeline.value = {
+        playerATrack: playerA.clubStints.map((s) => ({
+          clubId: s.clubId,
+          clubName: s.clubName,
+          from: s.joinedOn ?? '',
+          to: s.leftOn ?? '',
+          timePrecision: s.timePrecision,
+        })).filter((s) => s.from && s.to),
+        playerBTrack: playerB.clubStints.map((s) => ({
+          clubId: s.clubId,
+          clubName: s.clubName,
+          from: s.joinedOn ?? '',
+          to: s.leftOn ?? '',
+          timePrecision: s.timePrecision,
+        })).filter((s) => s.from && s.to),
+        sharedHighlights: analysis.value.result.clubmateDetails ?? [],
+      };
+    }
+  } catch {
+    playerAName.value = playerIdA.value;
+    playerBName.value = playerIdB.value;
+  } finally {
+    timelineLoading.value = false;
+  }
+}
+
+watch(
+  () => analysis.value?.status === 'ready' && analysis.value?.result,
+  (ready) => {
+    if (ready) {
+      loadPlayerNamesAndFallbackTimeline();
+    } else {
+      fallbackTimeline.value = null;
+      playerAName.value = '';
+      playerBName.value = '';
+    }
+  },
+);
 
 function clearPoll() {
   if (pollTimer) {
@@ -292,6 +378,29 @@ onBeforeUnmount(() => {
             show-icon
           />
         </div>
+
+        <div class="viz-section">
+          <h2 class="section-title">关系时间线</h2>
+          <el-skeleton v-if="timelineLoading && !timelineData" :rows="3" animated />
+          <RelationshipTimeline
+            v-else-if="timelineData"
+            :player-a-name="playerAName || playerIdA"
+            :player-b-name="playerBName || playerIdB"
+            :player-a-track="timelineData.playerATrack"
+            :player-b-track="timelineData.playerBTrack"
+            :shared-highlights="timelineData.sharedHighlights"
+          />
+        </div>
+
+        <div class="viz-section">
+          <h2 class="section-title">关系图</h2>
+          <RelationGraph
+            v-if="graphData"
+            :nodes="graphData.nodes"
+            :edges="graphData.edges"
+            :path-status="analysis.result.pathStatus"
+          />
+        </div>
       </template>
     </template>
   </section>
@@ -370,5 +479,15 @@ onBeforeUnmount(() => {
   font-size: 0.9rem;
   line-height: 1.5;
   word-break: break-word;
+}
+
+.viz-section {
+  padding: 1rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
 }
 </style>
