@@ -11,6 +11,7 @@ import {
   upsertPlayerPairAnalysis,
 } from '../db/repositories/player-pair-analysis-repository.js';
 import { analyzeDirectRelations } from '../services/relationship-analysis-service.js';
+import { careerSyncService } from '../services/career-sync-service.js';
 
 const router = Router();
 
@@ -20,6 +21,41 @@ function assertNotSelfPair(playerIdA, playerIdB) {
   if (playerIdA === playerIdB) {
     throw new AppError(400, 'bad_request', '不能分析同一球员');
   }
+}
+
+function needsCareerSync(player) {
+  if (!player) return true;
+  const clubCount = listClubStintsByPlayerId(player.id).length;
+  if (clubCount === 0) return true;
+  if (!player.syncedAt) return true;
+  if (player.syncStatus === 'stale' || player.syncStatus === 'failed') return true;
+  return false;
+}
+
+async function ensureCareerSynced(playerId) {
+  const player = findCareerPlayerById(playerId);
+  if (!player) {
+    throw new AppError(404, 'not_found', '球员不存在');
+  }
+  if (!needsCareerSync(player)) {
+    return false;
+  }
+  try {
+    await careerSyncService.syncPlayer({ playerId, force: true });
+  } catch (err) {
+    if (err?.code === 'CAREER_SYNC_FAILED') {
+      if (listClubStintsByPlayerId(playerId).length === 0) {
+        throw new AppError(
+          503,
+          'service_unavailable',
+          err.message || '履历同步失败，暂无法分析',
+        );
+      }
+      return true;
+    }
+    throw err;
+  }
+  return true;
 }
 
 function loadPlayerWithStints(playerId) {
@@ -113,11 +149,15 @@ function persistAnalysis(playerA, playerB, result, dataFreshness) {
   });
 }
 
-function analyzePair(playerIdA, playerIdB, { forceRecompute = false, usedCacheOnly = false } = {}) {
+async function analyzePair(playerIdA, playerIdB, { forceRecompute = false } = {}) {
   assertNotSelfPair(playerIdA, playerIdB);
+
+  const syncedA = await ensureCareerSynced(playerIdA);
+  const syncedB = await ensureCareerSynced(playerIdB);
   const { playerA, playerB } = loadPlayerPair(playerIdA, playerIdB);
 
-  if (!forceRecompute) {
+  const skipCache = forceRecompute || syncedA || syncedB;
+  if (!skipCache) {
     const cached = findPlayerPairAnalysis(playerIdA, playerIdB);
     if (cached?.result) {
       return buildResponse(
@@ -130,28 +170,28 @@ function analyzePair(playerIdA, playerIdB, { forceRecompute = false, usedCacheOn
   }
 
   const result = computeAnalysisResult(playerA, playerB);
-  const dataFreshness = buildDataFreshness(playerA, playerB, usedCacheOnly);
+  const dataFreshness = buildDataFreshness(playerA, playerB, false);
   const analysis = persistAnalysis(playerA, playerB, result, dataFreshness);
   return buildResponse(playerIdA, playerIdB, analysis, dataFreshness);
 }
 
-router.get('/:playerIdA/:playerIdB', (req, res, next) => {
+router.get('/:playerIdA/:playerIdB', async (req, res, next) => {
   try {
     const { playerIdA, playerIdB } = req.params;
-    const response = analyzePair(playerIdA, playerIdB);
+    const response = await analyzePair(playerIdA, playerIdB);
     res.status(200).json(response);
   } catch (err) {
     next(err);
   }
 });
 
-router.post('/', (req, res, next) => {
+router.post('/', async (req, res, next) => {
   try {
     const { playerIdA, playerIdB } = req.body ?? {};
     if (!playerIdA || !playerIdB) {
       throw new AppError(400, 'bad_request', '缺少球员 ID');
     }
-    const response = analyzePair(playerIdA, playerIdB, { forceRecompute: true });
+    const response = await analyzePair(playerIdA, playerIdB, { forceRecompute: true });
     res.status(200).json(response);
   } catch (err) {
     next(err);
