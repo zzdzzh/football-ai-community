@@ -18,7 +18,11 @@ import {
   isUntrustedThinSnapshot,
 } from '../db/repositories/player-stats-snapshot-repository.js';
 import { upsertPlayerSyncMeta } from '../db/repositories/player-sync-meta-repository.js';
-import { upsertMatch, findMatchById } from '../db/repositories/match-repository.js';
+import {
+  upsertMatch,
+  findMatchById,
+  resolveCanonicalMatchId,
+} from '../db/repositories/match-repository.js';
 import { upsertMatchSyncMeta } from '../db/repositories/match-sync-meta-repository.js';
 import { syncLeagueFromScraper } from '../adapters/scraper-runner.js';
 import { mergeFbrefStatsForLeague } from './fbref-stats-import.js';
@@ -211,9 +215,16 @@ export async function importLeagueFromScraper(leagueCode, { includeFbref = true,
         const homeTeamId = resolveMatchTeamId(match.homeTeam, teamIdMap, match.leagueCode);
         const awayTeamId = resolveMatchTeamId(match.awayTeam, teamIdMap, match.leagueCode);
         if (!homeTeamId || !awayTeamId) continue;
-        const existing = findMatchById(match.id);
-        upsertMatch({
+        const matchId = resolveCanonicalMatchId({
           id: match.id,
+          leagueCode: match.leagueCode,
+          homeTeamId,
+          awayTeamId,
+          utcDate: match.utcDate,
+        });
+        const existing = findMatchById(matchId);
+        upsertMatch({
+          id: matchId,
           leagueCode: match.leagueCode,
           season: match.season,
           matchday: match.matchday,

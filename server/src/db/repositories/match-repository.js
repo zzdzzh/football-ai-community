@@ -95,6 +95,35 @@ export function findMatchById(id) {
   return row ? attachTeams(row) : null;
 }
 
+/** 同一联赛 + 主客队 + 比赛日视为同一场（跨 football-data / scraper ID） */
+export function findMatchByFixtureKey({ leagueCode, homeTeamId, awayTeamId, utcDate }) {
+  const db = getDb();
+  const row = db.prepare(`
+    SELECT *
+    FROM matches
+    WHERE league_code = ?
+      AND home_team_id = ?
+      AND away_team_id = ?
+      AND date(utc_date) = date(?)
+    ORDER BY
+      CASE status WHEN 'FINISHED' THEN 0 WHEN 'LIVE' THEN 1 WHEN 'IN_PLAY' THEN 1 ELSE 2 END,
+      CASE WHEN stats_json IS NOT NULL AND stats_json != '' THEN 0 ELSE 1 END,
+      CASE WHEN id LIKE 'ss-%' THEN 0 ELSE 1 END,
+      updated_at DESC
+    LIMIT 1
+  `).get(leagueCode, homeTeamId, awayTeamId, utcDate);
+  return row ? attachTeams(row) : null;
+}
+
+/**
+ * Upsert 前解析规范 ID：优先用同 ID；否则复用业务键已存在行，避免双源重复。
+ */
+export function resolveCanonicalMatchId({ id, leagueCode, homeTeamId, awayTeamId, utcDate }) {
+  if (findMatchById(id)) return id;
+  const byFixture = findMatchByFixtureKey({ leagueCode, homeTeamId, awayTeamId, utcDate });
+  return byFixture?.id ?? id;
+}
+
 export function listMatches({
   league = null,
   status = null,

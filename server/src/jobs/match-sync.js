@@ -7,12 +7,33 @@ import { createFootballDataAdapter, ALLOWED_LEAGUES } from '../adapters/football
 import { importLeagueFromScraper } from '../services/scraper-import-service.js';
 import { enrichScraperFinishedMatches } from '../services/scraper-match-enricher.js';
 import { upsertTeam } from '../db/repositories/team-repository.js';
-import { upsertMatch, findFinishedMatchesMissingStats } from '../db/repositories/match-repository.js';
-import { upsertMatchSyncMeta } from '../db/repositories/match-sync-meta-repository.js';
+import {
+  upsertMatch,
+  findFinishedMatchesMissingStats,
+  resolveCanonicalMatchId,
+} from '../db/repositories/match-repository.js';
+import {
+  upsertMatchSyncMeta,
+  getAllMatchSyncMeta,
+} from '../db/repositories/match-sync-meta-repository.js';
 import { getDb } from '../db/connection.js';
 
 let cronTask = null;
 let runningJob = null;
+
+const MATCH_SYNC_STALE_HOURS = 24;
+
+/** 任一联赛超过 maxAgeHours 未成功同步，或尚无 meta，视为需要同步 */
+export function isMatchSyncStale(maxAgeHours = MATCH_SYNC_STALE_HOURS) {
+  const metas = getAllMatchSyncMeta();
+  if (metas.length === 0) return true;
+  const cutoff = Date.now() - maxAgeHours * 60 * 60 * 1000;
+  return metas.some((meta) => {
+    if (!meta.lastSyncAt) return true;
+    const ts = Date.parse(meta.lastSyncAt);
+    return Number.isNaN(ts) || ts < cutoff;
+  });
+}
 
 async function syncLeague(adapter, leagueCode) {
   const now = new Date().toISOString();
@@ -31,8 +52,15 @@ async function syncLeague(adapter, leagueCode) {
         if (!match.homeTeamId || !match.awayTeamId) continue;
         upsertTeam({ ...match.homeTeam, leagueCode: match.leagueCode, updatedAt: now });
         upsertTeam({ ...match.awayTeam, leagueCode: match.leagueCode, updatedAt: now });
-        upsertMatch({
+        const matchId = resolveCanonicalMatchId({
           id: match.id,
+          leagueCode: match.leagueCode,
+          homeTeamId: match.homeTeamId,
+          awayTeamId: match.awayTeamId,
+          utcDate: match.utcDate,
+        });
+        upsertMatch({
+          id: matchId,
           leagueCode: match.leagueCode,
           season: match.season,
           matchday: match.matchday,

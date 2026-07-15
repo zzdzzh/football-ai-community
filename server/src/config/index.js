@@ -22,7 +22,7 @@ const envSchema = z.object({
   ADMIN_PASSWORD: z.string().optional(),
   FOOTBALL_DATA_API_KEY: z.string().default(''),
   FOOTBALL_DATA_BASE_URL: z.string().url().default('https://api.football-data.org/v4'),
-  MATCH_SYNC_CRON: z.string().default('*/30 * * * *'),
+  MATCH_SYNC_CRON: z.string().optional(),
   MATCH_REPORT_CRON: z.string().default('*/5 * * * *'),
   PLAYER_SYNC_CRON: z.string().default('0 4 * * *'),
   FOOTBALL_DATA_WC_SEASON: z.coerce.number().default(2026),
@@ -69,7 +69,8 @@ export const config = {
     baseUrl: env.FOOTBALL_DATA_BASE_URL,
     wcSeason: env.FOOTBALL_DATA_WC_SEASON,
   },
-  matchSyncCron: env.MATCH_SYNC_CRON,
+  matchSyncCron: env.MATCH_SYNC_CRON
+    ?? (env.DATA_SOURCE === 'scraper' ? '0 6 * * *' : '*/30 * * * *'),
   matchReportCron: env.MATCH_REPORT_CRON,
   playerSyncCron: env.PLAYER_SYNC_CRON,
   dataSource: env.NODE_ENV === 'test' ? 'football-data' : env.DATA_SOURCE,
