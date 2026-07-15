@@ -111,15 +111,20 @@ def fetch_team_squad(team_id: str, team_name: str) -> list[SofaPlayer]:
     return players
 
 
-def fetch_league_matches(league: LeagueConfig) -> list[SofaMatch]:
-    season_id, season_label = _resolve_current_season_id(league)
+def _fetch_season_events_path(
+    league: LeagueConfig, season_id: int, season_label: str, path: str
+) -> list[SofaMatch]:
+    """path: 'last'（已完赛）或 'next'（未开赛/进行中）。"""
     matches: list[SofaMatch] = []
     page = 0
     while True:
-        data = fetch_json(
-            f"https://api.sofascore.com/api/v1/unique-tournament/"
-            f"{league.sofascore_tournament_id}/season/{season_id}/events/last/{page}"
-        )
+        try:
+            data = fetch_json(
+                f"https://api.sofascore.com/api/v1/unique-tournament/"
+                f"{league.sofascore_tournament_id}/season/{season_id}/events/{path}/{page}"
+            )
+        except RuntimeError:
+            break
         events = data.get("events") or []
         for event in events:
             parsed = _map_event(event, league.code, season_label)
@@ -131,6 +136,16 @@ def fetch_league_matches(league: LeagueConfig) -> list[SofaMatch]:
         if page > 30:
             break
     return matches
+
+
+def fetch_league_matches(league: LeagueConfig) -> list[SofaMatch]:
+    """拉取赛季已完赛 + 未开赛场次（SofaScore events/last 与 events/next）。"""
+    season_id, season_label = _resolve_current_season_id(league)
+    by_id: dict[str, SofaMatch] = {}
+    for path in ("last", "next"):
+        for match in _fetch_season_events_path(league, season_id, season_label, path):
+            by_id[match.sofascore_id] = match
+    return list(by_id.values())
 
 
 def fetch_league_top_players(league: LeagueConfig) -> list[dict[str, Any]]:

@@ -142,7 +142,7 @@ export async function executeMatchSyncJob({ league = null, adapter = null } = {}
       const results = [];
       for (const leagueCode of leagues) {
         try {
-          const result = await importLeagueFromScraper(leagueCode);
+          const result = await importLeagueFromScraper(leagueCode, { includeFbref: false });
           results.push({
             leagueCode,
             syncedTeams: result.syncedTeams,

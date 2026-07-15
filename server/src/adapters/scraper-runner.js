@@ -17,6 +17,7 @@ export function runScraperCli(args, { timeoutMs = 600000 } = {}) {
           PYTHONIOENCODING: 'utf-8',
           PYTHONUTF8: '1',
           SCRAPER_USE_TRANSFERMARKT: config.scraper.useTransfermarkt ? '1' : '0',
+          FOOTBALL_DATA_WC_SEASON: String(config.footballData.wcSeason),
         },
       },
     );
