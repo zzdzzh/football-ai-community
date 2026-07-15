@@ -27,16 +27,20 @@ function toInterval(stint) {
   };
 }
 
-function analyzeStintRelations(stintsA, stintsB, sameEntity, buildDetail) {
+function analyzeStintRelations(stintsA, stintsB, sameEntity, buildDetail, missingReason) {
   if (stintsA.length === 0 || stintsB.length === 0) {
-    return { status: 'unknown', details: [] };
+    return { status: 'unknown', reason: missingReason, details: [] };
   }
 
   const usableA = stintsA.filter(isUsableStint);
   const usableB = stintsB.filter(isUsableStint);
 
   if (usableA.length === 0 || usableB.length === 0) {
-    return { status: 'unknown', details: [] };
+    return {
+      status: 'unknown',
+      reason: '效力时间无法可靠解析，无法判定',
+      details: [],
+    };
   }
 
   const details = [];
@@ -94,6 +98,7 @@ export function analyzeDirectRelations({ playerA, playerB }) {
     playerB.clubStints ?? [],
     (stintA, stintB) => stintA.clubId === stintB.clubId,
     buildClubDetail,
+    '任一方缺少俱乐部效力履历，无法判定',
   );
 
   const nationalResult = analyzeStintRelations(
@@ -101,11 +106,19 @@ export function analyzeDirectRelations({ playerA, playerB }) {
     playerB.nationalTeamStints ?? [],
     (stintA, stintB) => stintA.nationKey === stintB.nationKey,
     buildNationalDetail,
+    // research.md：任一方缺失国家队履历 → unknown，不得判 not_established
+    '任一方缺少国家队效力履历，无法判定',
   );
 
   return {
-    clubmates: { status: clubResult.status },
-    nationalTeammates: { status: nationalResult.status },
+    clubmates: {
+      status: clubResult.status,
+      ...(clubResult.reason ? { reason: clubResult.reason } : {}),
+    },
+    nationalTeammates: {
+      status: nationalResult.status,
+      ...(nationalResult.reason ? { reason: nationalResult.reason } : {}),
+    },
     clubmateDetails: clubResult.details,
     nationalTeammateDetails: nationalResult.details,
   };

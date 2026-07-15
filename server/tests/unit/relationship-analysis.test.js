@@ -76,6 +76,7 @@ describe('analyzeDirectRelations', () => {
     });
 
     expect(result.clubmates.status).toBe('unknown');
+    expect(result.clubmates.reason).toMatch(/俱乐部/);
     expect(result.clubmateDetails).toEqual([]);
   });
 
@@ -91,6 +92,7 @@ describe('analyzeDirectRelations', () => {
     });
 
     expect(result.clubmates.status).toBe('unknown');
+    expect(result.clubmates.reason).toMatch(/俱乐部/);
     expect(result.clubmateDetails).toEqual([]);
   });
 
@@ -141,6 +143,29 @@ describe('analyzeDirectRelations', () => {
     });
 
     expect(result.nationalTeammates.status).toBe('unknown');
+    expect(result.nationalTeammates.reason).toMatch(/国家队/);
+    expect(result.nationalTeammateDetails).toEqual([]);
+  });
+
+  it('仅一方有国家队效力段 → nationalTeammates unknown（不得判不成立）', () => {
+    const result = analyzeDirectRelations({
+      playerA: player({
+        id: 'a',
+        nationalTeamStints: [
+          nationalStint({
+            nationKey: 'argentina',
+            nationName: 'Argentina',
+            joinedOn: '2010-01-01',
+            leftOn: '2020-12-31',
+            timePrecision: 'year',
+          }),
+        ],
+      }),
+      playerB: player({ id: 'b', nationalTeamStints: [] }),
+    });
+
+    expect(result.nationalTeammates.status).toBe('unknown');
+    expect(result.nationalTeammates.reason).toMatch(/国家队/);
     expect(result.nationalTeammateDetails).toEqual([]);
   });
 
