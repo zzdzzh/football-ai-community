@@ -16,75 +16,127 @@ from scraper.http import fetch_html, fetch_tm_json
 
 TM_BASE = "https://www.transfermarkt.com"
 
-# Transfermarkt countryId → 展示名（国家队队友匹配用；未收录则回退 Country {id}）
+# Transfermarkt countryId（与 flagge/{id}.png、ceapi nationalCareer.countryId 一致）
+# 未收录时回退 Country {id}；国家队页国旗 title 会优先生效覆盖本表
 TM_COUNTRY_NAMES: dict[str, str] = {
-    "1": "Afghanistan",
+    "2": "Egypt",
     "3": "Albania",
     "4": "Algeria",
+    "5": "Andorra",
     "9": "Argentina",
-    "11": "Armenia",
+    "10": "Armenia",
+    "11": "Ethiopia",
     "12": "Australia",
-    "13": "Austria",
-    "14": "Azerbaijan",
-    "18": "Belgium",
-    "26": "Bosnia-Herzegovina",
-    "27": "Brazil",
-    "32": "Cameroon",
-    "36": "Chile",
-    "37": "China",
-    "38": "Colombia",
-    "40": "Congo DR",
-    "44": "Croatia",
-    "45": "Cuba",
-    "47": "Czech Republic",
-    "48": "Denmark",
-    "50": "Ecuador",
-    "51": "Egypt",
-    "53": "England",
-    "62": "Finland",
-    "63": "France",
-    "66": "Georgia",
-    "67": "Germany",
-    "68": "Ghana",
-    "70": "Greece",
-    "86": "Iceland",
-    "89": "Iran",
-    "92": "Ireland",
-    "93": "Israel",
-    "94": "Italy",
-    "96": "Ivory Coast",
-    "97": "Jamaica",
-    "98": "Japan",
-    "113": "South Korea",
-    "117": "Mali",
-    "122": "Mexico",
-    "124": "Montenegro",
-    "125": "Morocco",
-    "126": "Netherlands",
-    "132": "Nigeria",
-    "134": "Northern Ireland",
-    "135": "North Macedonia",
-    "136": "Norway",
-    "141": "Paraguay",
-    "144": "Peru",
-    "145": "Poland",
-    "146": "Portugal",
-    "148": "Romania",
-    "149": "Russia",
-    "152": "Saudi Arabia",
-    "153": "Scotland",
-    "154": "Senegal",
-    "155": "Serbia",
+    "13": "Azerbaijan",
+    "16": "Bangladesh",
+    "18": "Belarus",
+    "19": "Belgium",
+    "23": "Bolivia",
+    "24": "Bosnia-Herzegovina",
+    "26": "Brazil",
+    "28": "Bulgaria",
+    "33": "Chile",
+    "34": "China",
+    "35": "Comoros",
+    "36": "Costa Rica",
+    "37": "Croatia",
+    "39": "Denmark",
+    "40": "Germany",
+    "43": "Dominican Republic",
+    "44": "Ecuador",
+    "45": "El Salvador",
+    "47": "Estonia",
+    "48": "Fiji",
+    "49": "Finland",
+    "50": "France",
+    "53": "Georgia",
+    "54": "Ghana",
+    "56": "Greece",
+    "58": "Guatemala",
+    "66": "Honduras",
+    "67": "India",
+    "68": "Indonesia",
+    "70": "Iraq",
+    "71": "Iran",
+    "72": "Ireland",
+    "73": "Iceland",
+    "74": "Israel",
+    "75": "Italy",
+    "76": "Jamaica",
+    "77": "Japan",
+    "78": "Jordan",
+    "79": "Cambodia",
+    "80": "Canada",
+    "81": "Kazakhstan",
+    "83": "Colombia",
+    "87": "South Korea",
+    "90": "Kyrgyzstan",
+    "91": "Laos",
+    "92": "Latvia",
+    "94": "Lebanon",
+    "96": "Libya",
+    "98": "Lithuania",
+    "99": "Luxembourg",
+    "100": "North Macedonia",
+    "103": "Malaysia",
+    "106": "Malta",
+    "107": "Morocco",
+    "110": "Mexico",
+    "112": "Moldova",
+    "116": "Myanmar",
+    "120": "New Zealand",
+    "121": "Nicaragua",
+    "122": "Netherlands",
+    "124": "Nigeria",
+    "125": "Norway",
+    "126": "Oman",
+    "127": "Austria",
+    "130": "Panama",
+    "132": "Paraguay",
+    "133": "Peru",
+    "134": "Philippines",
+    "135": "Poland",
+    "136": "Portugal",
+    "137": "Qatar",
+    "140": "Romania",
+    "141": "Russia",
+    "144": "San Marino",
+    "146": "Saudi Arabia",
+    "147": "Sweden",
+    "148": "Switzerland",
+    "149": "Senegal",
+    "153": "Singapore",
+    "154": "Slovakia",
+    "155": "Slovenia",
     "157": "Spain",
-    "159": "Sweden",
-    "160": "Switzerland",
-    "166": "Tunisia",
-    "167": "Turkey",
-    "170": "Ukraine",
-    "171": "United States",
-    "172": "Uruguay",
-    "174": "Venezuela",
-    "176": "Wales",
+    "159": "South Africa",
+    "164": "Chinese Taipei",
+    "165": "Tajikistan",
+    "167": "Thailand",
+    "172": "Czech Republic",
+    "173": "Tunisia",
+    "174": "Turkey",
+    "176": "Uganda",
+    "177": "Ukraine",
+    "178": "Hungary",
+    "179": "Uruguay",
+    "180": "Uzbekistan",
+    "182": "Venezuela",
+    "183": "United Arab Emirates",
+    "184": "United States",
+    "185": "Vietnam",
+    "188": "Cyprus",
+    "189": "England",
+    "190": "Scotland",
+    "191": "Wales",
+    "192": "Northern Ireland",
+    "208": "Faroe Islands",
+    "215": "Serbia",
+    "216": "Montenegro",
+    "218": "Hong Kong",
+    "228": "Puerto Rico",
+    "244": "Kosovo",
+    "266": "Gibraltar",
 }
 
 
@@ -558,14 +610,36 @@ def _unix_to_iso_date(ts: Any) -> Optional[str]:
     return datetime.fromtimestamp(value, tz=timezone.utc).strftime("%Y-%m-%d")
 
 
-def _country_name(country_id: Optional[str]) -> str:
+def _country_names_from_flags(soup: BeautifulSoup) -> dict[str, str]:
+    """从国旗 img 的 title/alt 提取 countryId → 国家名（比静态表更可靠）。"""
+    names: dict[str, str] = {}
+    for img in soup.select("img[src*='/flagge/']"):
+        src = img.get("src") or ""
+        match = re.search(r"/flagge/[^/]+/(\d+)\.png", src)
+        if not match:
+            continue
+        title = (img.get("title") or img.get("alt") or "").strip()
+        if title:
+            names[match.group(1)] = title
+    return names
+
+
+def _country_name(
+    country_id: Optional[str],
+    overrides: Optional[dict[str, str]] = None,
+) -> str:
     cid = str(country_id or "").strip()
     if not cid:
         return "Unknown"
+    if overrides and cid in overrides:
+        return overrides[cid]
     return TM_COUNTRY_NAMES.get(cid, f"Country {cid}")
 
 
-def _stints_from_ceapi_national_career(payload: dict[str, Any]) -> list[dict[str, Any]]:
+def _stints_from_ceapi_national_career(
+    payload: dict[str, Any],
+    country_names: Optional[dict[str, str]] = None,
+) -> list[dict[str, Any]]:
     """解析 ceapi/player/nationalCareer：优先现属代表队，再按国家合并最早 debut。"""
     career = payload.get("career")
     if not isinstance(career, list) or not career:
@@ -595,7 +669,7 @@ def _stints_from_ceapi_national_career(payload: dict[str, Any]) -> list[dict[str
             continue
         debut = item.get("debut") if isinstance(item.get("debut"), dict) else {}
         joined_raw = _unix_to_iso_date(debut.get("date"))
-        nation_name = _country_name(country_id)
+        nation_name = _country_name(country_id, country_names)
         nation_key = _normalize_name(nation_name).replace(" ", "_")
         existing = by_country.get(country_id)
         if existing is None:
@@ -649,22 +723,30 @@ def fetch_player_profile(tm_id: str, *, slug: str = "-") -> dict[str, Any]:
 
     # 国家队履历：Svelte + ceapi/player/nationalCareer；HTML 表格多为空壳
     national_stints: list[dict[str, Any]] = []
+    national_soup: Optional[BeautifulSoup] = None
     try:
-        fetch_html(national_url, timeout=30)
+        national_html = fetch_html(national_url, timeout=30)
+        national_soup = BeautifulSoup(national_html, "lxml")
+        flag_country_names = _country_names_from_flags(national_soup)
         national_payload = fetch_tm_json(
             f"{TM_BASE}/ceapi/player/nationalCareer/{player_id}",
             referer=national_url,
             timeout=40,
         )
         if isinstance(national_payload, dict):
-            national_stints = _stints_from_ceapi_national_career(national_payload)
+            national_stints = _stints_from_ceapi_national_career(
+                national_payload,
+                flag_country_names,
+            )
     except Exception:
         national_stints = []
 
     if not national_stints:
         try:
-            national_html = fetch_html(national_url, timeout=30)
-            national_stints = _parse_national_team_stints(BeautifulSoup(national_html, "lxml"))
+            if national_soup is None:
+                national_html = fetch_html(national_url, timeout=30)
+                national_soup = BeautifulSoup(national_html, "lxml")
+            national_stints = _parse_national_team_stints(national_soup)
         except Exception:
             national_stints = []
 
