@@ -16,6 +16,8 @@ import matchesRouter from './api/matches.js';
 import teamsRouter from './api/teams.js';
 import conversationsRouter from './api/conversations.js';
 import playersRouter from './api/players.js';
+import careerPlayersRouter from './api/career-players.js';
+import playerPairAnalysesRouter from './api/player-pair-analyses.js';
 import fanPersonasRouter from './api/fan-personas.js';
 import fanDiscussionsRouter from './api/fan-discussions.js';
 import contentReportsRouter from './api/content-reports.js';
@@ -60,6 +62,8 @@ export function createApp() {
   app.use('/api/matches', matchesRouter);
   app.use('/api/teams', teamsRouter);
   app.use('/api/players', playersRouter);
+  app.use('/api/career-players', careerPlayersRouter);
+  app.use('/api/player-pair-analyses', playerPairAnalysesRouter);
   app.use('/api/fan-personas', fanPersonasRouter);
   app.use('/api/fan-discussions', fanDiscussionsRouter);
   app.use('/api/content-reports', contentReportsRouter);
