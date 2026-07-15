@@ -10,9 +10,9 @@ const authStore = useAuthStore();
 const baseNavItems = [
   { label: '首页', path: '/' },
   { label: '球迷对话', path: '/fan' },
-  { label: '数据问答', path: '/stats' },
   { label: '球员推荐', path: '/scout' },
   { label: '战术分析', path: '/tactical' },
+  { label: '球员关系', path: '/relationships' },
   { label: '偏好设置', path: '/settings/preferences' },
 ];
 
@@ -34,7 +34,7 @@ const navItems = computed(() => {
 const activePath = computed(() => route.path);
 
 function navigate(path: string) {
-  const authPaths = ['/settings/preferences', '/stats', '/scout', '/tactical', '/fan', '/admin/reports'];
+  const authPaths = ['/settings/preferences', '/scout', '/tactical', '/fan', '/relationships', '/admin/reports'];
   if (authPaths.includes(path) && !authStore.isAuthenticated) {
     router.push({ path: '/login', query: { redirect: path } });
     return;
@@ -79,10 +79,6 @@ onMounted(() => {
                     && (activePath === '/fan' || activePath.startsWith('/discussions/')))
                   || (item.path === '/admin/reports'
                     && activePath.startsWith('/admin/reports'))
-                  || (item.path === '/stats'
-                    && activePath.startsWith('/conversations/')
-                    && route.query.from !== 'scout'
-                    && route.query.from !== 'tactical')
                   || (item.path === '/scout'
                     && activePath.startsWith('/conversations/')
                     && route.query.from === 'scout')
@@ -90,7 +86,9 @@ onMounted(() => {
                     && (activePath.startsWith('/tactical')
                       || activePath.startsWith('/matches/')
                       || (activePath.startsWith('/conversations/')
-                        && route.query.from === 'tactical'))),
+                        && route.query.from === 'tactical')))
+                  || (item.path === '/relationships'
+                    && activePath.startsWith('/relationships')),
               }"
               @click="navigate(item.path)"
             >

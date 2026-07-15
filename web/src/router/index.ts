@@ -18,12 +18,6 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/FeedDetailView.vue'),
       },
       {
-        path: 'stats',
-        name: 'stats-start',
-        meta: { requiresAuth: true },
-        component: () => import('@/views/StatsStartView.vue'),
-      },
-      {
         path: 'scout',
         name: 'scout-start',
         meta: { requiresAuth: true },
@@ -40,6 +34,18 @@ const routes: RouteRecordRaw[] = [
         name: 'fan-start',
         meta: { requiresAuth: true },
         component: () => import('@/views/FanStartView.vue'),
+      },
+      {
+        path: 'relationships',
+        name: 'relationship-search',
+        meta: { requiresAuth: true },
+        component: () => import('@/views/RelationshipSearchView.vue'),
+      },
+      {
+        path: 'relationships/:playerIdA/:playerIdB',
+        name: 'relationship-analysis',
+        meta: { requiresAuth: true },
+        component: () => import('@/views/RelationshipAnalysisView.vue'),
       },
       {
         path: 'discussions/:discussionId',
