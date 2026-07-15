@@ -12,7 +12,7 @@ export function createCareerDataAdapter(deps = {}) {
   const searchFn = deps.searchCareerFromScraper ?? searchCareerFromScraper;
   const profileFn = deps.fetchCareerProfileFromScraper ?? fetchCareerProfileFromScraper;
   const searchTimeoutMs = deps.searchTimeoutMs ?? 15000;
-  const profileTimeoutMs = deps.profileTimeoutMs ?? config.careerSync?.timeoutMs ?? 20000;
+  const profileTimeoutMs = deps.profileTimeoutMs ?? config.careerSync?.timeoutMs ?? 60000;
 
   return {
     async search(query, { limit = 20 } = {}) {

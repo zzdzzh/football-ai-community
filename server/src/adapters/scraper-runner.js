@@ -98,7 +98,7 @@ export async function searchCareerFromScraper(query, { limit = 20, timeoutMs = 1
   );
 }
 
-export async function fetchCareerProfileFromScraper(tmId, { slug = '-', timeoutMs = 20000 } = {}) {
+export async function fetchCareerProfileFromScraper(tmId, { slug = '-', timeoutMs = 60000 } = {}) {
   return runScraperCli(
     [
       'career-profile',

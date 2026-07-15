@@ -49,7 +49,7 @@
 
 - [x] T016 [US1] Implement RelationshipAnalysisService direct clubmates/nationalTeammates verdicts and details in server/src/services/relationship-analysis-service.js | L1:✅(8/8) L2:✅(40/40) |
 - [x] T017 [US1] Implement career-players API (search/detail/sync) with requireAuth and mount routes in server/src/api/career-players.js and server/src/app.js | L1:✅(9/9) L2:✅(40/40) |
-- [x] T018 [US1] Implement player-pair-analyses API (GET reentry + POST retry) for direct relations, freshness and computing status in server/src/api/player-pair-analyses.js and server/src/app.js | L1:✅(10/10) L2:✅(40/40) · fix:分析前按需 sync 履历段 |
+- [x] T018 [US1] Implement player-pair-analyses API (GET reentry + POST retry) for direct relations, freshness and computing status in server/src/api/player-pair-analyses.js and server/src/app.js | L1:✅(10/10) L2:✅ · fix:异步 sync+computing 轮询；超时默认 60s |
 - [x] 🚧 **批次5.5门禁: L1 Step4 (`[APP_START_COMMAND]` + career-players/player-pair-analyses 调用链 + 契约 PASS + 401)** | 结果: ✅ createAppOK contract:19/19(401+happy) |
 
 ---

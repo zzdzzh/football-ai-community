@@ -17,45 +17,64 @@ const router = Router();
 
 router.use(requireAuth);
 
+/** @type {Map<string, Promise<unknown>>} */
+const playerSyncInflight = new Map();
+
 function assertNotSelfPair(playerIdA, playerIdB) {
   if (playerIdA === playerIdB) {
     throw new AppError(400, 'bad_request', '不能分析同一球员');
   }
 }
 
-function needsCareerSync(player) {
-  if (!player) return true;
-  const clubCount = listClubStintsByPlayerId(player.id).length;
-  if (clubCount === 0) return true;
-  if (!player.syncedAt) return true;
-  if (player.syncStatus === 'stale' || player.syncStatus === 'failed') return true;
-  return false;
+function clubStintCount(playerId) {
+  return listClubStintsByPlayerId(playerId).length;
 }
 
-async function ensureCareerSynced(playerId) {
-  const player = findCareerPlayerById(playerId);
-  if (!player) {
-    throw new AppError(404, 'not_found', '球员不存在');
+/**
+ * @returns {'ok'|'wait'|'start'|'failed'}
+ */
+function getSyncGate(player, { force = false } = {}) {
+  if (!player) return 'failed';
+  if (player.syncStatus === 'syncing') return 'wait';
+
+  const clubs = clubStintCount(player.id);
+  if (clubs > 0 && player.syncedAt && player.syncStatus === 'ready' && !force) {
+    return 'ok';
   }
-  if (!needsCareerSync(player)) {
-    return false;
+  if (clubs > 0 && !force && (player.syncStatus === 'stale' || player.syncStatus === 'ready')) {
+    // 有本地效力段时可先用缓存分析
+    return 'ok';
   }
-  try {
-    await careerSyncService.syncPlayer({ playerId, force: true });
-  } catch (err) {
-    if (err?.code === 'CAREER_SYNC_FAILED') {
-      if (listClubStintsByPlayerId(playerId).length === 0) {
-        throw new AppError(
-          503,
-          'service_unavailable',
-          err.message || '履历同步失败，暂无法分析',
-        );
-      }
-      return true;
-    }
-    throw err;
+  if (player.syncStatus === 'failed' && clubs === 0 && !force) {
+    return 'failed';
   }
-  return true;
+  if (force || clubs === 0 || !player.syncedAt || player.syncStatus === 'stale' || player.syncStatus === 'failed') {
+    return 'start';
+  }
+  return 'ok';
+}
+
+function kickoffPlayerSync(playerId) {
+  const existing = playerSyncInflight.get(playerId);
+  if (existing) return existing;
+
+  const promise = careerSyncService
+    .syncPlayer({ playerId, force: true })
+    .catch((err) => {
+      console.error(JSON.stringify({
+        level: 'error',
+        type: 'career_sync_background_failed',
+        playerId,
+        message: err?.message ?? String(err),
+      }));
+      return null;
+    })
+    .finally(() => {
+      playerSyncInflight.delete(playerId);
+    });
+
+  playerSyncInflight.set(playerId, promise);
+  return promise;
 }
 
 function loadPlayerWithStints(playerId) {
@@ -89,12 +108,42 @@ function computeSuccessiveSameClub(clubStintsA, clubStintsB) {
   return clubStintsA.some((stint) => clubIdsB.has(stint.clubId));
 }
 
-function buildDataFreshness(playerA, playerB, usedCacheOnly = false) {
+function buildDataFreshness(playerA, playerB, usedCacheOnly = false, summary) {
   return {
     playerASyncedAt: playerA.syncedAt ?? null,
     playerBSyncedAt: playerB.syncedAt ?? null,
-    summary: `已基于 ${playerA.name} 与 ${playerB.name} 的本地履历进行分析`,
+    summary: summary ?? `已基于 ${playerA.name} 与 ${playerB.name} 的本地履历进行分析`,
     usedCacheOnly,
+  };
+}
+
+function buildComputingResponse(playerIdA, playerIdB, playerA, playerB) {
+  return {
+    status: 'computing',
+    analysisId: null,
+    playerIdA,
+    playerIdB,
+    computedAt: null,
+    dataFreshness: buildDataFreshness(
+      playerA,
+      playerB,
+      false,
+      '正在从 Transfermarkt 同步球员履历，请稍候…',
+    ),
+    result: null,
+  };
+}
+
+function buildFailedResponse(playerIdA, playerIdB, playerA, playerB, message) {
+  return {
+    status: 'failed',
+    analysisId: null,
+    playerIdA,
+    playerIdB,
+    computedAt: null,
+    dataFreshness: buildDataFreshness(playerA, playerB, false, '履历同步失败'),
+    result: null,
+    error: message || '履历同步失败，请稍后重试',
   };
 }
 
@@ -152,20 +201,48 @@ function persistAnalysis(playerA, playerB, result, dataFreshness) {
 async function analyzePair(playerIdA, playerIdB, { forceRecompute = false } = {}) {
   assertNotSelfPair(playerIdA, playerIdB);
 
-  const syncedA = await ensureCareerSynced(playerIdA);
-  const syncedB = await ensureCareerSynced(playerIdB);
+  const metaA = findCareerPlayerById(playerIdA);
+  const metaB = findCareerPlayerById(playerIdB);
+  if (!metaA || !metaB) {
+    throw new AppError(404, 'not_found', '球员不存在');
+  }
+
+  const gateA = getSyncGate(metaA, { force: forceRecompute });
+  const gateB = getSyncGate(metaB, { force: forceRecompute });
+
+  if (gateA === 'failed' || gateB === 'failed') {
+    return buildFailedResponse(
+      playerIdA,
+      playerIdB,
+      metaA,
+      metaB,
+      '球员履历同步失败且本地无可用效力段，请重试',
+    );
+  }
+
+  if (gateA === 'start') kickoffPlayerSync(playerIdA);
+  if (gateB === 'start') kickoffPlayerSync(playerIdB);
+
+  if (gateA === 'start' || gateB === 'start' || gateA === 'wait' || gateB === 'wait') {
+    return buildComputingResponse(playerIdA, playerIdB, metaA, metaB);
+  }
+
   const { playerA, playerB } = loadPlayerPair(playerIdA, playerIdB);
 
-  const skipCache = forceRecompute || syncedA || syncedB;
-  if (!skipCache) {
+  if (!forceRecompute) {
     const cached = findPlayerPairAnalysis(playerIdA, playerIdB);
     if (cached?.result) {
-      return buildResponse(
-        playerIdA,
-        playerIdB,
-        cached,
-        buildDataFreshness(playerA, playerB, true),
-      );
+      const aSynced = playerA.syncedAt ? Date.parse(playerA.syncedAt) : 0;
+      const bSynced = playerB.syncedAt ? Date.parse(playerB.syncedAt) : 0;
+      const computed = cached.computedAt ? Date.parse(cached.computedAt) : 0;
+      if (computed >= aSynced && computed >= bSynced) {
+        return buildResponse(
+          playerIdA,
+          playerIdB,
+          cached,
+          buildDataFreshness(playerA, playerB, true),
+        );
+      }
     }
   }
 

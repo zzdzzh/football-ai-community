@@ -35,7 +35,7 @@ const envSchema = z.object({
   CONTENT_MODERATION_BLOCKLIST: z.string().default('./config/content-blocklist.txt'),
   CAREER_SYNC_TTL_DAYS: z.coerce.number().default(7),
   RELATIONSHIP_MAX_HOPS: z.coerce.number().default(6),
-  CAREER_SYNC_TIMEOUT_MS: z.coerce.number().default(20000),
+  CAREER_SYNC_TIMEOUT_MS: z.coerce.number().default(60000),
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
 });
 
