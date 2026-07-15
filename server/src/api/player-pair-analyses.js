@@ -4,13 +4,17 @@ import { AppError } from '../middleware/error.js';
 import { config } from '../config/index.js';
 import { findCareerPlayerById } from '../db/repositories/career-player-repository.js';
 import { findCareerClubById } from '../db/repositories/career-club-repository.js';
-import { listClubStintsByPlayerId } from '../db/repositories/club-stint-repository.js';
+import { listClubStintsByPlayerId, listClubStintsWithPlayer } from '../db/repositories/club-stint-repository.js';
 import { listNationalTeamStintsByPlayerId } from '../db/repositories/national-team-stint-repository.js';
 import {
   findPlayerPairAnalysis,
   upsertPlayerPairAnalysis,
 } from '../db/repositories/player-pair-analysis-repository.js';
-import { analyzeDirectRelations } from '../services/relationship-analysis-service.js';
+import {
+  analyzeDirectRelations,
+  analyzeTransferLink,
+  findShortestRelationPath,
+} from '../services/relationship-analysis-service.js';
 import { careerSyncService } from '../services/career-sync-service.js';
 
 const router = Router();
@@ -103,9 +107,80 @@ function loadPlayerPair(playerIdA, playerIdB) {
   return { playerA, playerB };
 }
 
-function computeSuccessiveSameClub(clubStintsA, clubStintsB) {
-  const clubIdsB = new Set(clubStintsB.map((stint) => stint.clubId));
-  return clubStintsA.some((stint) => clubIdsB.has(stint.clubId));
+function buildGraphPlayersFromStints(stintsWithPlayer, playerA, playerB) {
+  const byPlayer = new Map();
+
+  function ensurePlayer(id, name) {
+    if (!byPlayer.has(id)) {
+      byPlayer.set(id, { id, name, clubStints: [] });
+    }
+    return byPlayer.get(id);
+  }
+
+  for (const row of stintsWithPlayer) {
+    const entry = ensurePlayer(row.playerId, row.playerName);
+    entry.clubStints.push({
+      clubId: row.clubId,
+      clubName: row.clubName,
+      joinedOn: row.joinedOn,
+      leftOn: row.leftOn,
+      timePrecision: row.timePrecision,
+      transferType: row.transferType,
+      transferFromPlayerId: row.transferFromPlayerId,
+      transferToPlayerId: row.transferToPlayerId,
+    });
+  }
+
+  ensurePlayer(playerA.id, playerA.name);
+  ensurePlayer(playerB.id, playerB.name);
+
+  return [...byPlayer.values()];
+}
+
+function computeAnalysisResult(playerA, playerB) {
+  const direct = analyzeDirectRelations({
+    playerA: {
+      id: playerA.id,
+      clubStints: playerA.clubStints,
+      nationalTeamStints: playerA.nationalTeamStints,
+    },
+    playerB: {
+      id: playerB.id,
+      clubStints: playerB.clubStints,
+      nationalTeamStints: playerB.nationalTeamStints,
+    },
+  });
+
+  const transfer = analyzeTransferLink({
+    playerA: {
+      id: playerA.id,
+      clubStints: playerA.clubStints,
+    },
+    playerB: {
+      id: playerB.id,
+      clubStints: playerB.clubStints,
+    },
+  });
+
+  const allStints = listClubStintsWithPlayer();
+  const graphPlayers = buildGraphPlayersFromStints(allStints, playerA, playerB);
+
+  const pathResult = findShortestRelationPath({
+    playerIdA: playerA.id,
+    playerIdB: playerB.id,
+    playerNameA: playerA.name,
+    playerNameB: playerB.name,
+    graphPlayers,
+    maxHops: config.relationship.maxHops,
+  });
+
+  return {
+    ...direct,
+    transfer,
+    pathStatus: pathResult.pathStatus,
+    relationDistance: pathResult.relationDistance,
+    indirectPath: pathResult.indirectPath,
+  };
 }
 
 function buildDataFreshness(playerA, playerB, usedCacheOnly = false, summary) {
@@ -144,33 +219,6 @@ function buildFailedResponse(playerIdA, playerIdB, playerA, playerB, message) {
     dataFreshness: buildDataFreshness(playerA, playerB, false, '履历同步失败'),
     result: null,
     error: message || '履历同步失败，请稍后重试',
-  };
-}
-
-function computeAnalysisResult(playerA, playerB) {
-  const direct = analyzeDirectRelations({
-    playerA: {
-      id: playerA.id,
-      clubStints: playerA.clubStints,
-      nationalTeamStints: playerA.nationalTeamStints,
-    },
-    playerB: {
-      id: playerB.id,
-      clubStints: playerB.clubStints,
-      nationalTeamStints: playerB.nationalTeamStints,
-    },
-  });
-
-  return {
-    ...direct,
-    transfer: {
-      directTransferLink: false,
-      successiveSameClub: computeSuccessiveSameClub(playerA.clubStints, playerB.clubStints),
-      evidence: [],
-    },
-    pathStatus: 'skipped',
-    relationDistance: null,
-    indirectPath: null,
   };
 }
 

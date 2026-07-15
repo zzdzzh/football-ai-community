@@ -71,3 +71,23 @@ export function listClubStintsByClubId(clubId) {
   `).all(clubId);
   return rows.map((row) => mapClubStintRow(row));
 }
+
+export function listClubStintsWithPlayer() {
+  const db = getDb();
+  const rows = db.prepare(`
+    SELECT
+      cs.*,
+      cp.name AS player_name,
+      cc.name AS club_name
+    FROM club_stints cs
+    JOIN career_players cp ON cp.id = cs.player_id
+    JOIN career_clubs cc ON cc.id = cs.club_id
+    ORDER BY cs.player_id ASC, cs.sort_order ASC
+  `).all();
+
+  return rows.map((row) => ({
+    ...mapClubStintRow(row),
+    playerName: row.player_name,
+    clubName: row.club_name,
+  }));
+}
