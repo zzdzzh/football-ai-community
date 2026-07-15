@@ -68,7 +68,7 @@
 
 > **NOTE**: Write these tests FIRST; ensure they FAIL before implementation
 
-- [ ] T011 [P] [US1] Contract tests for GET /career-players, GET /career-players/{playerId} and POST /career-players/{playerId}/sync (incl. 401) in server/tests/contract/career-players.test.js
+- [x] T011 [P] [US1] Contract tests for GET /career-players, GET /career-players/{playerId} and POST /career-players/{playerId}/sync (incl. 401) in server/tests/contract/career-players.test.js
 - [ ] T012 [P] [US1] Contract tests for GET/POST /player-pair-analyses (direct clubmates/national, self-pair 400, 401) in server/tests/contract/player-pair-analyses.test.js
 - [ ] T013 [P] [US1] Unit tests for time-normalize with 100% branch coverage in server/tests/unit/time-normalize.test.js
 - [ ] T014 [P] [US1] Unit tests for clubmates and national-teammates overlap verdicts with 100% branch coverage in server/tests/unit/relationship-analysis.test.js

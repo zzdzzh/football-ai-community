@@ -36,7 +36,7 @@
 
 ## 批次 5.4 · Day 2–3 · US1 契约与单元测试
 
-- [ ] T011 [P] [US1] Contract tests for GET /career-players, GET /career-players/{playerId} and POST /career-players/{playerId}/sync (incl. 401) in server/tests/contract/career-players.test.js | L1:- L2:- |
+- [x] T011 [P] [US1] Contract tests for GET /career-players, GET /career-players/{playerId} and POST /career-players/{playerId}/sync (incl. 401) in server/tests/contract/career-players.test.js | L1:✅ Red(0/9 预期 FAIL→T017) L2:✅(40/40) |
 - [ ] T012 [P] [US1] Contract tests for GET/POST /player-pair-analyses (direct clubmates/national, self-pair 400, 401) in server/tests/contract/player-pair-analyses.test.js | L1:- L2:- |
 - [ ] T013 [P] [US1] Unit tests for time-normalize with 100% branch coverage in server/tests/unit/time-normalize.test.js | L1:- L2:- |
 - [ ] T014 [P] [US1] Unit tests for clubmates and national-teammates overlap verdicts with 100% branch coverage in server/tests/unit/relationship-analysis.test.js | L1:- L2:- |
