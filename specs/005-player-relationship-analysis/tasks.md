@@ -133,8 +133,8 @@
 
 **Purpose**: 可观测性、范围边界回归与 quickstart 验收
 
-- [ ] T029 [P] Emit career_sync_success/failure and pair_analysis_latency_ms/cache_hit metrics in server/src/services/career-sync-service.js and server/src/api/player-pair-analyses.js
-- [ ] T030 Run Scope 边界验证清单 and quickstart.md regression (no 003 players ALTER, no LLM QA endpoint, maxHops no_path, zero fabricated stints) per specs/005-player-relationship-analysis/plan.md and specs/005-player-relationship-analysis/quickstart.md
+- [x] T029 [P] Emit career_sync_success/failure and pair_analysis_latency_ms/cache_hit metrics in server/src/services/career-sync-service.js and server/src/api/player-pair-analyses.js
+- [x] T030 Run Scope 边界验证清单 and quickstart.md regression (no 003 players ALTER, no LLM QA endpoint, maxHops no_path, zero fabricated stints) per specs/005-player-relationship-analysis/plan.md and specs/005-player-relationship-analysis/quickstart.md
 
 ---
 

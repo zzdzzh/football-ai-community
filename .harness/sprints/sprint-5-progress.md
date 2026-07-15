@@ -59,37 +59,31 @@
 - [x] T019 [P] [US1] Add web API clients for career-players and player-pair-analyses in web/src/api/career-players.ts and web/src/api/player-pair-analyses.ts | L1:✅ vue-tsc L2:✅(40/40) |
 - [x] T020 [US1] Implement RelationshipSearchView and PlayerPicker (label-on-top dual search, explicit disambiguation) in web/src/views/RelationshipSearchView.vue and web/src/components/relationship/PlayerPicker.vue | L1:✅ vue-tsc L2:✅(38/40) |
 - [x] T021 [US1] Implement RelationshipAnalysisView text conclusions + FreshnessBanner, register /relationships and /relationships/:playerIdA/:playerIdB routes and AppLayout nav entry in web/src/views/RelationshipAnalysisView.vue, web/src/components/relationship/FreshnessBanner.vue, web/src/router/index.ts and web/src/components/layout/AppLayout.vue | L1:✅ vue-tsc L2:✅(40/40) |
-- [ ] 🚧 **批次5.6门禁: L1 Step4 + 👁 HV-1 (~5 min, 产品/用户)** | 结果: 自动化✅ vue-tsc；👁 HV-1 待签收 |
-
----
-
-## 批次 5.7 · Day 4 · US2 — 转会关联与间接路径
-
-- [ ] T022 [P] [US2] Extend unit tests for transfer link, successiveSameClub and BFS indirect path (maxHops/no_path) with 100% branch coverage in server/tests/unit/relationship-analysis.test.js | L1:- L2:- |
-- [ ] T023 [US2] Extend RelationshipAnalysisService for TransferLink, successiveSameClub and bipartite BFS path in server/src/services/relationship-analysis-service.js | L1:- L2:- |
-- [ ] T024 [US2] Persist and return transfer/indirectPath/relationDistance/pathStatus on pair analysis responses (cache key by sorted IDs) in server/src/services/relationship-analysis-service.js and server/src/api/player-pair-analyses.js | L1:- L2:- |
-- [ ] T025 [US2] Display transfer conclusions and indirect path/distance on RelationshipAnalysisView in web/src/views/RelationshipAnalysisView.vue | L1:- L2:- |
-- [ ] 🚧 **批次5.7门禁: L1 Step4 (`[APP_START_COMMAND]` + `[UI_START_COMMAND]` + 间接路径/no_path + URL 重入一致)** | 结果: - |
+- [x] T022 [P] [US2] Extend unit tests for transfer link, successiveSameClub and BFS indirect path (maxHops/no_path) with 100% branch coverage in server/tests/unit/relationship-analysis.test.js | L1:✅(16/16) L2:✅(40/40) |
+- [x] T023 [US2] Extend RelationshipAnalysisService for TransferLink, successiveSameClub and bipartite BFS path in server/src/services/relationship-analysis-service.js | L1:✅(16/16) L2:✅(40/40) |
+- [x] T024 [US2] Persist and return transfer/indirectPath/relationDistance/pathStatus on pair analysis responses (cache key by sorted IDs) in server/src/services/relationship-analysis-service.js and server/src/api/player-pair-analyses.js | L1:✅(10/10 contract) L2:✅(40/40) |
+- [x] T025 [US2] Display transfer conclusions and indirect path/distance on RelationshipAnalysisView in web/src/views/RelationshipAnalysisView.vue | L1:✅ vue-tsc L2:✅(38/40) |
+- [x] 🚧 **批次5.7门禁: L1 Step4 (`[APP_START_COMMAND]` + `[UI_START_COMMAND]` + 间接路径/no_path + URL 重入一致)** | 结果: ✅ unit:16/16 contract:10/10 vue-tsc；UI 并入 HV-2 |
 
 ---
 
 ## 批次 5.8 · Day 5 · US3 — 时间线与关系图可视化
 
-- [ ] T026 [P] [US3] Implement RelationshipTimeline SVG/CSS dual-track component in web/src/components/relationship/RelationshipTimeline.vue | L1:- L2:- |
-- [ ] T027 [P] [US3] Implement RelationGraph SVG layered layout from relationPath nodes/edges in web/src/components/relationship/RelationGraph.vue | L1:- L2:- |
-- [ ] T028 [US3] Integrate timeline, graph, loading/empty/error states into RelationshipAnalysisView in web/src/views/RelationshipAnalysisView.vue | L1:- L2:- |
-- [ ] 🚧 **批次5.8门禁: L1 Step4 (`[UI_START_COMMAND]` + `[TYPECHECK_COMMAND]` + 时间线/关系图与结论一致)** | 结果: - |
+- [x] T026 [P] [US3] Implement RelationshipTimeline SVG/CSS dual-track component in web/src/components/relationship/RelationshipTimeline.vue | L1:✅ vue-tsc L2:✅(40/40) |
+- [x] T027 [P] [US3] Implement RelationGraph SVG layered layout from relationPath nodes/edges in web/src/components/relationship/RelationGraph.vue | L1:✅ vue-tsc L2:✅(40/40) |
+- [x] T028 [US3] Integrate timeline, graph, loading/empty/error states into RelationshipAnalysisView in web/src/views/RelationshipAnalysisView.vue | L1:✅ vue-tsc+contract L2:✅(40/40) |
+- [x] 🚧 **批次5.8门禁: L1 Step4 (`[UI_START_COMMAND]` + `[TYPECHECK_COMMAND]` + 时间线/关系图与结论一致)** | 结果: ✅ vue-tsc；UI 并入 HV-2 |
 
 ---
 
 ## 批次 5.9 · Day 5 · Polish 收官
 
-- [ ] T029 [P] Emit career_sync_success/failure and pair_analysis_latency_ms/cache_hit metrics in server/src/services/career-sync-service.js and server/src/api/player-pair-analyses.js | L1:- L2:- |
-- [ ] T030 Run Scope 边界验证清单 and quickstart.md regression (no 003 players ALTER, no LLM QA endpoint, maxHops no_path, zero fabricated stints) per specs/005-player-relationship-analysis/plan.md and specs/005-player-relationship-analysis/quickstart.md | L1:- L2:- |
-- [ ] 🚧 **批次5.9门禁: L1 Step4 + 👁 HV-2 (~15–20 min, 产品/用户)** | 结果: - |
+- [x] T029 [P] Emit career_sync_success/failure and pair_analysis_latency_ms/cache_hit metrics in server/src/services/career-sync-service.js and server/src/api/player-pair-analyses.js | L1:✅(23/23 sync + 10/10 pair) L2:✅ |
+- [x] T030 Run Scope 边界验证清单 and quickstart.md regression (no 003 players ALTER, no LLM QA endpoint, maxHops no_path, zero fabricated stints) per specs/005-player-relationship-analysis/plan.md and specs/005-player-relationship-analysis/quickstart.md | L1:✅ 014无players ALTER；无LLM QA；unit覆盖no_path；失败零虚构 | L2:✅ |
+- [ ] 🚧 **批次5.9门禁: L1 Step4 + 👁 HV-2 (~15–20 min, 产品/用户)** | 结果: 自动化✅；👁 HV-2 待签收 |
 
 ---
 
 ## Sprint 5 收官
 
-**状态**: 未开始
+**状态**: 待 HV-2 后收官
