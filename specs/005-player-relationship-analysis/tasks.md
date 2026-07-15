@@ -50,9 +50,9 @@
 - [x] T005 [P] Implement club-stint and national-team-stint repositories in server/src/db/repositories/club-stint-repository.js and server/src/db/repositories/national-team-stint-repository.js
 - [x] T006 [P] Implement player-pair-analysis repository in server/src/db/repositories/player-pair-analysis-repository.js
 - [x] T007 [P] Implement time-normalize helpers (exact/month/year/season/open_ended/unparseable) in server/src/services/time-normalize.js
-- [ ] T008 [P] Implement Transfermarkt career search/profile CLI in scraper/scraper/transfermarkt_career.py
-- [ ] T009 Implement CareerDataAdapter and extend scraper-runner career CLI spawn in server/src/adapters/career-data-adapter.js and server/src/adapters/scraper-runner.js
-- [ ] T010 Implement CareerSyncService with TTL, per-player replace transaction and zero-fabricated fallback in server/src/services/career-sync-service.js
+- [x] T008 [P] Implement Transfermarkt career search/profile CLI in scraper/scraper/transfermarkt_career.py
+- [x] T009 Implement CareerDataAdapter and extend scraper-runner career CLI spawn in server/src/adapters/career-data-adapter.js and server/src/adapters/scraper-runner.js
+- [x] T010 Implement CareerSyncService with TTL, per-player replace transaction and zero-fabricated fallback in server/src/services/career-sync-service.js
 
 **Checkpoint**: Foundation ready — 014 可迁移；仓储/归一/采集/同步可被 user story 调用
 

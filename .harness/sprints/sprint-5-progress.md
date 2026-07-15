@@ -27,10 +27,10 @@
 
 ## 批次 5.3 · Day 2 · Foundational — Transfermarkt 采集 + 同步服务
 
-- [ ] T008 [P] Implement Transfermarkt career search/profile CLI in scraper/scraper/transfermarkt_career.py | L1:- L2:- |
-- [ ] T009 Implement CareerDataAdapter and extend scraper-runner career CLI spawn in server/src/adapters/career-data-adapter.js and server/src/adapters/scraper-runner.js | L1:- L2:- |
-- [ ] T010 Implement CareerSyncService with TTL, per-player replace transaction and zero-fabricated fallback in server/src/services/career-sync-service.js | L1:- L2:- |
-- [ ] 🚧 **批次5.3门禁: L1 Step4 (`[APP_START_COMMAND]` 启动成功 + CareerSyncService 同步事务 + 失败零虚构 + TM CLI 冒烟)** | 结果: - |
+- [x] T008 [P] Implement Transfermarkt career search/profile CLI in scraper/scraper/transfermarkt_career.py | L1:✅ L2:✅(38/40) |
+- [x] T009 Implement CareerDataAdapter and extend scraper-runner career CLI spawn in server/src/adapters/career-data-adapter.js and server/src/adapters/scraper-runner.js | L1:✅ L2:✅(40/40) |
+- [x] T010 Implement CareerSyncService with TTL, per-player replace transaction and zero-fabricated fallback in server/src/services/career-sync-service.js | L1:✅ L2:✅(40/40) |
+- [x] 🚧 **批次5.3门禁: L1 Step4 (`[APP_START_COMMAND]` 启动成功 + CareerSyncService 同步事务 + 失败零虚构 + TM CLI 冒烟)** | 结果: ✅ health:UP mock同步+TTL+失败保留stints；TM search Messi + profile 8 stints via ceapi |
 
 ---
 
