@@ -69,19 +69,19 @@
 > **NOTE**: Write these tests FIRST; ensure they FAIL before implementation
 
 - [x] T011 [P] [US1] Contract tests for GET /career-players, GET /career-players/{playerId} and POST /career-players/{playerId}/sync (incl. 401) in server/tests/contract/career-players.test.js
-- [ ] T012 [P] [US1] Contract tests for GET/POST /player-pair-analyses (direct clubmates/national, self-pair 400, 401) in server/tests/contract/player-pair-analyses.test.js
-- [ ] T013 [P] [US1] Unit tests for time-normalize with 100% branch coverage in server/tests/unit/time-normalize.test.js
-- [ ] T014 [P] [US1] Unit tests for clubmates and national-teammates overlap verdicts with 100% branch coverage in server/tests/unit/relationship-analysis.test.js
-- [ ] T015 [P] [US1] Unit tests for career-sync failure/cache degradation with 100% branch coverage in server/tests/unit/career-sync.test.js
+- [x] T012 [P] [US1] Contract tests for GET/POST /player-pair-analyses (direct clubmates/national, self-pair 400, 401) in server/tests/contract/player-pair-analyses.test.js
+- [x] T013 [P] [US1] Unit tests for time-normalize with 100% branch coverage in server/tests/unit/time-normalize.test.js
+- [x] T014 [P] [US1] Unit tests for clubmates and national-teammates overlap verdicts with 100% branch coverage in server/tests/unit/relationship-analysis.test.js
+- [x] T015 [P] [US1] Unit tests for career-sync failure/cache degradation with 100% branch coverage in server/tests/unit/career-sync.test.js
 
 ### Implementation for User Story 1
 
-- [ ] T016 [US1] Implement RelationshipAnalysisService direct clubmates/nationalTeammates verdicts and details in server/src/services/relationship-analysis-service.js
-- [ ] T017 [US1] Implement career-players API (search/detail/sync) with requireAuth and mount routes in server/src/api/career-players.js and server/src/app.js
-- [ ] T018 [US1] Implement player-pair-analyses API (GET reentry + POST retry) for direct relations, freshness and computing status in server/src/api/player-pair-analyses.js and server/src/app.js
-- [ ] T019 [P] [US1] Add web API clients for career-players and player-pair-analyses in web/src/api/career-players.ts and web/src/api/player-pair-analyses.ts
-- [ ] T020 [US1] Implement RelationshipSearchView and PlayerPicker (label-on-top dual search, explicit disambiguation) in web/src/views/RelationshipSearchView.vue and web/src/components/relationship/PlayerPicker.vue
-- [ ] T021 [US1] Implement RelationshipAnalysisView text conclusions + FreshnessBanner, register /relationships and /relationships/:playerIdA/:playerIdB routes and AppLayout nav entry in web/src/views/RelationshipAnalysisView.vue, web/src/components/relationship/FreshnessBanner.vue, web/src/router/index.ts and web/src/components/layout/AppLayout.vue
+- [x] T016 [US1] Implement RelationshipAnalysisService direct clubmates/nationalTeammates verdicts and details in server/src/services/relationship-analysis-service.js
+- [x] T017 [US1] Implement career-players API (search/detail/sync) with requireAuth and mount routes in server/src/api/career-players.js and server/src/app.js
+- [x] T018 [US1] Implement player-pair-analyses API (GET reentry + POST retry) for direct relations, freshness and computing status in server/src/api/player-pair-analyses.js and server/src/app.js
+- [x] T019 [P] [US1] Add web API clients for career-players and player-pair-analyses in web/src/api/career-players.ts and web/src/api/player-pair-analyses.ts
+- [x] T020 [US1] Implement RelationshipSearchView and PlayerPicker (label-on-top dual search, explicit disambiguation) in web/src/views/RelationshipSearchView.vue and web/src/components/relationship/PlayerPicker.vue
+- [x] T021 [US1] Implement RelationshipAnalysisView text conclusions + FreshnessBanner, register /relationships and /relationships/:playerIdA/:playerIdB routes and AppLayout nav entry in web/src/views/RelationshipAnalysisView.vue, web/src/components/relationship/FreshnessBanner.vue, web/src/router/index.ts and web/src/components/layout/AppLayout.vue
 
 **Checkpoint**: User Story 1 闭环可独立验收 — 搜索消歧 → 双 ID 分析页 → 直接关系文字结论 + 新鲜度（对齐 FR-001～011、SC-001/SC-002）
 
