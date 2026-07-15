@@ -111,6 +111,214 @@ export function analyzeDirectRelations({ playerA, playerB }) {
   };
 }
 
+function collectSharedClubs(stintsA, stintsB) {
+  const clubIdsB = new Set(stintsB.map((s) => s.clubId));
+  const shared = [];
+  const seen = new Set();
+
+  for (const stint of stintsA) {
+    if (!clubIdsB.has(stint.clubId) || seen.has(stint.clubId)) continue;
+    seen.add(stint.clubId);
+    shared.push({ clubId: stint.clubId, clubName: stint.clubName });
+  }
+
+  return shared;
+}
+
+function hasExplicitTransferLink(stintsA, stintsB, playerIdA, playerIdB) {
+  const allStints = [...stintsA, ...stintsB];
+
+  for (const stint of allStints) {
+    if (stint.transferFromPlayerId === playerIdA || stint.transferFromPlayerId === playerIdB) {
+      return true;
+    }
+    if (stint.transferToPlayerId === playerIdA || stint.transferToPlayerId === playerIdB) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/**
+ * @param {{ playerA: object, playerB: object }} params
+ */
+export function analyzeTransferLink({ playerA, playerB }) {
+  const stintsA = playerA.clubStints ?? [];
+  const stintsB = playerB.clubStints ?? [];
+  const sharedClubs = collectSharedClubs(stintsA, stintsB);
+  const evidence = [];
+
+  const successiveSameClub = sharedClubs.length > 0;
+  if (successiveSameClub) {
+    for (const club of sharedClubs) {
+      evidence.push(`双方均曾效力 ${club.clubName}`);
+    }
+  }
+
+  const explicitLink = hasExplicitTransferLink(
+    stintsA,
+    stintsB,
+    playerA.id,
+    playerB.id,
+  );
+
+  let directTransferLink = false;
+  if (explicitLink) {
+    directTransferLink = true;
+    evidence.push('数据源含显式球员关联字段（transferFromPlayerId/transferToPlayerId）');
+  } else if (successiveSameClub) {
+    evidence.push('insufficient_source_fields: 无显式转会关联字段，无法判定直接转会关联');
+  }
+
+  return {
+    directTransferLink,
+    successiveSameClub,
+    evidence,
+  };
+}
+
+function nodeKey(type, id) {
+  return `${type}:${id}`;
+}
+
+function parseNodeKey(key) {
+  const idx = key.indexOf(':');
+  return { type: key.slice(0, idx), id: key.slice(idx + 1) };
+}
+
+function buildBipartiteAdjacency(graphPlayers) {
+  const adj = new Map();
+  const clubNames = new Map();
+  const playerNames = new Map();
+
+  function addEdge(fromKey, toKey) {
+    if (!adj.has(fromKey)) adj.set(fromKey, []);
+    adj.get(fromKey).push(toKey);
+  }
+
+  for (const p of graphPlayers) {
+    playerNames.set(p.id, p.name);
+    for (const stint of p.clubStints ?? []) {
+      clubNames.set(stint.clubId, stint.clubName);
+      const playerKey = nodeKey('player', p.id);
+      const clubNodeKey = nodeKey('club', stint.clubId);
+      addEdge(playerKey, clubNodeKey);
+      addEdge(clubNodeKey, playerKey);
+    }
+  }
+
+  return { adj, clubNames, playerNames };
+}
+
+function rebuildPath(goalKey, parent) {
+  const nodes = [];
+  const edges = [];
+  let current = goalKey;
+
+  while (current) {
+    const { type, id } = parseNodeKey(current);
+    nodes.unshift({ type, id, name: '' });
+    const prev = parent.get(current);
+    if (prev) {
+      edges.unshift({ from: prev.from, to: current });
+      current = prev.from;
+    } else {
+      current = null;
+    }
+  }
+
+  return { nodes, edges };
+}
+
+/**
+ * @param {{
+ *   playerIdA: string,
+ *   playerIdB: string,
+ *   playerNameA: string,
+ *   playerNameB: string,
+ *   graphPlayers: Array<{ id: string, name: string, clubStints?: object[] }>,
+ *   maxHops?: number,
+ * }} params
+ */
+export function findShortestRelationPath({
+  playerIdA,
+  playerIdB,
+  playerNameA,
+  playerNameB,
+  graphPlayers,
+  maxHops = 6,
+}) {
+  if (playerIdA === playerIdB) {
+    return { pathStatus: 'no_path', relationDistance: null, indirectPath: null };
+  }
+
+  const { adj, clubNames, playerNames } = buildBipartiteAdjacency(graphPlayers);
+  playerNames.set(playerIdA, playerNameA);
+  playerNames.set(playerIdB, playerNameB);
+
+  const startKey = nodeKey('player', playerIdA);
+  const goalKey = nodeKey('player', playerIdB);
+
+  const queue = [{ key: startKey, depth: 0 }];
+  const visited = new Set([startKey]);
+  const parent = new Map();
+
+  let foundDepth = null;
+
+  while (queue.length > 0) {
+    const { key, depth } = queue.shift();
+
+    if (key === goalKey) {
+      foundDepth = depth;
+      break;
+    }
+
+    if (depth >= maxHops) continue;
+
+    for (const neighbor of adj.get(key) ?? []) {
+      if (visited.has(neighbor)) continue;
+      visited.add(neighbor);
+      parent.set(neighbor, { from: key });
+      queue.push({ key: neighbor, depth: depth + 1 });
+
+      if (neighbor === goalKey) {
+        foundDepth = depth + 1;
+        queue.length = 0;
+        break;
+      }
+    }
+  }
+
+  if (foundDepth === null) {
+    return { pathStatus: 'no_path', relationDistance: null, indirectPath: null };
+  }
+
+  const { nodes, edges } = rebuildPath(goalKey, parent);
+
+  for (const node of nodes) {
+    if (node.type === 'player') {
+      node.name = playerNames.get(node.id) ?? node.id;
+    } else {
+      node.name = clubNames.get(node.id) ?? node.id;
+    }
+  }
+
+  return {
+    pathStatus: 'found',
+    relationDistance: foundDepth,
+    indirectPath: {
+      distance: foundDepth,
+      nodes,
+      edges,
+    },
+  };
+}
+
 export function createRelationshipAnalysisService(deps = {}) {
-  return { analyzeDirectRelations };
+  return {
+    analyzeDirectRelations,
+    analyzeTransferLink,
+    findShortestRelationPath,
+  };
 }
