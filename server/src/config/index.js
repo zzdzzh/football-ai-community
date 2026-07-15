@@ -33,6 +33,9 @@ const envSchema = z.object({
   SCRAPER_USE_TRANSFERMARKT: z.enum(['0', '1', 'true', 'false', 'yes', 'no', 'on', 'off']).default('0'),
   FAN_CONTINUE_TIMEOUT_MS: z.coerce.number().default(30000),
   CONTENT_MODERATION_BLOCKLIST: z.string().default('./config/content-blocklist.txt'),
+  CAREER_SYNC_TTL_DAYS: z.coerce.number().default(7),
+  RELATIONSHIP_MAX_HOPS: z.coerce.number().default(6),
+  CAREER_SYNC_TIMEOUT_MS: z.coerce.number().default(20000),
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
 });
 
@@ -83,6 +86,13 @@ export const config = {
   },
   contentModeration: {
     blocklistPath: resolve(__dirname, '../..', env.CONTENT_MODERATION_BLOCKLIST),
+  },
+  careerSync: {
+    ttlDays: env.CAREER_SYNC_TTL_DAYS,
+    timeoutMs: env.CAREER_SYNC_TIMEOUT_MS,
+  },
+  relationship: {
+    maxHops: env.RELATIONSHIP_MAX_HOPS,
   },
   nodeEnv: env.NODE_ENV,
   isTest: env.NODE_ENV === 'test',
