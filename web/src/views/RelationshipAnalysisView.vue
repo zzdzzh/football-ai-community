@@ -7,6 +7,7 @@ import {
   getPlayerPairAnalysis,
   type DirectRelationVerdict,
   type OverlapDetail,
+  type PathNode,
   type PlayerPairAnalysisResponse,
 } from '@/api/player-pair-analyses';
 import FreshnessBanner from '@/components/relationship/FreshnessBanner.vue';
@@ -48,6 +49,14 @@ function verdictTagType(verdict: DirectRelationVerdict): 'success' | 'info' | 'w
 function formatOverlap(detail: OverlapDetail): string {
   const precision = detail.precision ? `（${detail.precision}）` : '';
   return `${detail.entityName}：${detail.overlapFrom} ～ ${detail.overlapTo}${precision}`;
+}
+
+function transferLinkLabel(linked: boolean): string {
+  return linked ? '是' : '否';
+}
+
+function formatPathNodes(nodes: PathNode[]): string {
+  return nodes.map((n) => n.name).join(' → ');
 }
 
 function clearPoll() {
@@ -220,6 +229,69 @@ onBeforeUnmount(() => {
           "
           description="未发现可展示的共同效力详情"
         />
+
+        <div v-if="analysis.result.transfer" class="verdict-section">
+          <h2 class="section-title">转会与先后加盟</h2>
+
+          <div class="verdict-row">
+            <span class="verdict-label">先后加盟同一球队</span>
+            <el-tag
+              :type="analysis.result.transfer.successiveSameClub ? 'success' : 'info'"
+              size="large"
+            >
+              {{ transferLinkLabel(analysis.result.transfer.successiveSameClub) }}
+            </el-tag>
+          </div>
+
+          <div class="verdict-row">
+            <span class="verdict-label">直接转会关联</span>
+            <el-tag
+              :type="analysis.result.transfer.directTransferLink ? 'success' : 'info'"
+              size="large"
+            >
+              {{ transferLinkLabel(analysis.result.transfer.directTransferLink) }}
+            </el-tag>
+          </div>
+
+          <div
+            v-if="analysis.result.transfer.evidence?.length"
+            class="details-section inner-details"
+          >
+            <h3 class="subsection-title">依据摘要</h3>
+            <ul class="detail-list">
+              <li v-for="(item, idx) in analysis.result.transfer.evidence" :key="idx">
+                {{ item }}
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <div
+          v-if="analysis.result.pathStatus && analysis.result.pathStatus !== 'skipped'"
+          class="verdict-section"
+        >
+          <h2 class="section-title">间接关系路径</h2>
+
+          <template v-if="analysis.result.pathStatus === 'found' && analysis.result.indirectPath">
+            <div class="verdict-row">
+              <span class="verdict-label">关系距离</span>
+              <el-tag type="success" size="large">
+                {{ analysis.result.relationDistance }}
+              </el-tag>
+            </div>
+            <p class="path-sequence">
+              {{ formatPathNodes(analysis.result.indirectPath.nodes) }}
+            </p>
+          </template>
+
+          <el-alert
+            v-else-if="analysis.result.pathStatus === 'no_path'"
+            type="info"
+            title="在跳数上限内未找到可达的间接关系路径"
+            :closable="false"
+            show-icon
+          />
+        </div>
       </template>
     </template>
   </section>
@@ -285,5 +357,18 @@ onBeforeUnmount(() => {
   flex-direction: column;
   gap: 0.35rem;
   font-size: 0.9rem;
+}
+
+.inner-details {
+  padding: 0.75rem 0 0;
+  background: transparent;
+  border: none;
+}
+
+.path-sequence {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  word-break: break-word;
 }
 </style>

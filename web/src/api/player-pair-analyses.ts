@@ -13,6 +13,40 @@ export interface OverlapDetail {
   precision?: string;
 }
 
+export interface TransferLink {
+  directTransferLink: boolean;
+  successiveSameClub: boolean;
+  evidence: string[];
+}
+
+export interface PathNode {
+  type: 'player' | 'club';
+  id: string;
+  name: string;
+}
+
+export interface PathEdge {
+  from: string;
+  to: string;
+}
+
+export interface RelationPath {
+  distance: number;
+  nodes: PathNode[];
+  edges: PathEdge[];
+}
+
+export interface PlayerPairResult {
+  clubmates: DirectRelationVerdict;
+  nationalTeammates: DirectRelationVerdict;
+  clubmateDetails?: OverlapDetail[];
+  nationalTeammateDetails?: OverlapDetail[];
+  transfer?: TransferLink;
+  pathStatus?: 'found' | 'no_path' | 'skipped';
+  relationDistance?: number | null;
+  indirectPath?: RelationPath | null;
+}
+
 export interface PlayerPairAnalysisResponse {
   status: 'ready' | 'computing' | 'failed';
   analysisId?: string | null;
@@ -25,20 +59,7 @@ export interface PlayerPairAnalysisResponse {
     summary: string;
     usedCacheOnly?: boolean;
   };
-  result?: {
-    clubmates: DirectRelationVerdict;
-    nationalTeammates: DirectRelationVerdict;
-    clubmateDetails?: OverlapDetail[];
-    nationalTeammateDetails?: OverlapDetail[];
-    transfer?: {
-      directTransferLink: boolean;
-      successiveSameClub: boolean;
-      evidence: string[];
-    };
-    pathStatus?: string;
-    relationDistance?: number | null;
-    indirectPath?: unknown;
-  } | null;
+  result?: PlayerPairResult | null;
   error?: string | null;
 }
 
