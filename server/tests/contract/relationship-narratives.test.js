@@ -1,19 +1,43 @@
-import request from 'supertest';
+import { jest } from '@jest/globals';
 import { randomUUID } from 'node:crypto';
-import { runMigrations } from '../../src/db/migrate.js';
-import { closeDb, getDb } from '../../src/db/connection.js';
-import { createApp } from '../../src/app.js';
-import { registerAndLogin } from '../helpers/seed-match-data.js';
-import { upsertCareerClub } from '../../src/db/repositories/career-club-repository.js';
-import { upsertCareerPlayer } from '../../src/db/repositories/career-player-repository.js';
-import { insertClubStint } from '../../src/db/repositories/club-stint-repository.js';
-import { upsertPlayerPairAnalysis } from '../../src/db/repositories/player-pair-analysis-repository.js';
-import { resetAiRateLimitStore } from '../../src/services/ai-rate-limit.js';
+
+const mockGenerateNarrative = jest.fn();
+
+jest.unstable_mockModule('../../src/ai/ai-relationship-service.js', () => ({
+  AiRelationshipService: class {},
+  createAiRelationshipService: () => ({
+    generateNarrative: mockGenerateNarrative,
+  }),
+}));
+
+const { default: request } = await import('supertest');
+const { runMigrations } = await import('../../src/db/migrate.js');
+const { closeDb, getDb } = await import('../../src/db/connection.js');
+const { createApp } = await import('../../src/app.js');
+const { registerAndLogin } = await import('../helpers/seed-match-data.js');
+const { upsertCareerClub } = await import('../../src/db/repositories/career-club-repository.js');
+const { upsertCareerPlayer } = await import('../../src/db/repositories/career-player-repository.js');
+const { insertClubStint } = await import('../../src/db/repositories/club-stint-repository.js');
+const { upsertPlayerPairAnalysis } = await import('../../src/db/repositories/player-pair-analysis-repository.js');
+const { resetAiRateLimitStore } = await import('../../src/services/ai-rate-limit.js');
 
 const PLAYER_A = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
 const PLAYER_B = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
 const CLUB_BARCA = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
 const COMPUTED_AT = '2026-07-17T12:00:00.000Z';
+
+function validAiText() {
+  return JSON.stringify({
+    narrative: '两人曾在 FC Barcelona 有重叠效力时段。',
+    claims: [{
+      type: 'clubmate',
+      status: 'established',
+      clubName: 'FC Barcelona',
+      overlapFrom: '2014-07-11',
+      overlapTo: '2020-09-23',
+    }],
+  });
+}
 
 function seedReadyPairAnalysis() {
   const now = new Date().toISOString();
@@ -122,6 +146,11 @@ describe('Relationship narratives API contract (POST)', () => {
   beforeEach(() => {
     resetAiRateLimitStore();
     getDb().prepare('DELETE FROM relationship_narratives').run();
+    mockGenerateNarrative.mockReset();
+    mockGenerateNarrative.mockResolvedValue({
+      text: validAiText(),
+      model: 'mock-model',
+    });
   });
 
   const narrativePath = () => `/api/player-pair-analyses/${PLAYER_A}/${PLAYER_B}/narrative`;
@@ -179,11 +208,11 @@ describe('Relationship narratives API contract (POST)', () => {
       analysisId: analysis.id,
       analysisComputedAt: COMPUTED_AT,
       aiGenerated: true,
-      reused: expect.any(Boolean),
+      reused: false,
       narrativeText: expect.any(String),
     });
-    expect(typeof res.body.narrativeText).toBe('string');
     expect(res.body.narrativeText.length).toBeGreaterThan(0);
+    expect(mockGenerateNarrative).toHaveBeenCalled();
   });
 
   it('returns 422 on narrative_verification_failed', async () => {

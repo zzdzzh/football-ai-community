@@ -13,3 +13,8 @@ export function createAiContentService() {
   });
   return new AiContentService(adapter);
 }
+
+export {
+  AiRelationshipService,
+  createAiRelationshipService,
+} from './ai-relationship-service.js';

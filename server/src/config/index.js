@@ -36,6 +36,9 @@ const envSchema = z.object({
   CAREER_SYNC_TTL_DAYS: z.coerce.number().default(7),
   RELATIONSHIP_MAX_HOPS: z.coerce.number().default(6),
   CAREER_SYNC_TIMEOUT_MS: z.coerce.number().default(60000),
+  /** 同一用户对同一 Agent 每窗口最大 AI 提问次数；0=关闭。测试环境默认 0 */
+  AI_RATE_LIMIT_MAX: z.coerce.number().optional(),
+  AI_RATE_LIMIT_WINDOW_MS: z.coerce.number().default(60000),
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
 });
 
@@ -94,6 +97,11 @@ export const config = {
   },
   relationship: {
     maxHops: env.RELATIONSHIP_MAX_HOPS,
+  },
+  aiRateLimit: {
+    maxPerWindow: env.AI_RATE_LIMIT_MAX
+      ?? (env.NODE_ENV === 'test' ? 0 : 10),
+    windowMs: env.AI_RATE_LIMIT_WINDOW_MS,
   },
   nodeEnv: env.NODE_ENV,
   isTest: env.NODE_ENV === 'test',
