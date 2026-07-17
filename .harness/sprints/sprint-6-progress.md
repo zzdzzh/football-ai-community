@@ -41,7 +41,7 @@
 - [x] T013 [P] [US2] Create `PlayerIdentityLinkBadge` in `web/src/components/relationship/PlayerIdentityLinkBadge.vue` | L1:✅ L2:✅ |
 - [x] T014 [US2] Integrate identity badges into relationship conclusion area in `web/src/views/RelationshipAnalysisView.vue` | L1:✅ L2:✅ |
 - [x] T015 [US2] Create lightweight stats entry page and register `/players/:playerId` route in `web/src/views/PlayerStatsEntryView.vue` and `web/src/router/index.ts` | L1:✅ typecheck:✅ L2:✅ |
-- [ ] 🚧 **批次6.4门禁: L1 Step4 + 👁 HV-1 (~5 min, 产品/用户)** | 结果: ⏳ 自动化 PASS，待 HV-1 |
+- [x] 🚧 **批次6.4门禁: L1 Step4 + 👁 HV-1 PASS** | 结果: ✅ 用户肉眼验收通过（关系页关联态 + `/players/{id}` 跳转） |
 
 ---
 
