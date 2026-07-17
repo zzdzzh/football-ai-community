@@ -4,6 +4,7 @@ import { findCareerPlayerById } from '../db/repositories/career-player-repositor
 import { findPlayerPairAnalysis } from '../db/repositories/player-pair-analysis-repository.js';
 import {
   findByAnalysisVersion,
+  findLatestReadyByPair,
 } from '../db/repositories/relationship-narrative-repository.js';
 import {
   createRelationshipNarrativeAgent,
@@ -132,18 +133,30 @@ export async function getRelationshipNarrative({
   playerIdA,
   playerIdB,
   userId,
+  analysisOverride = null,
 } = {}) {
   if (!userId) {
     throw new AppError(401, 'unauthorized', '请先登录');
   }
 
-  const analysis = resolveReadyAnalysis(playerIdA, playerIdB, null);
+  const analysis = resolveReadyAnalysis(playerIdA, playerIdB, analysisOverride);
   const existing = findByAnalysisVersion(analysis.id, analysis.computedAt);
-  if (!existing || existing.status !== 'ready' || !existing.narrativeText) {
-    throw new AppError(404, 'not_found', '尚无与当前结论版本匹配的叙事');
+  if (existing?.status === 'ready' && existing.narrativeText) {
+    return toResponse(existing, { playerIdA, playerIdB, reused: true });
   }
 
-  return toResponse(existing, { playerIdA, playerIdB, reused: true });
+  const latest = findLatestReadyByPair(playerIdA, playerIdB);
+  if (latest?.narrativeText
+    && (latest.analysisId !== analysis.id
+      || latest.analysisComputedAt !== analysis.computedAt)) {
+    throw new AppError(
+      404,
+      'narrative_stale',
+      '关系结论已更新，原有叙事已过期，请重新生成',
+    );
+  }
+
+  throw new AppError(404, 'not_found', '尚无与当前结论版本匹配的叙事');
 }
 
 export { orderPair };

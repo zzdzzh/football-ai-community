@@ -336,6 +336,8 @@ function goBackSearch() {
           :player-id-a="playerIdA"
           :player-id-b="playerIdB"
           :analysis-ready="true"
+          :analysis-id="analysis.analysisId"
+          :analysis-computed-at="analysis.computedAt"
         />
 
         <div class="verdict-section">

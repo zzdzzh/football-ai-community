@@ -3,6 +3,7 @@ import { computed, ref, watch } from 'vue';
 import { ElMessage } from 'element-plus';
 import {
   createRelationshipNarrative,
+  getRelationshipNarrative,
   type RelationshipNarrativeResponse,
 } from '@/api/relationship-narratives';
 
@@ -10,25 +11,27 @@ const props = defineProps<{
   playerIdA: string;
   playerIdB: string;
   analysisReady: boolean;
+  analysisId?: string | null;
+  analysisComputedAt?: string | null;
 }>();
 
 const loading = ref(false);
+const loadingExisting = ref(false);
 const narrative = ref<RelationshipNarrativeResponse | null>(null);
 const errorMessage = ref('');
 const errorKind = ref<'timeout' | 'rate_limited' | 'verification' | 'other' | ''>('');
+const staleHint = ref(false);
 
-const canGenerate = computed(() => props.analysisReady && !loading.value);
+const canGenerate = computed(() => props.analysisReady && !loading.value && !loadingExisting.value);
 
-watch(
-  () => [props.playerIdA, props.playerIdB] as const,
-  () => {
-    narrative.value = null;
-    errorMessage.value = '';
-    errorKind.value = '';
-  },
-);
+function resetLocal() {
+  narrative.value = null;
+  errorMessage.value = '';
+  errorKind.value = '';
+  staleHint.value = false;
+}
 
-function mapError(err: unknown): { message: string; kind: typeof errorKind.value } {
+function mapError(err: unknown): { message: string; kind: typeof errorKind.value; stale?: boolean } {
   const axiosErr =
     err && typeof err === 'object'
       ? (err as {
@@ -53,7 +56,49 @@ function mapError(err: unknown): { message: string; kind: typeof errorKind.value
   if (status === 409) {
     return { message: msg || '分析尚未就绪，请稍候再生成', kind: 'other' };
   }
+  if (status === 404 && code === 'narrative_stale') {
+    return {
+      message: msg || '关系结论已更新，原有叙事已过期，请重新生成',
+      kind: 'other',
+      stale: true,
+    };
+  }
   return { message: msg || '生成失败，请稍后重试', kind: 'other' };
+}
+
+async function loadExisting() {
+  if (!props.analysisReady || !props.playerIdA || !props.playerIdB) return;
+
+  loadingExisting.value = true;
+  errorMessage.value = '';
+  staleHint.value = false;
+  try {
+    const result = await getRelationshipNarrative(props.playerIdA, props.playerIdB);
+    narrative.value = result;
+    if (
+      props.analysisComputedAt
+      && result.analysisComputedAt
+      && result.analysisComputedAt !== props.analysisComputedAt
+    ) {
+      staleHint.value = true;
+    }
+  } catch (err) {
+    const mapped = mapError(err);
+    narrative.value = null;
+    if (mapped.stale) {
+      staleHint.value = true;
+      errorMessage.value = '';
+    } else {
+      // 404 尚无叙事：保持空态 CTA，不显示错误
+      const axiosErr = err as { response?: { status?: number } };
+      if (axiosErr?.response?.status !== 404) {
+        errorMessage.value = mapped.message;
+        errorKind.value = mapped.kind;
+      }
+    }
+  } finally {
+    loadingExisting.value = false;
+  }
 }
 
 async function handleGenerate(force = false) {
@@ -69,11 +114,11 @@ async function handleGenerate(force = false) {
       { force },
     );
     narrative.value = result;
+    staleHint.value = false;
     errorMessage.value = '';
     errorKind.value = '';
   } catch (err) {
     const mapped = mapError(err);
-    // 已有成功叙事时，「重新生成」失败不应盖住正文，避免成功+报错并存
     if (narrative.value) {
       ElMessage.error(mapped.message);
     } else {
@@ -85,12 +130,28 @@ async function handleGenerate(force = false) {
   }
 }
 
-defineExpose({
-  clear: () => {
-    narrative.value = null;
-    errorMessage.value = '';
-    errorKind.value = '';
+watch(
+  () => [props.playerIdA, props.playerIdB] as const,
+  () => {
+    resetLocal();
   },
+);
+
+watch(
+  () => [props.analysisReady, props.analysisId, props.analysisComputedAt, props.playerIdA, props.playerIdB] as const,
+  ([ready]) => {
+    if (ready) {
+      loadExisting();
+    } else {
+      resetLocal();
+    }
+  },
+  { immediate: true },
+);
+
+defineExpose({
+  clear: resetLocal,
+  reload: loadExisting,
 });
 </script>
 
@@ -108,7 +169,22 @@ defineExpose({
     />
 
     <template v-else>
-      <div v-if="!narrative && !loading && !errorMessage" class="empty-cta">
+      <el-alert
+        v-if="staleHint"
+        type="warning"
+        title="关系结论已更新，当前叙事可能已过期"
+        description="可点击「重新生成」基于最新结构化结论更新解读。"
+        :closable="false"
+        show-icon
+        class="stale-alert"
+      />
+
+      <div v-if="loadingExisting && !narrative" class="loading-block">
+        <el-skeleton :rows="3" animated />
+        <p class="loading-hint">正在加载已有关系解读…</p>
+      </div>
+
+      <div v-else-if="!narrative && !loading && !errorMessage" class="empty-cta">
         <p class="hint">基于本页结构化结论，生成一次性简体中文关系介绍。</p>
         <el-button type="primary" :disabled="!canGenerate" @click="handleGenerate(false)">
           生成关系解读
@@ -212,7 +288,8 @@ defineExpose({
   gap: 0.5rem;
 }
 
-.error-alert {
+.error-alert,
+.stale-alert {
   width: 100%;
 }
 </style>
