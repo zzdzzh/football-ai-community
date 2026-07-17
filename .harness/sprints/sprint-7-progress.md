@@ -18,10 +18,10 @@
 
 ## 批次 7.2 · Day 1 · US1 契约与单元测试（TDD）
 
-- [ ] T005 [P] [US1] Unit tests for claim verification (clubmate/transfer/path allow-list, unknown/not_established not upgraded, honor claims reject, contradictory narrative reject) with 100% branch coverage in `server/tests/unit/relationship-narrative-verifier.test.js` | L1:- L2:- |
-- [ ] T006 [P] [US1] Unit tests for ready-gate, Mock AI success/timeout/upstream fail, verification failure path, and `assertAiRateLimit({ agentId: 'relationship' })` 429 with 100% branch coverage in `server/tests/unit/relationship-narrative-agent.test.js` | L1:- L2:- |
-- [ ] T007 [P] [US1] Contract tests for `POST /player-pair-analyses/{playerIdA}/{playerIdB}/narrative` (401, 409 not ready, 200 structure with `aiGenerated`/`reused`, 422 verification_failed, 429, 408/503) in `server/tests/contract/relationship-narratives.test.js` | L1:- L2:- |
-- [ ] 🚧 **批次7.2门禁: L1 Step4 (启动+接口端点验证：unit+contract 用例可执行，实现前可 Red)** | 结果: - |
+- [x] T005 [P] [US1] Unit tests for claim verification (clubmate/transfer/path allow-list, unknown/not_established not upgraded, honor claims reject, contradictory narrative reject) with 100% branch coverage in `server/tests/unit/relationship-narrative-verifier.test.js` | L1:✅(Red/模块未实现) L2:✅ |
+- [x] T006 [P] [US1] Unit tests for ready-gate, Mock AI success/timeout/upstream fail, verification failure path, and `assertAiRateLimit({ agentId: 'relationship' })` 429 with 100% branch coverage in `server/tests/unit/relationship-narrative-agent.test.js` | L1:✅(Red/模块未实现) L2:✅ |
+- [x] T007 [P] [US1] Contract tests for `POST /player-pair-analyses/{playerIdA}/{playerIdB}/narrative` (401, 409 not ready, 200 structure with `aiGenerated`/`reused`, 422 verification_failed, 429, 408/503) in `server/tests/contract/relationship-narratives.test.js` | L1:✅(Red/404) L2:✅ |
+- [x] 🚧 **批次7.2门禁: L1 Step4 (启动+接口端点验证：unit+contract 用例可执行，实现前可 Red)** | 结果: ✅ unit:Cannot find module; contract:401 pass/其余404 Red |
 
 ---
 

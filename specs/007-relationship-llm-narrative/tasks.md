@@ -62,9 +62,9 @@
 
 > **NOTE**: Write these tests FIRST; ensure they FAIL before implementation
 
-- [ ] T005 [P] [US1] Unit tests for claim verification (clubmate/transfer/path allow-list, unknown/not_established not upgraded, honor claims reject, contradictory narrative reject) with 100% branch coverage in `server/tests/unit/relationship-narrative-verifier.test.js`
-- [ ] T006 [P] [US1] Unit tests for ready-gate, Mock AI success/timeout/upstream fail, verification failure path, and `assertAiRateLimit({ agentId: 'relationship' })` 429 with 100% branch coverage in `server/tests/unit/relationship-narrative-agent.test.js`
-- [ ] T007 [P] [US1] Contract tests for `POST /player-pair-analyses/{playerIdA}/{playerIdB}/narrative` (401, 409 not ready, 200 structure with `aiGenerated`/`reused`, 422 verification_failed, 429, 408/503) in `server/tests/contract/relationship-narratives.test.js`
+- [x] T005 [P] [US1] Unit tests for claim verification (clubmate/transfer/path allow-list, unknown/not_established not upgraded, honor claims reject, contradictory narrative reject) with 100% branch coverage in `server/tests/unit/relationship-narrative-verifier.test.js`
+- [x] T006 [P] [US1] Unit tests for ready-gate, Mock AI success/timeout/upstream fail, verification failure path, and `assertAiRateLimit({ agentId: 'relationship' })` 429 with 100% branch coverage in `server/tests/unit/relationship-narrative-agent.test.js`
+- [x] T007 [P] [US1] Contract tests for `POST /player-pair-analyses/{playerIdA}/{playerIdB}/narrative` (401, 409 not ready, 200 structure with `aiGenerated`/`reused`, 422 verification_failed, 429, 408/503) in `server/tests/contract/relationship-narratives.test.js`
 
 ### Implementation for User Story 1
 
