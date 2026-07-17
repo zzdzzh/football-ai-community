@@ -86,9 +86,9 @@
 
 ### Implementation for User Story 2
 
-- [ ] T013 [P] [US2] Add web API client for narrative GET/POST (incl. `force`) in `web/src/api/relationship-narratives.ts`
-- [ ] T014 [P] [US2] Create `RelationshipNarrativePanel` (disabled when analysis not ready; empty CTA; loading; success + AI badge; error/timeout/429 + retry) in `web/src/components/relationship/RelationshipNarrativePanel.vue`
-- [ ] T015 [US2] Integrate narrative panel into relationship page without replacing structured conclusion UI in `web/src/views/RelationshipAnalysisView.vue`
+- [x] T013 [P] [US2] Add web API client for narrative GET/POST (incl. `force`) in `web/src/api/relationship-narratives.ts`
+- [x] T014 [P] [US2] Create `RelationshipNarrativePanel` (disabled when analysis not ready; empty CTA; loading; success + AI badge; error/timeout/429 + retry) in `web/src/components/relationship/RelationshipNarrativePanel.vue`
+- [x] T015 [US2] Integrate narrative panel into relationship page without replacing structured conclusion UI in `web/src/views/RelationshipAnalysisView.vue`
 
 **Checkpoint**: User Stories 1+2 可独立验收 — 关系页可触发生成并降级保留结构化面板（对齐 SC-002/SC-003）
 
