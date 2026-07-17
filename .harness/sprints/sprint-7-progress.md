@@ -39,7 +39,7 @@
 ## 批次 7.4 · Day 2–3 · US2 — 关系页叙事面板与失败降级
 
 - [x] T013 [P] [US2] Add web API client for narrative GET/POST (incl. `force`) in `web/src/api/relationship-narratives.ts` | L1:✅(vue-tsc) L2:✅ |
-- [x] T014 [P] [US2] Create `RelationshipNarrativePanel` (disabled when analysis not ready; empty CTA; loading; success + AI badge; error/timeout/429 + retry) in `web/src/components/relationship/RelationshipNarrativePanel.vue` | L1:✅ L2:✅ |
+- [x] T014 [P] [US2] Create `RelationshipNarrativePanel` (disabled when analysis not ready; empty CTA; loading; success + AI badge; error/timeout/429 + retry) in `web/src/components/relationship/RelationshipNarrativePanel.vue` | L1:✅ L2:✅(成功/失败态互斥) |
 - [x] T015 [US2] Integrate narrative panel into relationship page without replacing structured conclusion UI in `web/src/views/RelationshipAnalysisView.vue` | L1:✅ L2:✅ |
 - [ ] 🚧 **批次7.4门禁: L1 Step4 + 👁 HV-1 (~5 min, 产品/用户)** | 结果: 自动化 vue-tsc ✅；👁 HV-1 待签收 |
 
