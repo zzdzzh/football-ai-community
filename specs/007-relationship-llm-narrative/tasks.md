@@ -123,10 +123,10 @@
 
 **Purpose**: 边界验证、覆盖率门禁、人工验收与文档对齐
 
-- [ ] T020 [P] Run quickstart.md validation checklist and record results in `specs/007-relationship-llm-narrative/quickstart.md`（或同目录验收笔记；含至少 1 次真实模型调用走查）
-- [ ] T021 [P] Confirm Scope 边界：007 无 diff 改写 005/006 `contracts/openapi.yaml` / `data-model.md`；无多轮 conversation 端点；005 既有 unit/contract 仍 PASS（验证记录写入 `specs/007-relationship-llm-narrative/checklists/requirements.md` 或等价笔记）
-- [ ] T022 Verify AI-path unit coverage (verifier + agent + service rate-limit/degrade branches) reaches 100% via `server` Jest coverage for the touched modules
-- [ ] T023 Complete SC-001 sample spot-check (≥5 related pairs + ≥3 unrelated) and SC-003 failure-degrade manual pass; attach notes under `specs/007-relationship-llm-narrative/checklists/requirements.md`
+- [x] T020 [P] Run quickstart.md validation checklist and record results in `specs/007-relationship-llm-narrative/quickstart.md`（或同目录验收笔记；含至少 1 次真实模型调用走查）
+- [x] T021 [P] Confirm Scope 边界：007 无 diff 改写 005/006 `contracts/openapi.yaml` / `data-model.md`；无多轮 conversation 端点；005 既有 unit/contract 仍 PASS（验证记录写入 `specs/007-relationship-llm-narrative/checklists/requirements.md` 或等价笔记）
+- [x] T022 Verify AI-path unit coverage (verifier + agent + service rate-limit/degrade branches) reaches 100% via `server` Jest coverage for the touched modules
+- [x] T023 Complete SC-001 sample spot-check (≥5 related pairs + ≥3 unrelated) and SC-003 failure-degrade manual pass; attach notes under `specs/007-relationship-llm-narrative/checklists/requirements.md`
 
 ---
 

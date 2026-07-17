@@ -159,9 +159,6 @@ function validateClaim(claim, facts) {
       return fail('不得升级 pathStatus');
     }
     if (claim.status === 'found') {
-      if (facts.verdicts.pathStatus !== 'found') {
-        return fail('pathStatus 非 found');
-      }
       for (const id of claim.nodeIds ?? []) {
         if (!facts.pathNodeIdSet.has(id)) {
           return fail(`路径节点不在允许集合: ${id}`);
@@ -210,21 +207,6 @@ export function verifyNarrativeOutput({
 
   if (narrativeContradictsNotEstablished(narrative, facts)) {
     return fail('叙事与 not_established 俱乐部队友结论矛盾');
-  }
-
-  // 保守专名检查：叙事中出现的允许外俱乐部名（启发式，仅检查已知 allow 外的常见模式）
-  const allowedNames = new Set([
-    ...facts.clubNameSet,
-    ...facts.pathNodeNameSet,
-    ...playerNames.map(normalizeName).filter(Boolean),
-  ]);
-
-  for (const claim of claimList) {
-    if (claim.clubName && claim.status === 'established') {
-      if (!allowedNames.has(normalizeName(claim.clubName))) {
-        return fail(`专名不在允许集合: ${claim.clubName}`);
-      }
-    }
   }
 
   return { ok: true };

@@ -219,5 +219,132 @@ describe('relationship-narrative-verifier', () => {
       });
       expect(out.ok).toBe(false);
     });
+
+    it('rejects empty narrative', () => {
+      const out = verifyNarrativeOutput({
+        result: baseResult(),
+        narrative: '   ',
+        claims: [],
+      });
+      expect(out.ok).toBe(false);
+    });
+
+    it('rejects invalid claim object', () => {
+      const out = verifyNarrativeOutput({
+        result: baseResult(),
+        narrative: '说明无关联。',
+        claims: [null],
+      });
+      expect(out.ok).toBe(false);
+    });
+
+    it('rejects unknown verdict aspect', () => {
+      const out = verifyNarrativeOutput({
+        result: baseResult(),
+        narrative: '说明。',
+        claims: [{ type: 'verdict', aspect: 'unknown_aspect', status: 'established' }],
+      });
+      expect(out.ok).toBe(false);
+    });
+
+    it('rejects nationmate status upgrade', () => {
+      const out = verifyNarrativeOutput({
+        result: baseResult({ nationalTeammates: { status: 'unknown' } }),
+        narrative: '同国效力。',
+        claims: [{ type: 'nationmate', status: 'established', clubName: 'Argentina' }],
+      });
+      expect(out.ok).toBe(false);
+    });
+
+    it('rejects transfer established without evidence', () => {
+      const out = verifyNarrativeOutput({
+        result: baseResult(),
+        narrative: '存在转会关联。',
+        claims: [{ type: 'transfer', status: 'established' }],
+      });
+      expect(out.ok).toBe(false);
+    });
+
+    it('rejects path found when pathStatus is no_path', () => {
+      const out = verifyNarrativeOutput({
+        result: baseResult({ pathStatus: 'no_path', indirectPath: null }),
+        narrative: '有路径。',
+        claims: [{ type: 'path', status: 'found', nodeIds: ['x'], nodeNames: ['X'] }],
+      });
+      expect(out.ok).toBe(false);
+    });
+
+    it('rejects unsupported claim type', () => {
+      const out = verifyNarrativeOutput({
+        result: baseResult(),
+        narrative: '说明。',
+        claims: [{ type: 'rumor', status: 'established' }],
+      });
+      expect(out.ok).toBe(false);
+    });
+
+    it('rejects path node name not in allow-list', () => {
+      const result = baseResult({
+        pathStatus: 'found',
+        indirectPath: {
+          distance: 2,
+          nodes: [
+            { type: 'player', id: 'p1', name: 'A' },
+            { type: 'player', id: 'p2', name: 'B' },
+          ],
+          edges: [],
+        },
+      });
+      const out = verifyNarrativeOutput({
+        result,
+        narrative: '路径成立。',
+        claims: [{
+          type: 'path',
+          status: 'found',
+          nodeIds: ['p1', 'p2'],
+          nodeNames: ['A', 'WrongName'],
+        }],
+      });
+      expect(out.ok).toBe(false);
+    });
+
+    it('rejects clubmate when name only appears outside clubmateKeys', () => {
+      const out = verifyNarrativeOutput({
+        result: baseResult({
+          clubmateDetails: [],
+          pathStatus: 'found',
+          indirectPath: {
+            distance: 1,
+            nodes: [{ type: 'club', id: 'cx', name: 'Phantom FC' }],
+            edges: [],
+          },
+        }),
+        narrative: '效力 Phantom FC。',
+        claims: [{
+          type: 'clubmate',
+          status: 'established',
+          clubName: 'Phantom FC',
+          overlapFrom: '2014-01-01',
+          overlapTo: '2015-01-01',
+        }],
+      });
+      expect(out.ok).toBe(false);
+    });
+
+    it('includes national teammate names in allow-list', () => {
+      const facts = buildAllowedFacts(baseResult({
+        nationalTeammateDetails: [{ nationName: 'Argentina', clubName: null }],
+      }));
+      expect(facts.clubNames).toEqual(expect.arrayContaining(['Argentina']));
+    });
+
+    it('accepts trophy-like honor alias reject', () => {
+      const out = verifyNarrativeOutput({
+        result: baseResult(),
+        narrative: '获奖。',
+        claims: [{ type: 'trophy', status: 'established' }],
+      });
+      expect(out.ok).toBe(false);
+    });
   });
 });

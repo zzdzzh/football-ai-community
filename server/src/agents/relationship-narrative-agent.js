@@ -11,12 +11,8 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const PROMPT_PATH = resolve(__dirname, '../../prompts/relationship-narrative.md');
 
 function promptVersion() {
-  try {
-    const raw = readFileSync(PROMPT_PATH, 'utf8');
-    return createHash('sha256').update(raw).digest('hex').slice(0, 12);
-  } catch {
-    return 'unknown';
-  }
+  const raw = readFileSync(PROMPT_PATH, 'utf8');
+  return createHash('sha256').update(raw).digest('hex').slice(0, 12);
 }
 
 function parseNarrativeJson(text) {
@@ -42,14 +38,8 @@ function mapAiError(err) {
 
 function buildAiContext(analysis) {
   return {
-    playerA: analysis.playerA ?? {
-      id: analysis.playerIdLow,
-      name: analysis.playerA?.name,
-    },
-    playerB: analysis.playerB ?? {
-      id: analysis.playerIdHigh,
-      name: analysis.playerB?.name,
-    },
+    playerA: analysis.playerA ?? { id: analysis.playerIdLow, name: null },
+    playerB: analysis.playerB ?? { id: analysis.playerIdHigh, name: null },
     result: analysis.result,
     dataFreshness: analysis.dataFreshness ?? null,
   };

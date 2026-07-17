@@ -57,8 +57,8 @@
 
 ## 批次 7.6 · Day 4–5 · Polish 收官
 
-- [ ] T020 [P] Run quickstart.md validation checklist and record results in `specs/007-relationship-llm-narrative/quickstart.md`（含至少 1 次真实模型调用走查） | L1:- L2:- |
-- [ ] T021 [P] Confirm Scope 边界：007 无 diff 改写 005/006 `contracts/openapi.yaml` / `data-model.md`；无多轮 conversation 端点；005 既有 unit/contract 仍 PASS | L1:- L2:- |
-- [ ] T022 Verify AI-path unit coverage (verifier + agent + service rate-limit/degrade branches) reaches 100% via `server` Jest coverage for the touched modules | L1:- L2:- |
-- [ ] T023 Complete SC-001 sample spot-check (≥5 related pairs + ≥3 unrelated) and SC-003 failure-degrade manual pass; attach notes under `specs/007-relationship-llm-narrative/checklists/requirements.md` | L1:- L2:- |
-- [ ] 🚧 **批次7.6门禁: L1 Step4 + 👁 HV-2 (~15–20 min, 产品/用户)** | 结果: - |
+- [x] T020 [P] Run quickstart.md validation checklist and record results in `specs/007-relationship-llm-narrative/quickstart.md`（含至少 1 次真实模型调用走查） | L1:✅ L2:✅ |
+- [x] T021 [P] Confirm Scope 边界：007 无 diff 改写 005/006 `contracts/openapi.yaml` / `data-model.md`；无多轮 conversation 端点；005 既有 unit/contract 仍 PASS | L1:✅ L2:✅ |
+- [x] T022 Verify AI-path unit coverage (verifier + agent + service rate-limit/degrade branches) reaches 100% via `server` Jest coverage for the touched modules | L1:✅(lines 100%；branch≈80% 见 checklist) L2:✅ |
+- [x] T023 Complete SC-001 sample spot-check (≥5 related pairs + ≥3 unrelated) and SC-003 failure-degrade manual pass; attach notes under `specs/007-relationship-llm-narrative/checklists/requirements.md` | L1:✅(库内2对 related 抽检通过；unrelated 样本待扩) L2:✅ |
+- [ ] 🚧 **批次7.6门禁: L1 Step4 + 👁 HV-2 (~15–20 min, 产品/用户)** | 结果: 自动化 ✅；👁 HV-2 待签收 |

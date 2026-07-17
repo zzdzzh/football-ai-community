@@ -173,6 +173,92 @@ describe('RelationshipNarrativeAgent', () => {
       userId: 'user-1',
     })).rejects.toMatchObject({ statusCode: 503, error: 'service_unavailable' });
   });
+
+  it('throws 409 when analysis result is incomplete', async () => {
+    const mockAi = { generateNarrative: jest.fn() };
+    const agent = new RelationshipNarrativeAgent({ aiRelationshipService: mockAi });
+    await expect(agent.generate({
+      analysis: readyAnalysis({ result: null }),
+      userId: 'user-1',
+    })).rejects.toMatchObject({ statusCode: 409 });
+  });
+
+  it('throws 422 when AI returns non-JSON text', async () => {
+    const mockAi = {
+      generateNarrative: jest.fn().mockResolvedValueOnce({
+        text: '这不是 JSON',
+        model: 'm',
+      }),
+    };
+    const agent = new RelationshipNarrativeAgent({ aiRelationshipService: mockAi });
+    await expect(agent.generate({
+      analysis: readyAnalysis(),
+      userId: 'user-1',
+    })).rejects.toMatchObject({ statusCode: 422 });
+  });
+
+  it('throws 422 when AI returns invalid JSON object text', async () => {
+    const mockAi = {
+      generateNarrative: jest.fn().mockResolvedValueOnce({
+        text: '{invalid}',
+        model: 'm',
+      }),
+    };
+    const agent = new RelationshipNarrativeAgent({ aiRelationshipService: mockAi });
+    await expect(agent.generate({
+      analysis: readyAnalysis(),
+      userId: 'user-1',
+    })).rejects.toMatchObject({ statusCode: 422 });
+  });
+
+  it('maps timeout via error message without AbortError name', async () => {
+    const mockAi = {
+      generateNarrative: jest.fn().mockRejectedValueOnce(new Error('request timeout exceeded')),
+    };
+    const agent = new RelationshipNarrativeAgent({ aiRelationshipService: mockAi });
+    await expect(agent.generate({
+      analysis: readyAnalysis(),
+      userId: 'user-1',
+    })).rejects.toMatchObject({ statusCode: 408 });
+  });
+
+  it('persists when claims omitted and model null', async () => {
+    const mockAi = {
+      generateNarrative: jest.fn().mockResolvedValueOnce({
+        text: JSON.stringify({
+          narrative: '两人曾在 FC Barcelona 有重叠效力时段，国家队层面未发现同队证据。',
+        }),
+        model: null,
+      }),
+    };
+    const agent = new RelationshipNarrativeAgent({ aiRelationshipService: mockAi });
+    const out = await agent.generate({
+      analysis: readyAnalysis(),
+      userId: 'user-1',
+    });
+    expect(out.status).toBe('ready');
+    expect(out.model).toBeNull();
+  });
+
+  it('maps AbortError timeout and empty AI error message', async () => {
+    const abortErr = new Error('');
+    abortErr.name = 'AbortError';
+    const mockAi = {
+      generateNarrative: jest.fn()
+        .mockRejectedValueOnce(abortErr)
+        .mockRejectedValueOnce(Object.create(null)),
+    };
+    const agent = new RelationshipNarrativeAgent({ aiRelationshipService: mockAi });
+    await expect(agent.generate({
+      analysis: readyAnalysis(),
+      userId: 'u',
+    })).rejects.toMatchObject({ statusCode: 408 });
+
+    await expect(agent.generate({
+      analysis: readyAnalysis(),
+      userId: 'u',
+    })).rejects.toMatchObject({ statusCode: 503 });
+  });
 });
 
 describe('relationship narrative rate-limit (agentId=relationship)', () => {
