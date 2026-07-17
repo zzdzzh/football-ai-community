@@ -121,16 +121,22 @@ describe('RelationshipNarrativeAgent', () => {
     })).rejects.toMatchObject({ statusCode: 408 });
   });
 
-  it('throws 503 on upstream AI failure', async () => {
+  it('maps upstream 429 to rate_limited with clear message', async () => {
+    const err = new Error('AI request failed: 429');
+    err.statusCode = 429;
+    err.details = '{"error":{"message":"rate limit"}}';
     const mockAi = {
-      generateNarrative: jest.fn().mockRejectedValueOnce(new Error('upstream down')),
+      generateNarrative: jest.fn().mockRejectedValueOnce(err),
     };
     const agent = new RelationshipNarrativeAgent({ aiRelationshipService: mockAi });
-
     await expect(agent.generate({
       analysis: readyAnalysis(),
       userId: 'user-1',
-    })).rejects.toMatchObject({ statusCode: 503 });
+    })).rejects.toMatchObject({
+      statusCode: 429,
+      error: 'rate_limited',
+      message: expect.stringMatching(/过于频繁|稍等/),
+    });
   });
 
   it('throws 422 when verification fails and does not persist ready narrative', async () => {

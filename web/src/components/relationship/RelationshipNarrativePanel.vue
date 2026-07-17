@@ -45,7 +45,7 @@ function mapError(err: unknown): { message: string; kind: typeof errorKind.value
   const msg = axiosErr?.response?.data?.message;
 
   if (status === 429 || code === 'rate_limited') {
-    return { message: msg || '提问过于频繁，请稍后再试', kind: 'rate_limited' };
+    return { message: msg || '模型调用过于频繁，请稍等约一分钟后再试', kind: 'rate_limited' };
   }
   if (status === 408 || code === 'timeout' || axiosErr?.code === 'ECONNABORTED') {
     return { message: msg || '生成超时，请稍后重试；下方结构化结论仍可查看', kind: 'timeout' };

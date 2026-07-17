@@ -30,8 +30,23 @@ function parseNarrativeJson(text) {
 
 function mapAiError(err) {
   if (err instanceof AppError) return err;
-  if (err?.name === 'AbortError' || /timeout/i.test(err?.message ?? '')) {
+  if (err?.name === 'AbortError' || err?.code === 'TIMEOUT' || err?.statusCode === 408
+    || /timeout/i.test(err?.message ?? '')) {
     return new AppError(408, 'timeout', '关系叙事生成超时，请稍后重试');
+  }
+  // 智谱免费 flash 等上游限流常返回 429；勿笼统报「服务不可用」
+  if (err?.statusCode === 429) {
+    return new AppError(
+      429,
+      'rate_limited',
+      '模型调用过于频繁，请稍等约一分钟后再重新生成',
+    );
+  }
+  if (err?.statusCode === 401 || err?.statusCode === 403) {
+    return new AppError(503, 'service_unavailable', 'AI 服务凭证无效或未配置');
+  }
+  if (typeof err?.statusCode === 'number' && err.statusCode >= 500) {
+    return new AppError(503, 'service_unavailable', '关系叙事服务暂时不可用，请稍后重试');
   }
   return new AppError(503, 'service_unavailable', '关系叙事服务暂时不可用，请稍后重试');
 }
