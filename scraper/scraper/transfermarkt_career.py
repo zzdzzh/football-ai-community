@@ -208,11 +208,31 @@ def search_players(query: str, *, limit: int = 20) -> dict[str, Any]:
     if not q:
         return {"items": [], "source": "transfermarkt"}
 
-    url = (
-        f"{TM_BASE}/schnellsuche/ergebnis/schnellsuche"
-        f"?query={quote_plus(q)}&x=0&y=0"
-    )
-    html = fetch_html(url, timeout=30)
+    # 多 URL 回退：部分地区/WAF 对带 x/y 的旧链接更严
+    urls = [
+        f"{TM_BASE}/schnellsuche/ergebnis/schnellsuche?query={quote_plus(q)}",
+        f"{TM_BASE}/schnellsuche/ergebnis/schnellsuche?query={quote_plus(q)}&x=0&y=0",
+        f"https://www.transfermarkt.co.uk/schnellsuche/ergebnis/schnellsuche?query={quote_plus(q)}",
+    ]
+
+    last_err: Exception | None = None
+    html = ""
+    for url in urls:
+        try:
+            html = fetch_html(url, timeout=30)
+            if html and "Human Verification" not in html and "captcha-container" not in html:
+                break
+            last_err = RuntimeError("Transfermarkt 触发人机验证，搜索暂不可用")
+            html = ""
+        except Exception as err:
+            last_err = err
+            html = ""
+
+    if not html:
+        raise RuntimeError(
+            f"Transfermarkt 球员搜索失败: {last_err}"
+        ) from last_err
+
     soup = BeautifulSoup(html, "lxml")
 
     items: list[dict[str, Any]] = []

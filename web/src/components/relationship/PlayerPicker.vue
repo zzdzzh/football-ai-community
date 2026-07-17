@@ -13,8 +13,13 @@ const query = ref('');
 const candidates = ref<CareerPlayerCandidate[]>([]);
 const searching = ref(false);
 const showCandidates = ref(false);
+const searchedOnce = ref(false);
+
+/** 少于此字数不发请求，减少噪声命中 */
+const MIN_QUERY_LEN = 2;
 
 let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+let searchSeq = 0;
 
 function formatDisambiguation(candidate: CareerPlayerCandidate): string {
   const parts: string[] = [];
@@ -25,32 +30,46 @@ function formatDisambiguation(candidate: CareerPlayerCandidate): string {
 }
 
 async function doSearch(keyword: string) {
-  if (!keyword.trim()) {
+  const trimmed = keyword.trim();
+  if (trimmed.length < MIN_QUERY_LEN) {
     candidates.value = [];
     showCandidates.value = false;
+    searchedOnce.value = false;
     return;
   }
+  const seq = ++searchSeq;
   searching.value = true;
+  searchedOnce.value = true;
   try {
-    const result = await searchCareerPlayers(keyword.trim(), 10);
+    const result = await searchCareerPlayers(trimmed, 15);
+    if (seq !== searchSeq) return;
     candidates.value = result.items;
     showCandidates.value = true;
-  } catch {
-    ElMessage.error('搜索球员失败');
+  } catch (err: unknown) {
+    if (seq !== searchSeq) return;
+    const status = (err as { response?: { status?: number } })?.response?.status;
+    if (status === 503) {
+      ElMessage.error('外部球员库暂不可用，请稍后重试或换英文名关键字');
+    } else {
+      ElMessage.error('搜索球员失败');
+    }
     candidates.value = [];
+    showCandidates.value = true;
   } finally {
-    searching.value = false;
+    if (seq === searchSeq) searching.value = false;
   }
 }
 
 watch(query, (value) => {
   if (debounceTimer) clearTimeout(debounceTimer);
-  if (!value.trim()) {
+  const trimmed = value.trim();
+  if (trimmed.length < MIN_QUERY_LEN) {
     candidates.value = [];
     showCandidates.value = false;
+    searchedOnce.value = false;
     return;
   }
-  debounceTimer = setTimeout(() => doSearch(value), 300);
+  debounceTimer = setTimeout(() => doSearch(value), 400);
 });
 
 function selectCandidate(candidate: CareerPlayerCandidate) {
@@ -58,6 +77,7 @@ function selectCandidate(candidate: CareerPlayerCandidate) {
   query.value = '';
   candidates.value = [];
   showCandidates.value = false;
+  searchedOnce.value = false;
 }
 
 function clearSelection() {
@@ -66,6 +86,7 @@ function clearSelection() {
 
 onBeforeUnmount(() => {
   if (debounceTimer) clearTimeout(debounceTimer);
+  searchSeq += 1;
 });
 </script>
 
@@ -85,10 +106,11 @@ onBeforeUnmount(() => {
     <template v-else>
       <el-input
         v-model="query"
-        placeholder="输入球员姓名搜索"
+        placeholder="英文名，如 Messi / Haaland"
         clearable
         :loading="searching"
-        @focus="showCandidates = candidates.length > 0"
+        @focus="showCandidates = candidates.length > 0 || searchedOnce"
+        @keyup.enter="doSearch(query)"
       />
 
       <ul v-if="showCandidates && candidates.length" class="candidate-list">
@@ -104,8 +126,12 @@ onBeforeUnmount(() => {
           </span>
         </li>
       </ul>
-      <p v-else-if="showCandidates && query.trim() && !searching" class="empty-hint">
-        未找到匹配球员，请换个关键字
+      <p v-else-if="searching" class="empty-hint">正在搜索…</p>
+      <p v-else-if="showCandidates && query.trim().length >= MIN_QUERY_LEN && !searching" class="empty-hint">
+        未找到匹配球员。建议用英文名（如 Messi），并尽量写全姓或名
+      </p>
+      <p v-else-if="query.trim().length > 0 && query.trim().length < MIN_QUERY_LEN" class="empty-hint">
+        请至少输入 {{ MIN_QUERY_LEN }} 个字符
       </p>
     </template>
   </div>
@@ -141,7 +167,7 @@ onBeforeUnmount(() => {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   background: #fff;
-  max-height: 240px;
+  max-height: 280px;
   overflow-y: auto;
 }
 

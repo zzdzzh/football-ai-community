@@ -271,7 +271,7 @@ Phase 6 Polish (T029–T030) ← HV-2
 - [ ] `cd server; npm test` — time-normalize / relationship-analysis / career-sync 单元测试全 PASS（100% 分支）
 - [ ] 双球员分析 URL 重入 — GET 同一 sorted pair 结论一致
 - [ ] 👁 HV-1 PASS — US1 搜索→消歧→直接关系肉眼验收
-- [ ] 👁 HV-2 PASS — US1～US3 全路径 + Transfermarkt 真实同步 + Scope/quickstart 验收
+- [x] 👁 HV-2 PASS — US1～US3 全路径 + Transfermarkt 真实同步 + Scope/quickstart 验收
 
 ## Sprint 完成标准
 

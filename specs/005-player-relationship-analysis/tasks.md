@@ -51,6 +51,7 @@
 - [x] T006 [P] Implement player-pair-analysis repository in server/src/db/repositories/player-pair-analysis-repository.js
 - [x] T007 [P] Implement time-normalize helpers (exact/month/year/season/open_ended/unparseable) in server/src/services/time-normalize.js
 - [x] T008 [P] Implement Transfermarkt career search/profile CLI in scraper/scraper/transfermarkt_career.py
+<!-- bugfix 2026-07-17: 搜索 URL 回退 + 人机验证识别 -->
 - [x] T009 Implement CareerDataAdapter and extend scraper-runner career CLI spawn in server/src/adapters/career-data-adapter.js and server/src/adapters/scraper-runner.js
 - [x] T010 Implement CareerSyncService with TTL, per-player replace transaction and zero-fabricated fallback in server/src/services/career-sync-service.js
 
@@ -78,9 +79,11 @@
 
 - [x] T016 [US1] Implement RelationshipAnalysisService direct clubmates/nationalTeammates verdicts and details in server/src/services/relationship-analysis-service.js
 - [x] T017 [US1] Implement career-players API (search/detail/sync) with requireAuth and mount routes in server/src/api/career-players.js and server/src/app.js
+<!-- bugfix 2026-07-17: 相关性排序 + 本地不足时合并远端候选（按 externalId 回传） -->
 - [x] T018 [US1] Implement player-pair-analyses API (GET reentry + POST retry) for direct relations, freshness and computing status in server/src/api/player-pair-analyses.js and server/src/app.js
 - [x] T019 [P] [US1] Add web API clients for career-players and player-pair-analyses in web/src/api/career-players.ts and web/src/api/player-pair-analyses.ts
 - [x] T020 [US1] Implement RelationshipSearchView and PlayerPicker (label-on-top dual search, explicit disambiguation) in web/src/views/RelationshipSearchView.vue and web/src/components/relationship/PlayerPicker.vue
+<!-- bugfix 2026-07-17: 最小 2 字、英文名提示、防抖与空态文案 -->
 - [x] T021 [US1] Implement RelationshipAnalysisView text conclusions + FreshnessBanner, register /relationships and /relationships/:playerIdA/:playerIdB routes and AppLayout nav entry in web/src/views/RelationshipAnalysisView.vue, web/src/components/relationship/FreshnessBanner.vue, web/src/router/index.ts and web/src/components/layout/AppLayout.vue
 
 **Checkpoint**: User Story 1 闭环可独立验收 — 搜索消歧 → 双 ID 分析页 → 直接关系文字结论 + 新鲜度（对齐 FR-001～011、SC-001/SC-002）

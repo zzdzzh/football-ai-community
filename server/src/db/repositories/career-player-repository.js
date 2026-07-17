@@ -1,6 +1,69 @@
 import { randomUUID } from 'node:crypto';
 import { getDb } from '../connection.js';
 
+/** 与入库 name_normalized 一致：去重音、折叠空白、小写（保留中日韩字符）。 */
+export function normalizeCareerSearchQuery(q) {
+  return String(q ?? '')
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/gi, 'd')
+    .replace(/ø/gi, 'o')
+    .replace(/æ/gi, 'ae')
+    .replace(/œ/gi, 'oe')
+    .replace(/ß/g, 'ss')
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/**
+ * 相关性评分：精确词 > 前缀 > 子串；短关键字不做子串/词内前缀，避免 me→Messi。
+ * @returns {number} 0 表示不命中
+ */
+export function scoreCareerPlayerName(nameNormalized, queryNormalized) {
+  const name = String(nameNormalized ?? '').trim();
+  const query = String(queryNormalized ?? '').trim();
+  if (!name || !query) return 0;
+
+  const words = name.split(/\s+/).filter(Boolean);
+  const tokens = query.split(/\s+/).filter(Boolean);
+  if (tokens.length === 0) return 0;
+
+  if (name === query) return 1000;
+  if (name.startsWith(`${query} `) || name === query) return 920;
+
+  // 短关键字：仅整词精确，禁止 me→Messi / Mees
+  if (query.length < 3) {
+    if (words.includes(query)) return 900;
+    return 0;
+  }
+
+  const allExactWords = tokens.every((t) => words.includes(t));
+  if (allExactWords) {
+    const lastWordBonus = words[words.length - 1] === tokens[tokens.length - 1] ? 40 : 0;
+    return 880 + lastWordBonus;
+  }
+
+  const allWordPrefixes = tokens.every((t) => words.some((w) => w.startsWith(t)));
+  if (allWordPrefixes) {
+    const firstBonus = words[0]?.startsWith(tokens[0]) ? 30 : 0;
+    const lastBonus = words[words.length - 1]?.startsWith(tokens[tokens.length - 1]) ? 40 : 0;
+    return 760 + firstBonus + lastBonus;
+  }
+
+  if (name.includes(query)) {
+    const idx = name.indexOf(query);
+    return Math.max(200, 480 - Math.min(idx, 200));
+  }
+
+  const allTokenSubstrings = tokens.every(
+    (t) => t.length >= 3 && words.some((w) => w.includes(t)),
+  );
+  if (allTokenSubstrings) return 300;
+
+  return 0;
+}
+
 export function mapCareerPlayerRow(row) {
   return {
     id: row.id,
@@ -83,33 +146,79 @@ export function searchCareerPlayers({ q, page = 1, pageSize = 20 } = {}) {
   const safePage = Math.max(1, page);
   const safePageSize = Math.min(50, Math.max(1, pageSize));
   const offset = (safePage - 1) * safePageSize;
+  const queryNormalized = normalizeCareerSearchQuery(q);
 
-  const conditions = [];
-  const params = [];
-
-  if (q) {
-    conditions.push('name_normalized LIKE ?');
-    params.push(`%${String(q).toLowerCase()}%`);
+  let rows;
+  if (!queryNormalized) {
+    rows = db.prepare(`
+      SELECT p.*, (
+        SELECT COUNT(*) FROM club_stints s WHERE s.player_id = p.id
+      ) AS stint_count
+      FROM career_players p
+      ORDER BY p.name_normalized ASC
+    `).all();
+  } else if (queryNormalized.length < 3) {
+    // 短关键字：仅词首/开头，避免 me 命中 ahmed
+    rows = db.prepare(`
+      SELECT p.*, (
+        SELECT COUNT(*) FROM club_stints s WHERE s.player_id = p.id
+      ) AS stint_count
+      FROM career_players p
+      WHERE p.name_normalized = ?
+         OR p.name_normalized LIKE ?
+         OR p.name_normalized LIKE ?
+    `).all(
+      queryNormalized,
+      `${queryNormalized}%`,
+      `% ${queryNormalized}%`,
+    );
+  } else {
+    rows = db.prepare(`
+      SELECT p.*, (
+        SELECT COUNT(*) FROM club_stints s WHERE s.player_id = p.id
+      ) AS stint_count
+      FROM career_players p
+      WHERE p.name_normalized LIKE ?
+    `).all(`%${queryNormalized}%`);
   }
 
-  const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+  const scored = rows
+    .map((row) => {
+      const player = mapCareerPlayerRow(row);
+      const score = queryNormalized
+        ? scoreCareerPlayerName(player.nameNormalized, queryNormalized)
+        : 1;
+      return {
+        player,
+        score,
+        stintCount: Number(row.stint_count) || 0,
+      };
+    })
+    .filter((entry) => entry.score > 0)
+    .sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score;
+      if (b.stintCount !== a.stintCount) return b.stintCount - a.stintCount;
+      const readyA = a.player.syncStatus === 'ready' ? 1 : 0;
+      const readyB = b.player.syncStatus === 'ready' ? 1 : 0;
+      if (readyB !== readyA) return readyB - readyA;
+      const clubA = a.player.currentClubName ? 1 : 0;
+      const clubB = b.player.currentClubName ? 1 : 0;
+      if (clubB !== clubA) return clubB - clubA;
+      return a.player.nameNormalized.localeCompare(b.player.nameNormalized);
+    });
 
-  const total = db.prepare(`
-    SELECT COUNT(*) AS count FROM career_players ${whereClause}
-  `).get(...params).count;
-
-  const rows = db.prepare(`
-    SELECT * FROM career_players
-    ${whereClause}
-    ORDER BY name_normalized ASC
-    LIMIT ? OFFSET ?
-  `).all(...params, safePageSize, offset);
+  const total = scored.length;
+  const pageItems = scored.slice(offset, offset + safePageSize).map((entry) => ({
+    ...entry.player,
+    _searchScore: entry.score,
+  }));
 
   return {
-    items: rows.map((row) => mapCareerPlayerRow(row)),
+    items: pageItems,
     total,
     page: safePage,
     pageSize: safePageSize,
+    bestScore: scored[0]?.score ?? 0,
   };
 }
 

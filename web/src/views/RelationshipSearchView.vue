@@ -23,7 +23,7 @@ function submit() {
 <template>
   <section class="relationship-search-view">
     <h1 class="page-title">球员关系分析</h1>
-    <p class="page-subtitle">搜索并选定两名球员，分析俱乐部队友与国家队队友关系</p>
+    <p class="page-subtitle">用英文名搜索并选定两名球员，分析俱乐部队友与国家队队友关系</p>
 
     <div class="picker-row">
       <PlayerPicker v-model="playerA" label="球员 A" />

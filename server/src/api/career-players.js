@@ -3,6 +3,8 @@ import { requireAuth } from '../middleware/auth.js';
 import { AppError } from '../middleware/error.js';
 import {
   findCareerPlayerById,
+  findCareerPlayerByExternal,
+  normalizeCareerSearchQuery,
   searchCareerPlayers,
   upsertCareerPlayer,
 } from '../db/repositories/career-player-repository.js';
@@ -15,13 +17,11 @@ const router = Router();
 
 router.use(requireAuth);
 
+/** 强命中阈值：精确词/前缀级以上，才可跳过远端补充搜索 */
+const STRONG_LOCAL_SCORE = 760;
+
 function normalizeName(name) {
-  return String(name ?? '')
-    .normalize('NFKD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .replace(/\s+/g, ' ')
-    .trim();
+  return normalizeCareerSearchQuery(name);
 }
 
 function toCandidate(player) {
@@ -34,6 +34,12 @@ function toCandidate(player) {
     primaryClubHint: player.currentClubName ?? null,
     externalId: player.externalId ?? null,
   };
+}
+
+function stripSearchMeta(player) {
+  if (!player || typeof player !== 'object') return player;
+  const { _searchScore, ...rest } = player;
+  return rest;
 }
 
 function ensureClubFromHint(clubName) {
@@ -118,36 +124,60 @@ router.get('/', async (req, res, next) => {
       throw new AppError(400, 'bad_request', 'limit 无效');
     }
 
+    const qNormalized = normalizeCareerSearchQuery(q);
     let sourceNote = 'local_only';
-    let result = searchCareerPlayers({ q, page: 1, pageSize: limit });
+    let result = searchCareerPlayers({ q: qNormalized || q, page: 1, pageSize: limit });
+    const localItems = result.items.map(stripSearchMeta);
+    const bestScore = result.bestScore ?? 0;
+    const localInsufficient =
+      localItems.length === 0 || bestScore < STRONG_LOCAL_SCORE;
 
-    if (result.items.length === 0) {
-      let externalError = null;
-      let usedExternal = false;
+    let externalError = null;
+    let externalPlayers = [];
+
+    if (localInsufficient) {
       try {
         const external = await careerSyncService.searchExternal(q, { limit });
         const items = Array.isArray(external?.items) ? external.items : [];
         if (items.length > 0) {
-          usedExternal = true;
           upsertExternalCandidates(items);
+          // 按远端相关序回传，避免中文/别名关键字二次 LIKE 丢结果
+          for (const item of items) {
+            const player = findCareerPlayerByExternal(
+              item.externalSource ?? 'transfermarkt',
+              String(item.externalId),
+            );
+            if (player) externalPlayers.push(player);
+          }
         }
       } catch (err) {
         externalError = err;
       }
+    }
 
-      result = searchCareerPlayers({ q, page: 1, pageSize: limit });
+    if (localItems.length === 0 && externalPlayers.length === 0 && externalError) {
+      throw new AppError(503, 'service_unavailable', '履历搜索服务暂不可用');
+    }
 
-      if (result.items.length === 0 && externalError) {
-        throw new AppError(503, 'service_unavailable', '履历搜索服务暂不可用');
-      }
+    const merged = [];
+    const seen = new Set();
+    for (const player of externalPlayers) {
+      if (seen.has(player.id)) continue;
+      seen.add(player.id);
+      merged.push(player);
+    }
+    for (const player of localItems) {
+      if (seen.has(player.id)) continue;
+      seen.add(player.id);
+      merged.push(player);
+    }
 
-      if (usedExternal) {
-        sourceNote = result.items.length > 0 ? 'external' : 'mixed';
-      }
+    if (externalPlayers.length > 0) {
+      sourceNote = localItems.length > 0 ? 'mixed' : 'external';
     }
 
     res.status(200).json({
-      items: result.items.map(toCandidate),
+      items: merged.slice(0, limit).map(toCandidate),
       sourceNote,
     });
   } catch (err) {

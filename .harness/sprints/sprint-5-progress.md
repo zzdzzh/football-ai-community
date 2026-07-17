@@ -80,10 +80,14 @@
 
 - [x] T029 [P] Emit career_sync_success/failure and pair_analysis_latency_ms/cache_hit metrics in server/src/services/career-sync-service.js and server/src/api/player-pair-analyses.js | L1:✅(23/23 sync + 10/10 pair) L2:✅ |
 - [x] T030 Run Scope 边界验证清单 and quickstart.md regression (no 003 players ALTER, no LLM QA endpoint, maxHops no_path, zero fabricated stints) per specs/005-player-relationship-analysis/plan.md and specs/005-player-relationship-analysis/quickstart.md | L1:✅ 014无players ALTER；无LLM QA；unit覆盖no_path；失败零虚构 | L2:✅ |
-- [ ] 🚧 **批次5.9门禁: L1 Step4 + 👁 HV-2 (~15–20 min, 产品/用户)** | 结果: 自动化✅；👁 HV-2 待签收 |
+- [x] 🚧 **批次5.9门禁: L1 Step4 + 👁 HV-2 (~15–20 min, 产品/用户)** | 结果: L1:✅ · HV-2: ✅ 用户签收 |
 
 ---
 
 ## Sprint 5 收官
 
-**状态**: 待 HV-2 后收官
+**状态**: ✅ 已完成（2026-07-17 · T001–T030 全部完成 · HV-2 用户签收）
+
+### 收官后修正
+
+- 2026-07-17 · **球员搜索难用** · 追溯 T008/T017/T020：本地相关性排序、短词防误伤、本地不足合并远端候选、PlayerPicker 英文名提示；待人工验证 `/relationships` 搜索

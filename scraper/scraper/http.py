@@ -48,6 +48,7 @@ def fetch_html(url: str, *, timeout: int = 30, max_retries: int = 3) -> str:
                     "User-Agent": DEFAULT_UA,
                     "Accept-Language": "en-US,en;q=0.9",
                     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                    "Referer": "https://www.transfermarkt.com/",
                 },
                 timeout=timeout,
             )
@@ -56,8 +57,14 @@ def fetch_html(url: str, *, timeout: int = 30, max_retries: int = 3) -> str:
                 time.sleep(2 * (attempt + 1))
                 continue
             if resp.status_code >= 400:
+                body_preview = (resp.text or "")[:200]
+                if "Human Verification" in body_preview or "captcha-container" in body_preview:
+                    raise RuntimeError(f"HTTP {resp.status_code} 人机验证拦截: {url}")
                 raise RuntimeError(f"HTTP {resp.status_code} 获取失败: {url}")
-            return resp.text
+            text = resp.text or ""
+            if "Human Verification" in text[:800] and "captcha-container" in text[:2000]:
+                raise RuntimeError(f"人机验证拦截: {url}")
+            return text
         except RuntimeError as err:
             last_err = err
             if "HTTP 5" in str(err) and attempt < max_retries - 1:
@@ -79,6 +86,7 @@ def fetch_html(url: str, *, timeout: int = 30, max_retries: int = 3) -> str:
         headers={
             "User-Agent": DEFAULT_UA,
             "Accept-Language": "en-US,en;q=0.9",
+            "Referer": "https://www.transfermarkt.com/",
         },
     )
     try:
