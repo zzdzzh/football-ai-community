@@ -68,11 +68,11 @@
 
 ### Implementation for User Story 1
 
-- [ ] T008 [P] [US1] Implement `AiRelationshipService` and register `createAiRelationshipService` in `server/src/ai/ai-relationship-service.js` and `server/src/ai/factory.js`（经既有 OpenAI 兼容 adapter；写 `agent_interaction_logs`）
-- [ ] T009 [P] [US1] Implement `relationship-narrative-verifier` (build allowed facts from 005 `result`, validate claims + conservative name check) in `server/src/services/relationship-narrative-verifier.js`
-- [ ] T010 [US1] Implement `RelationshipNarrativeAgent` (load prompt, assemble minimal context from ready analysis, call AI, parse JSON, verify, persist) in `server/src/agents/relationship-narrative-agent.js`
-- [ ] T011 [US1] Implement `relationship-narrative-service` (authenticate caller context, ready check, rate-limit only on real generate, orchestrate agent) in `server/src/services/relationship-narrative-service.js`
-- [ ] T012 [US1] Implement POST narrative route and mount in `server/src/api/relationship-narratives.js` and `server/src/app.js`（对齐 `specs/007-relationship-llm-narrative/contracts/openapi.yaml`）
+- [x] T008 [P] [US1] Implement `AiRelationshipService` and register `createAiRelationshipService` in `server/src/ai/ai-relationship-service.js` and `server/src/ai/factory.js`（经既有 OpenAI 兼容 adapter；写 `agent_interaction_logs`）
+- [x] T009 [P] [US1] Implement `relationship-narrative-verifier` (build allowed facts from 005 `result`, validate claims + conservative name check) in `server/src/services/relationship-narrative-verifier.js`
+- [x] T010 [US1] Implement `RelationshipNarrativeAgent` (load prompt, assemble minimal context from ready analysis, call AI, parse JSON, verify, persist) in `server/src/agents/relationship-narrative-agent.js`
+- [x] T011 [US1] Implement `relationship-narrative-service` (authenticate caller context, ready check, rate-limit only on real generate, orchestrate agent) in `server/src/services/relationship-narrative-service.js`
+- [x] T012 [US1] Implement POST narrative route and mount in `server/src/api/relationship-narratives.js` and `server/src/app.js`（对齐 `specs/007-relationship-llm-narrative/contracts/openapi.yaml`）
 
 **Checkpoint**: User Story 1 可独立验收 — Mock 路径生成/核验/限流/降级可测；真实就绪样例可 POST 得中文叙事（对齐 SC-001/SC-002 后端面）
 
