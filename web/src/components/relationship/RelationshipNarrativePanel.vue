@@ -120,7 +120,11 @@ async function handleGenerate(force = false) {
   } catch (err) {
     const mapped = mapError(err);
     if (narrative.value) {
-      ElMessage.error(mapped.message);
+      if (mapped.kind === 'rate_limited') {
+        ElMessage.warning(mapped.message);
+      } else {
+        ElMessage.error(mapped.message);
+      }
     } else {
       errorMessage.value = mapped.message;
       errorKind.value = mapped.kind;
