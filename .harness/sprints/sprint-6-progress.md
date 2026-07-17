@@ -58,4 +58,4 @@
 
 - [x] T019 [P] Emit structured align metrics/logs in `server/src/services/player-identity-align-service.js` and `server/src/jobs/player-identity-align.js` | L1:✅ L2:✅ |
 - [x] T020 Run Scope 边界验证清单 and quickstart.md regression per `specs/006-player-entity-alignment/plan.md` and `specs/006-player-entity-alignment/quickstart.md` | L1:✅ migration仅CREATE；003/005 contracts未改 | 
-- [ ] 🚧 **批次6.6门禁: L1 Step4 + 👁 HV-2 (~15–20 min, 产品/用户)** | 结果: ⏳ 自动化就绪，待 HV-1/HV-2 |
+- [x] 🚧 **批次6.6门禁: L1 Step4 + 👁 HV-2 PASS** | 结果: ✅ 用户肉眼验收 US1～US3 全路径 + Scope/quickstart 通过 |
