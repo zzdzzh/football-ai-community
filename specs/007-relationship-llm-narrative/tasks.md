@@ -107,13 +107,13 @@
 
 ### Tests for User Story 3
 
-- [ ] T016 [P] [US3] Unit tests for version-key reuse, `force=true` regenerate, stale when `computed_at` changes, cache-hit skips rate-limit in `server/tests/unit/relationship-narrative-service.test.js`
-- [ ] T017 [US3] Contract tests for `GET .../narrative` (200 match, 404 none/stale, 401, 409) and POST reuse (`reused=true`) in `server/tests/contract/relationship-narratives.test.js`（与 T007 同文件，串行增补）
+- [x] T016 [P] [US3] Unit tests for version-key reuse, `force=true` regenerate, stale when `computed_at` changes, cache-hit skips rate-limit in `server/tests/unit/relationship-narrative-service.test.js`
+- [x] T017 [US3] Contract tests for `GET .../narrative` (200 match, 404 none/stale, 401, 409) and POST reuse (`reused=true`) in `server/tests/contract/relationship-narratives.test.js`（与 T007 同文件，串行增补）
 
 ### Implementation for User Story 3
 
-- [ ] T018 [US3] Complete GET narrative + POST default-reuse / `force` overwrite against `(analysis_id, analysis_computed_at)` in `server/src/services/relationship-narrative-service.js` and `server/src/api/relationship-narratives.js`
-- [ ] T019 [US3] Auto-load existing narrative on page enter; show stale hint after analysis refresh; allow regenerate with `force` in `web/src/components/relationship/RelationshipNarrativePanel.vue` and `web/src/views/RelationshipAnalysisView.vue`
+- [x] T018 [US3] Complete GET narrative + POST default-reuse / `force` overwrite against `(analysis_id, analysis_computed_at)` in `server/src/services/relationship-narrative-service.js` and `server/src/api/relationship-narratives.js`
+- [x] T019 [US3] Auto-load existing narrative on page enter; show stale hint after analysis refresh; allow regenerate with `force` in `web/src/components/relationship/RelationshipNarrativePanel.vue` and `web/src/views/RelationshipAnalysisView.vue`
 
 **Checkpoint**: All user stories independently functional — 重入复用与版本刷新闭环（对齐 FR-010、SC-004）
 
