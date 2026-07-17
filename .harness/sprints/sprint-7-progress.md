@@ -41,17 +41,17 @@
 - [x] T013 [P] [US2] Add web API client for narrative GET/POST (incl. `force`) in `web/src/api/relationship-narratives.ts` | L1:✅(vue-tsc) L2:✅ |
 - [x] T014 [P] [US2] Create `RelationshipNarrativePanel` (disabled when analysis not ready; empty CTA; loading; success + AI badge; error/timeout/429 + retry) in `web/src/components/relationship/RelationshipNarrativePanel.vue` | L1:✅ L2:✅(成功/失败态互斥) |
 - [x] T015 [US2] Integrate narrative panel into relationship page without replacing structured conclusion UI in `web/src/views/RelationshipAnalysisView.vue` | L1:✅ L2:✅ |
-- [ ] 🚧 **批次7.4门禁: L1 Step4 + 👁 HV-1 (~5 min, 产品/用户)** | 结果: 自动化 vue-tsc ✅；👁 HV-1 待签收 |
+- [x] 🚧 **批次7.4门禁: L1 Step4 + 👁 HV-1 (~5 min, 产品/用户)** | 结果: ✅ 👁 HV-1 PASS；vue-tsc ✅；叙事+AI标识可见；T014 成功/失败态互斥已修 |
 
 ---
 
 ## 批次 7.5 · Day 3–4 · US3 — 版本复用、GET 与重入 UX
 
-- [ ] T016 [P] [US3] Unit tests for version-key reuse, `force=true` regenerate, stale when `computed_at` changes, cache-hit skips rate-limit in `server/tests/unit/relationship-narrative-service.test.js` | L1:- L2:- |
-- [ ] T017 [US3] Contract tests for `GET .../narrative` (200 match, 404 none/stale, 401, 409) and POST reuse (`reused=true`) in `server/tests/contract/relationship-narratives.test.js` | L1:- L2:- |
-- [ ] T018 [US3] Complete GET narrative + POST default-reuse / `force` overwrite against `(analysis_id, analysis_computed_at)` in `server/src/services/relationship-narrative-service.js` and `server/src/api/relationship-narratives.js` | L1:- L2:- |
-- [ ] T019 [US3] Auto-load existing narrative on page enter; show stale hint after analysis refresh; allow regenerate with `force` in `web/src/components/relationship/RelationshipNarrativePanel.vue` and `web/src/views/RelationshipAnalysisView.vue` | L1:- L2:- |
-- [ ] 🚧 **批次7.5门禁: L1 Step4 (启动+接口端点验证：`[APP_START_COMMAND]`+`[UI_START_COMMAND]` + GET/reuse/force/stale + 单元/契约 PASS)** | 结果: - |
+- [x] T016 [P] [US3] Unit tests for version-key reuse, `force=true` regenerate, stale when `computed_at` changes, cache-hit skips rate-limit in `server/tests/unit/relationship-narrative-service.test.js` | L1:✅ L2:✅ |
+- [x] T017 [US3] Contract tests for `GET .../narrative` (200 match, 404 none/stale, 401, 409) and POST reuse (`reused=true`) in `server/tests/contract/relationship-narratives.test.js` | L1:✅ L2:✅ |
+- [x] T018 [US3] Complete GET narrative + POST default-reuse / `force` overwrite against `(analysis_id, analysis_computed_at)` in `server/src/services/relationship-narrative-service.js` and `server/src/api/relationship-narratives.js` | L1:✅ L2:✅(stale=narrative_stale) |
+- [x] T019 [US3] Auto-load existing narrative on page enter; show stale hint after analysis refresh; allow regenerate with `force` in `web/src/components/relationship/RelationshipNarrativePanel.vue` and `web/src/views/RelationshipAnalysisView.vue` | L1:✅(vue-tsc) L2:✅ |
+- [x] 🚧 **批次7.5门禁: L1 Step4 (启动+接口端点验证：`[APP_START_COMMAND]`+`[UI_START_COMMAND]` + GET/reuse/force/stale + 单元/契约 PASS)** | 结果: ✅ health:UP；491 tests PASS；vue-tsc ✅；GET/reuse/force/stale 已覆盖 |
 
 ---
 
