@@ -16,6 +16,7 @@ import {
 import FreshnessBanner from '@/components/relationship/FreshnessBanner.vue';
 import RelationGraph from '@/components/relationship/RelationGraph.vue';
 import RelationshipTimeline from '@/components/relationship/RelationshipTimeline.vue';
+import RelationshipNarrativePanel from '@/components/relationship/RelationshipNarrativePanel.vue';
 import PlayerIdentityLinkBadge from '@/components/relationship/PlayerIdentityLinkBadge.vue';
 import {
   fetchPlayerIdentityLinks,
@@ -319,10 +320,24 @@ function goBackSearch() {
         <el-button type="primary" :loading="retrying" @click="handleRetry">重新分析</el-button>
       </el-alert>
 
+      <RelationshipNarrativePanel
+        v-if="analysis.status !== 'ready'"
+        :player-id-a="playerIdA"
+        :player-id-b="playerIdB"
+        :analysis-ready="false"
+      />
+
       <template v-if="analysis.status === 'ready' && analysis.result">
         <div class="cross-nav">
           <el-button type="primary" @click="goScoutSimilar">用 Scout 找相似球员</el-button>
         </div>
+
+        <RelationshipNarrativePanel
+          :player-id-a="playerIdA"
+          :player-id-b="playerIdB"
+          :analysis-ready="true"
+        />
+
         <div class="verdict-section">
           <h2 class="section-title">直接关系结论</h2>
 

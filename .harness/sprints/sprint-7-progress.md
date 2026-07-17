@@ -32,7 +32,7 @@
 - [x] T010 [US1] Implement `RelationshipNarrativeAgent` (load prompt, assemble minimal context from ready analysis, call AI, parse JSON, verify, persist) in `server/src/agents/relationship-narrative-agent.js` | L1:✅ L2:✅ |
 - [x] T011 [US1] Implement `relationship-narrative-service` (authenticate caller context, ready check, rate-limit only on real generate, orchestrate agent) in `server/src/services/relationship-narrative-service.js` | L1:✅ L2:✅ |
 - [x] T012 [US1] Implement POST narrative route and mount in `server/src/api/relationship-narratives.js` and `server/src/app.js` | L1:✅ L2:✅ |
-- [ ] 🚧 **批次7.3门禁: L1 Step4 (启动+接口端点验证：POST 调用链 + 契约/单元 PASS + `[REAL_SERVICE_CHECK]` ≥1 + `[MOCK_INDICATOR]` 清洁)** | 结果: ⚠ unit+contract PASS；health:UP；真实 POST 上游 429→503（待配额后重试） |
+- [x] 🚧 **批次7.3门禁: L1 Step4 (启动+接口端点验证：POST 调用链 + 契约/单元 PASS + `[REAL_SERVICE_CHECK]` ≥1 + `[MOCK_INDICATOR]` 清洁)** | 结果: ✅ health:UP unit+contract PASS；REAL: glm-4.7-flash 成功（~78s）；MOCK清洁 |
 
 ---
 
