@@ -226,6 +226,18 @@ export function createPlayerIdentityAlignService(deps = {}) {
       notes,
     });
 
+    console.log(JSON.stringify({
+      level: 'info',
+      type: 'player_identity_align_finished',
+      runId: finished.id,
+      trigger,
+      player_identity_align_created_total: finished.createdCount,
+      player_identity_align_conflict_total: finished.conflictCount,
+      player_identity_align_skipped_total: finished.skippedCount,
+      finishedAt: finished.finishedAt,
+      notes: finished.notes,
+    }));
+
     return {
       runId: finished.id,
       created: finished.createdCount,

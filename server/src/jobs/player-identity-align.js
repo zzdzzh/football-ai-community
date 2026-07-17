@@ -9,11 +9,21 @@ import { alignPlayerIdentities } from '../services/player-identity-align-service
  * @param {{ trigger?: 'cron'|'internal', statsPlayerId?: string, careerPlayerId?: string }} options
  */
 export function executePlayerIdentityAlignJob(options = {}) {
-  return alignPlayerIdentities({
+  const result = alignPlayerIdentities({
     trigger: options.trigger ?? 'internal',
     statsPlayerId: options.statsPlayerId,
     careerPlayerId: options.careerPlayerId,
   });
+  console.log(JSON.stringify({
+    level: 'info',
+    type: 'player_identity_align_job_result',
+    trigger: options.trigger ?? 'internal',
+    player_identity_align_created_total: result.created,
+    player_identity_align_conflict_total: result.conflict,
+    player_identity_align_skipped_total: result.skipped,
+    runId: result.runId,
+  }));
+  return result;
 }
 
 export function createPlayerIdentityAlignRouter() {

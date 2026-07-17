@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { fetchCareerPlayer } from '@/api/career-players';
 import {
@@ -16,8 +16,14 @@ import {
 import FreshnessBanner from '@/components/relationship/FreshnessBanner.vue';
 import RelationGraph from '@/components/relationship/RelationGraph.vue';
 import RelationshipTimeline from '@/components/relationship/RelationshipTimeline.vue';
+import PlayerIdentityLinkBadge from '@/components/relationship/PlayerIdentityLinkBadge.vue';
+import {
+  fetchPlayerIdentityLinks,
+  type PlayerIdentityLinkStatusItem,
+} from '@/api/player-identity-links';
 
 const route = useRoute();
+const router = useRouter();
 
 const playerIdA = computed(() => route.params.playerIdA as string);
 const playerIdB = computed(() => route.params.playerIdB as string);
@@ -30,8 +36,28 @@ const playerAName = ref('');
 const playerBName = ref('');
 const fallbackTimeline = ref<TimelinePayload | null>(null);
 const timelineLoading = ref(false);
+const identityByCareerId = ref<Record<string, PlayerIdentityLinkStatusItem>>({});
+const identityLoading = ref(false);
 
 let pollTimer: ReturnType<typeof setTimeout> | null = null;
+
+async function loadIdentityLinks() {
+  const ids = [playerIdA.value, playerIdB.value].filter(Boolean);
+  if (ids.length === 0) return;
+  identityLoading.value = true;
+  try {
+    const res = await fetchPlayerIdentityLinks(ids);
+    const map: Record<string, PlayerIdentityLinkStatusItem> = {};
+    for (const item of res.items) {
+      map[item.careerPlayerId] = item;
+    }
+    identityByCareerId.value = map;
+  } catch {
+    identityByCareerId.value = {};
+  } finally {
+    identityLoading.value = false;
+  }
+}
 
 function verdictLabel(verdict: DirectRelationVerdict): string {
   switch (verdict.status) {
@@ -210,19 +236,58 @@ async function handleRetry() {
 
 onMounted(() => {
   loadAnalysis();
+  loadIdentityLinks();
 });
 
 onBeforeUnmount(() => {
   clearPoll();
 });
+
+const displayNameA = computed(() => playerAName.value || playerIdA.value);
+const displayNameB = computed(() => playerBName.value || playerIdB.value);
+
+function goScoutSimilar() {
+  const hint = `结合关系分析，推荐与「${displayNameA.value}」和「${displayNameB.value}」能力或踢法相近的球员`;
+  router.push({
+    path: '/scout',
+    query: {
+      q: `${displayNameA.value} ${displayNameB.value}`,
+      hint,
+    },
+  });
+}
+
+function goBackSearch() {
+  router.push('/relationships');
+}
 </script>
 
 <template>
   <section class="relationship-analysis-view">
+    <div class="page-nav">
+      <el-button text type="primary" @click="goBackSearch">← 返回搜索</el-button>
+    </div>
     <h1 class="page-title">球员关系分析</h1>
     <p class="page-subtitle">
-      球员 A：{{ playerIdA }} · 球员 B：{{ playerIdB }}
+      {{ displayNameA }} · {{ displayNameB }}
     </p>
+
+    <div class="identity-row">
+      <div class="identity-player">
+        <span class="identity-name">{{ displayNameA }}</span>
+        <PlayerIdentityLinkBadge
+          :status="identityByCareerId[playerIdA] ?? null"
+          :loading="identityLoading"
+        />
+      </div>
+      <div class="identity-player">
+        <span class="identity-name">{{ displayNameB }}</span>
+        <PlayerIdentityLinkBadge
+          :status="identityByCareerId[playerIdB] ?? null"
+          :loading="identityLoading"
+        />
+      </div>
+    </div>
 
     <el-skeleton v-if="loading" :rows="6" animated />
 
@@ -255,6 +320,9 @@ onBeforeUnmount(() => {
       </el-alert>
 
       <template v-if="analysis.status === 'ready' && analysis.result">
+        <div class="cross-nav">
+          <el-button type="primary" @click="goScoutSimilar">用 Scout 找相似球员</el-button>
+        </div>
         <div class="verdict-section">
           <h2 class="section-title">直接关系结论</h2>
 
@@ -411,6 +479,36 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   gap: 1rem;
+}
+
+.page-nav {
+  margin-bottom: -0.25rem;
+}
+
+.identity-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.identity-player {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.identity-name {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.cross-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
 }
 
 .verdict-section {
