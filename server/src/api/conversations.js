@@ -16,7 +16,10 @@ router.get('/', (req, res, next) => {
   try {
     const page = req.query.page ? Number(req.query.page) : 1;
     const pageSize = req.query.pageSize ? Number(req.query.pageSize) : 20;
-    const agentId = req.query.agentId ?? 'stats';
+    const agentId = req.query.agentId ?? null;
+    if (agentId && !['stats', 'scout', 'tactical'].includes(agentId)) {
+      return res.status(400).json({ error: 'bad_request', message: '无效的 agentId' });
+    }
     const result = listUserConversations({
       userId: req.user.id,
       agentId,

@@ -1,0 +1,224 @@
+openapi: 3.0.3
+info:
+  title: 足球社区 关系叙事 API
+  description: |
+    Feature 007 REST API 契约（基于 005 球员对分析结论的一次性 LLM 关系叙事）。
+    认证：JWT Bearer Token（所有端点需登录，与关系分析页一致）。
+    共享 ErrorResponse / Unauthorized 语义与
+    [001-football-feed-mvp](../001-football-feed-mvp/contracts/openapi.yaml) 保持一致。
+    球员对分析结论以
+    [005-player-relationship-analysis](../005-player-relationship-analysis/contracts/openapi.yaml)
+    为准；本文件不修改对端 OpenAPI 正文，仅新增叙事子资源。
+  version: 1.0.0-007
+  contact:
+    name: Football AI Community
+
+servers:
+  - url: http://localhost:3000/api
+    description: 本地开发
+
+tags:
+  - name: RelationshipNarratives
+
+paths:
+  /player-pair-analyses/{playerIdA}/{playerIdB}/narrative:
+    get:
+      tags: [RelationshipNarratives]
+      summary: 获取已持久化的关系叙事（可重入复用）
+      description: |
+        URL 中两个球员 ID 为页面核心 ID（与 005 分析页一致）。
+        若当前分析结论版本已有 ready 叙事则返回；无叙事返回 404；
+        分析未就绪时返回 409。叙事内容对登录用户只读共享（非按 user_id 隔离正文）。
+      operationId: getRelationshipNarrative
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PlayerIdA'
+        - $ref: '#/components/parameters/PlayerIdB'
+      responses:
+        '200':
+          description: 找到与当前结论版本匹配的叙事
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RelationshipNarrativeResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: 尚无叙事，或仅有过期版本
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: 分析尚未就绪，无法提供叙事
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    post:
+      tags: [RelationshipNarratives]
+      summary: 生成或复用关系叙事
+      description: |
+        分析 status 必须为 ready。默认若同结论版本已有 ready 叙事则直接返回（不消耗 AI 配额）。
+        `force=true` 时重新调用模型生成并覆盖该版本叙事。
+        超时、上游失败、内容核验失败时返回 4xx/5xx 业务错误，不删除既有结构化分析。
+        超限流返回 429。
+      operationId: createOrReuseRelationshipNarrative
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PlayerIdA'
+        - $ref: '#/components/parameters/PlayerIdB'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NarrativeGenerateRequest'
+      responses:
+        '200':
+          description: 复用已有叙事或新生成成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RelationshipNarrativeResponse'
+        '400':
+          description: 非法球员对（如同一 ID）或请求体非法
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '408':
+          description: AI 调用超时（前台应降级展示结构化结论）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: 分析未就绪
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: 模型输出未通过事实核验（不得采信）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: AI 提问限流
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: 上游 AI 服务不可用
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    PlayerIdA:
+      name: playerIdA
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    PlayerIdB:
+      name: playerIdB
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+  responses:
+    Unauthorized:
+      description: 未登录或令牌无效
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+  schemas:
+    ErrorResponse:
+      type: object
+      required: [error, message]
+      properties:
+        error:
+          type: string
+          description: 机器可读错误码（如 unauthorized、rate_limited、narrative_verification_failed）
+        message:
+          type: string
+          description: 对用户可展示的说明
+
+    NarrativeGenerateRequest:
+      type: object
+      properties:
+        force:
+          type: boolean
+          default: false
+          description: true 时忽略同版本缓存并重新生成
+
+    RelationshipNarrativeResponse:
+      type: object
+      required:
+        - status
+        - playerIdA
+        - playerIdB
+        - analysisId
+        - analysisComputedAt
+        - aiGenerated
+        - reused
+      properties:
+        status:
+          type: string
+          enum: [ready]
+          description: MVP 成功响应仅为 ready；失败走 HTTP 错误
+        id:
+          type: string
+          format: uuid
+        playerIdA:
+          type: string
+          format: uuid
+        playerIdB:
+          type: string
+          format: uuid
+        analysisId:
+          type: string
+          format: uuid
+        analysisComputedAt:
+          type: string
+          format: date-time
+        narrativeText:
+          type: string
+          description: 简体中文关系介绍正文
+        aiGenerated:
+          type: boolean
+          description: 恒为 true；前台须展示「由 AI 基于本页结构化结论生成」
+        reused:
+          type: boolean
+          description: true 表示命中同结论版本缓存，未新调用模型
+        model:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time

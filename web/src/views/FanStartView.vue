@@ -59,6 +59,8 @@ async function startDiscussion() {
         : undefined;
     if (response?.status === 422 || response?.data?.error === 'content_policy_violation') {
       ElMessage.error(response?.data?.message || '内容违反社区规范，请修改后重试');
+    } else if (response?.status === 429) {
+      ElMessage.warning(response?.data?.message || '提问过于频繁，请稍后再试');
     } else if (response?.status === 408) {
       ElMessage.error('Fan Agent 响应超时，请重试');
     } else if (response?.status === 503 || response?.data?.error === 'service_unavailable') {

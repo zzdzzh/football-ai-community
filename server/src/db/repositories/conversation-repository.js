@@ -41,24 +41,32 @@ export function findConversationById(id) {
   return row ? mapConversationRow(row) : null;
 }
 
-export function listConversationsByUser({ userId, agentId = 'stats', page = 1, pageSize = 20 } = {}) {
+export function listConversationsByUser({ userId, agentId = null, page = 1, pageSize = 20 } = {}) {
   const db = getDb();
   const safePage = Math.max(1, page);
   const safePageSize = Math.min(50, Math.max(1, pageSize));
   const offset = (safePage - 1) * safePageSize;
 
+  const conditions = ['user_id = ?'];
+  const params = [userId];
+  if (agentId) {
+    conditions.push('agent_id = ?');
+    params.push(agentId);
+  }
+  const whereClause = `WHERE ${conditions.join(' AND ')}`;
+
   const total = db.prepare(`
     SELECT COUNT(*) AS count
     FROM conversations
-    WHERE user_id = ? AND agent_id = ?
-  `).get(userId, agentId).count;
+    ${whereClause}
+  `).get(...params).count;
 
   const rows = db.prepare(`
     SELECT * FROM conversations
-    WHERE user_id = ? AND agent_id = ?
+    ${whereClause}
     ORDER BY updated_at DESC
     LIMIT ? OFFSET ?
-  `).all(userId, agentId, safePageSize, offset);
+  `).all(...params, safePageSize, offset);
 
   return {
     items: rows.map(mapConversationRow),

@@ -5,7 +5,7 @@ import FeedList from '@/components/feed/FeedList.vue';
 <template>
   <section class="home-view">
     <h1 class="page-title">社区首页</h1>
-    <p class="page-subtitle">浏览 News Agent 抓取并摘要的最新足球新闻</p>
+    <p class="page-subtitle">浏览新闻摘要、赛后战报与社区动态</p>
     <FeedList />
   </section>
 </template>

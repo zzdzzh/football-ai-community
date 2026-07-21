@@ -7,6 +7,25 @@ const LEAGUE_KEYWORDS = {
   CL: ['champions league', '欧冠', 'cl'],
 };
 
+const REPORT_TYPES = new Set(['match_report', 'brief_report']);
+
+function textMatchesFollowedTopics(text, preferences) {
+  for (const team of preferences.followedTeams ?? []) {
+    if (team && text.includes(team.toLowerCase())) {
+      return true;
+    }
+  }
+
+  for (const league of preferences.followedLeagues ?? []) {
+    const keywords = LEAGUE_KEYWORDS[league] ?? [league.toLowerCase()];
+    if (keywords.some((keyword) => text.includes(keyword))) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 export function computePreferenceScore(item, preferences) {
   const text = `${item.title ?? ''} ${item.summary ?? ''}`.toLowerCase();
   const publishedMs = new Date(item.publishedAt).getTime() || 0;
@@ -24,6 +43,14 @@ export function computePreferenceScore(item, preferences) {
     if (keywords.some((keyword) => text.includes(keyword))) {
       boost += 50000;
     }
+  }
+
+  if (
+    preferences.notifyMatchReport
+    && REPORT_TYPES.has(item.type)
+    && textMatchesFollowedTopics(text, preferences)
+  ) {
+    boost += 80000;
   }
 
   return publishedMs + boost;

@@ -24,7 +24,8 @@ export function buildFanContext({ topic, matchId = null }) {
     : 'vs';
   context.matchSummary = `${homeName} ${scorePart} ${awayName}（${match.status}）`;
 
-  const reportFeed = findFeedItemByMatchIdAndType(matchId, 'match_report');
+  const reportFeed = findFeedItemByMatchIdAndType(matchId, 'match_report')
+    ?? findFeedItemByMatchIdAndType(matchId, 'brief_report');
   if (reportFeed?.summary) {
     context.feedSnippet = reportFeed.summary;
   }

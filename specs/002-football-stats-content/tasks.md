@@ -34,8 +34,8 @@
 
 **Purpose**: MVP-2 环境变量与配置扩展（MVP-1 脚手架已就绪）
 
-- [ ] T001 Add FOOTBALL_DATA_API_KEY, FOOTBALL_DATA_BASE_URL, MATCH_SYNC_CRON and MATCH_REPORT_CRON to server/.env.example
-- [ ] T002 Extend environment config loader for football-data and cron settings in server/src/config/index.js
+- [x] T001 Add FOOTBALL_DATA_API_KEY, FOOTBALL_DATA_BASE_URL, MATCH_SYNC_CRON and MATCH_REPORT_CRON to server/.env.example
+- [x] T002 Extend environment config loader for football-data and cron settings in server/src/config/index.js
 
 ---
 
@@ -45,13 +45,13 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T003 Create SQLite migration for Team, Match, Conversation, Message, MatchSyncMeta and FeedItem extensions in server/src/db/migrations/003_stats_content.sql
-- [ ] T004 [P] Implement team and match repositories in server/src/db/repositories/team-repository.js and server/src/db/repositories/match-repository.js
-- [ ] T005 [P] Implement conversation, message and match-sync-meta repositories in server/src/db/repositories/conversation-repository.js, server/src/db/repositories/message-repository.js and server/src/db/repositories/match-sync-meta-repository.js
-- [ ] T006 Extend feed-item-repository for match_id, body_json, data_sources_json and match_report/brief_report types in server/src/db/repositories/feed-item-repository.js
+- [x] T003 Create SQLite migration for Team, Match, Conversation, Message, MatchSyncMeta and FeedItem extensions in server/src/db/migrations/003_stats_content.sql
+- [x] T004 [P] Implement team and match repositories in server/src/db/repositories/team-repository.js and server/src/db/repositories/match-repository.js
+- [x] T005 [P] Implement conversation, message and match-sync-meta repositories in server/src/db/repositories/conversation-repository.js, server/src/db/repositories/message-repository.js and server/src/db/repositories/match-sync-meta-repository.js
+- [x] T006 Extend feed-item-repository for match_id, body_json, data_sources_json and match_report/brief_report types in server/src/db/repositories/feed-item-repository.js
 - [x] T007 Implement FootballDataAdapter with 8 req/min rate limiter and ALLOWED_LEAGUES whitelist in server/src/adapters/football-data-adapter.js
-- [ ] T008 [P] Implement match-service and team-service in server/src/services/match-service.js and server/src/services/team-service.js
-- [ ] T009 [P] Implement AiAnalysisService and stats-interpret prompt in server/src/ai/ai-analysis-service.js and server/prompts/stats-interpret.md
+- [x] T008 [P] Implement match-service and team-service in server/src/services/match-service.js and server/src/services/team-service.js
+- [x] T009 [P] Implement AiAnalysisService and stats-interpret prompt in server/src/ai/ai-analysis-service.js and server/prompts/stats-interpret.md
 - [x] T010 Implement match-sync job and mount matches/teams API routes in server/src/jobs/match-sync.js, server/src/api/matches.js, server/src/api/teams.js and server/src/app.js（BUG: scraper 仅拉 SofaScore `events/last`，未拉 `events/next`，导致未开赛场次缺失；match-sync 默认带 FBref 过慢使 WC 无法及时刷新 — fixed: `fetch_league_matches` 同时拉 last+next；match-sync `includeFbref:false`；已补同步 WC）
 
 **Checkpoint**: Foundation ready — match data syncable, matches/teams API callable, user story implementation can now begin
@@ -66,16 +66,16 @@
 
 ### Tests for User Story 1
 
-- [ ] T011 [P] [US1] Contract tests for GET /matches and GET /teams endpoints in server/tests/contract/matches.test.js and server/tests/contract/teams.test.js
-- [ ] T012 [P] [US1] Contract tests for conversations API in server/tests/contract/conversations.test.js
-- [ ] T013 [P] [US1] Contract test for POST /internal/jobs/match-sync in server/tests/contract/match-sync.test.js
-- [ ] T014 [P] [US1] Unit tests for FootballDataAdapter and stats-agent with 100% branch coverage in server/tests/unit/football-data-adapter.test.js and server/tests/unit/stats-agent.test.js
+- [x] T011 [P] [US1] Contract tests for GET /matches and GET /teams endpoints in server/tests/contract/matches.test.js and server/tests/contract/teams.test.js
+- [x] T012 [P] [US1] Contract tests for conversations API in server/tests/contract/conversations.test.js
+- [x] T013 [P] [US1] Contract test for POST /internal/jobs/match-sync in server/tests/contract/match-sync.test.js
+- [x] T014 [P] [US1] Unit tests for FootballDataAdapter and stats-agent with 100% branch coverage in server/tests/unit/football-data-adapter.test.js and server/tests/unit/stats-agent.test.js
 
 ### Implementation for User Story 1
 
-- [ ] T015 [US1] Implement stats-context-builder with missingFields and no-fabrication guard in server/src/services/stats-context-builder.js
-- [ ] T016 [US1] Implement stats-agent orchestration with AiAnalysisService and AgentInteractionLog in server/src/agents/stats-agent.js
-- [ ] T017 [US1] Implement conversation-service and conversations API with user_id isolation in server/src/services/conversation-service.js and server/src/api/conversations.js
+- [x] T015 [US1] Implement stats-context-builder with missingFields and no-fabrication guard in server/src/services/stats-context-builder.js
+- [x] T016 [US1] Implement stats-agent orchestration with AiAnalysisService and AgentInteractionLog in server/src/agents/stats-agent.js
+- [x] T017 [US1] Implement conversation-service and conversations API with user_id isolation in server/src/services/conversation-service.js and server/src/api/conversations.js
 - [x] T018 [P] [US1] Implement web API clients in web/src/api/matches.ts, web/src/api/teams.ts and web/src/api/conversations.ts
 - [x] T019 [P] [US1] Implement StatsStartView, ConversationView and conversation components in web/src/views/StatsStartView.vue, web/src/views/ConversationView.vue and web/src/components/conversation/
 - [x] T020 [US1] Register /stats and /conversations/:conversationId routes in web/src/router/index.ts
@@ -94,15 +94,15 @@
 
 ### Tests for User Story 2
 
-- [ ] T021 [P] [US2] Unit tests for content-agent and stats-context-builder report mode with 100% branch coverage in server/tests/unit/content-agent.test.js and server/tests/unit/stats-context-builder.test.js
+- [x] T021 [P] [US2] Unit tests for content-agent and stats-context-builder report mode with 100% branch coverage in server/tests/unit/content-agent.test.js and server/tests/unit/stats-context-builder.test.js
 
 ### Implementation for User Story 2
 
-- [ ] T022 [US2] Create match-report prompt and implement content-agent with Stats data snapshot in server/prompts/match-report.md and server/src/agents/content-agent.js
-- [ ] T023 [US2] Implement match-report-generate job with event_key dedup and cron registration in server/src/jobs/match-report-generate.js
-- [ ] T024 [US2] Extend GET /matches/:matchId with report and feed-service for match_report/brief_report in server/src/api/matches.js and server/src/services/feed-service.js
-- [ ] T025 [P] [US2] Implement MatchDetailView and match components in web/src/views/MatchDetailView.vue and web/src/components/match/
-- [ ] T026 [US2] Extend FeedCard for match_report/brief_report and navigation to /matches/:matchId in web/src/components/feed/FeedCard.vue and web/src/views/HomeView.vue
+- [x] T022 [US2] Create match-report prompt and implement content-agent with Stats data snapshot in server/prompts/match-report.md and server/src/agents/content-agent.js
+- [x] T023 [US2] Implement match-report-generate job with event_key dedup and cron registration in server/src/jobs/match-report-generate.js
+- [x] T024 [US2] Extend GET /matches/:matchId with report and feed-service for match_report/brief_report in server/src/api/matches.js and server/src/services/feed-service.js
+- [x] T025 [P] [US2] Implement MatchDetailView and match components in web/src/views/MatchDetailView.vue and web/src/components/match/
+- [x] T026 [US2] Extend FeedCard for match_report/brief_report and navigation to /matches/:matchId in web/src/components/feed/FeedCard.vue and web/src/views/HomeView.vue
 
 **Checkpoint**: User Stories 1 AND 2 both work independently — Multi-Agent 协作链路可验收（对齐 SC-003）
 
@@ -112,8 +112,8 @@
 
 ## Phase 5: Polish & Cross-Cutting Concerns
 
-- [ ] T027 [P] Extend feed-preference-sort for notify_match_report weighting in server/src/services/feed-preference-sort.js
-- [ ] T028 Run quickstart.md validation and MVP-2 scope boundary audit in specs/002-football-stats-content/quickstart.md and plan.md Scope 边界验证清单
+- [x] T027 [P] Extend feed-preference-sort for notify_match_report weighting in server/src/services/feed-preference-sort.js
+- [x] T028 Run quickstart.md validation and MVP-2 scope boundary audit in specs/002-football-stats-content/quickstart.md and plan.md Scope 边界验证清单
 
 ---
 

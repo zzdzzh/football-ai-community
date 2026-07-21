@@ -59,6 +59,8 @@ async function handleSend(content: string) {
         : undefined;
     if (response?.status === 422 || response?.data?.error === 'content_policy_violation') {
       ElMessage.error(response?.data?.message || '内容违反社区规范，请修改后重试');
+    } else if (response?.status === 429) {
+      ElMessage.warning(response?.data?.message || '提问过于频繁，请稍后再试');
     } else if (response?.status === 408) {
       ElMessage.error('Fan Agent 续写超时，请重试');
     } else if (response?.status === 403) {
@@ -107,6 +109,12 @@ onMounted(() => {
         <h1 class="page-title">{{ discussion?.topic ?? 'Fan 讨论' }}</h1>
         <p v-if="discussion" class="page-subtitle">
           讨论 ID：{{ discussion.id }} · 轮次 {{ discussion.turnCount }}
+          <template v-if="discussion.matchId">
+            ·
+            <router-link class="match-link" :to="`/matches/${discussion.matchId}`">
+              查看关联比赛
+            </router-link>
+          </template>
         </p>
       </div>
       <el-button v-if="discussion" size="small" @click="openReportDiscussion">举报讨论</el-button>
@@ -200,5 +208,14 @@ onMounted(() => {
 .report-btn {
   align-self: flex-start;
   margin-left: 0.25rem;
+}
+
+.match-link {
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+.match-link:hover {
+  text-decoration: underline;
 }
 </style>

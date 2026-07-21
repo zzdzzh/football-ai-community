@@ -21,15 +21,20 @@ const agentId = computed<AgentId>(() => conversation.value?.agentId ?? 'tactical
 const isScout = computed(() => agentId.value === 'scout');
 
 const backPath = computed(() => {
-  if (isScout.value) return '/scout';
+  const from = route.query.from as string | undefined;
+  if (from === 'stats' || agentId.value === 'stats') return '/stats';
+  if (isScout.value || from === 'scout') return '/scout';
   const matchId = route.query.matchId as string | undefined;
   if (matchId) return `/matches/${matchId}`;
-  return '/tactical';
+  if (from === 'tactical' || agentId.value === 'tactical') return '/tactical';
+  return '/conversations';
 });
 const defaultTitle = computed(() => {
+  if (agentId.value === 'stats') return 'Stats 对话';
   if (isScout.value) return 'Scout 对话';
   return 'Tactical 对话';
 });
+const listPath = '/conversations';
 
 async function loadConversation() {
   loading.value = true;
@@ -67,8 +72,10 @@ async function handleSend(content: string) {
         : undefined;
     if (response?.status === 503) {
       ElMessage.warning(response.data?.message || '数据同步中，请稍后再试');
+    } else if (response?.status === 429) {
+      ElMessage.warning(response.data?.message || '提问过于频繁，请稍后再试');
     } else if (response?.status === 408) {
-      const label = isScout.value ? 'Scout' : 'Tactical';
+      const label = agentId.value === 'stats' ? 'Stats' : isScout.value ? 'Scout' : 'Tactical';
       ElMessage.error(`${label} Agent 响应超时，请重试`);
     } else {
       ElMessage.error(response?.data?.message || '发送失败');
@@ -92,6 +99,7 @@ onMounted(() => {
     <header class="conversation-header">
       <div>
         <el-button text type="primary" @click="goBack">← 返回选择</el-button>
+        <el-button text type="primary" @click="router.push(listPath)">我的对话</el-button>
         <h1 class="page-title">{{ conversation?.title ?? defaultTitle }}</h1>
         <p v-if="conversation" class="page-subtitle">
           对话 ID：{{ conversation.id }} · Agent：{{ conversation.agentId }} · 上下文：{{
@@ -119,7 +127,11 @@ onMounted(() => {
       <ChatInput
         :loading="sending"
         :placeholder="
-          isScout ? '补充位置、年龄或风格要求…' : '追问压迫、出球或转换阶段…'
+          agentId === 'stats'
+            ? '追问控球、射门或关键指标…'
+            : isScout
+              ? '补充位置、年龄或风格要求…'
+              : '追问压迫、出球或转换阶段…'
         "
         @send="handleSend"
       />

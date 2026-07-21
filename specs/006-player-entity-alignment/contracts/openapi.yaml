@@ -1,0 +1,301 @@
+openapi: 3.0.3
+info:
+  title: 足球社区 球员实体对齐 API
+  description: |
+    Feature 006 REST API 契约（统计球员 ↔ 履历球员身份映射、对齐触发、双向解析）。
+    认证：JWT Bearer Token（用户端点需登录，与关系页一致）。
+    共享 ErrorResponse / Unauthorized 语义与
+    [001-football-feed-mvp](../001-football-feed-mvp/contracts/openapi.yaml) 保持一致。
+    Stats Player 契约以 [003-football-scout-tactical](../003-football-scout-tactical/contracts/openapi.yaml) 为准；
+    CareerPlayer 契约以 [005-player-relationship-analysis](../005-player-relationship-analysis/contracts/openapi.yaml) 为准。
+    本文件不修改对端 OpenAPI 正文。
+  version: 1.0.0-006
+  contact:
+    name: Football AI Community
+
+servers:
+  - url: http://localhost:3000/api
+    description: 本地开发
+
+tags:
+  - name: PlayerIdentityLinks
+  - name: Internal
+
+paths:
+  /player-identity-links/resolve:
+    get:
+      tags: [PlayerIdentityLinks]
+      summary: 双向解析球员身份映射
+      description: |
+        提供 `statsPlayerId` 或 `careerPlayerId` 之一（恰好一个）。
+        有 active 映射时返回对端标识与置信度；无映射返回 404（未找到），不得 500 编造。
+      operationId: resolvePlayerIdentityLink
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: statsPlayerId
+          in: query
+          schema:
+            type: string
+          description: 003 统计球员 ID
+        - name: careerPlayerId
+          in: query
+          schema:
+            type: string
+            format: uuid
+          description: 005 履历球员 UUID
+      responses:
+        '200':
+          description: 找到映射
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlayerIdentityLink'
+        '400':
+          description: 未提供查询参数、同时提供两个、或参数非法
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: 无映射
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /player-identity-links:
+    get:
+      tags: [PlayerIdentityLinks]
+      summary: 批量查询履历球员的统计域关联状态
+      description: 供关系分析页一次查询多名履历球员的关联态；未关联者不返回伪造 statsPlayerId。
+      operationId: listPlayerIdentityLinksByCareerIds
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: careerPlayerIds
+          in: query
+          required: true
+          schema:
+            type: string
+          description: 逗号分隔的履历球员 UUID，最多 20 个
+      responses:
+        '200':
+          description: 批量状态
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlayerIdentityLinkBatchResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /player-identity-links/align:
+    post:
+      tags: [PlayerIdentityLinks]
+      summary: 按需触发身份对齐
+      description: |
+        扫描可匹配子集（两侧均有有效 TM ID），建立高置信度映射；冲突记入 conflicts 且不建 active。
+        响应必须包含 created / conflict / skipped 计数。
+      operationId: alignPlayerIdentityLinks
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AlignPlayerIdentityRequest'
+      responses:
+        '200':
+          description: 对齐完成摘要
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AlignPlayerIdentityResult'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /internal/player-identity-align:
+    post:
+      tags: [Internal]
+      summary: 内部批处理对齐 Job
+      description: 与项目其他 internal job 相同的鉴权方式（如内部密钥）；产出与按需对齐相同的计数语义。
+      operationId: internalAlignPlayerIdentityLinks
+      responses:
+        '202':
+          description: 已接受
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobAcceptedResponse'
+        '200':
+          description: 同步执行完成（实现可选）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AlignPlayerIdentityResult'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  responses:
+    Unauthorized:
+      description: 未认证
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Forbidden:
+      description: 无权限
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    BadRequest:
+      description: 请求非法
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+  schemas:
+    ErrorResponse:
+      type: object
+      required: [error, message]
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+        traceId:
+          type: string
+
+    PlayerIdentityLink:
+      type: object
+      required:
+        - id
+        - statsPlayerId
+        - careerPlayerId
+        - matchBasis
+        - matchKey
+        - confidence
+        - status
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        statsPlayerId:
+          type: string
+        careerPlayerId:
+          type: string
+          format: uuid
+        matchBasis:
+          type: string
+          enum: [transfermarkt_id]
+        matchKey:
+          type: string
+        confidence:
+          type: string
+          enum: [high, medium, low]
+        status:
+          type: string
+          enum: [active, conflict_shelved, invalid]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    PlayerIdentityLinkStatusItem:
+      type: object
+      required: [careerPlayerId, linkState]
+      properties:
+        careerPlayerId:
+          type: string
+          format: uuid
+        linkState:
+          type: string
+          enum: [linked, unlinked, pending_confirmation]
+          description: |
+            linked = active + high；
+            pending_confirmation = 有映射但非高置信度或待确认；
+            unlinked = 无可用映射
+        link:
+          allOf:
+            - $ref: '#/components/schemas/PlayerIdentityLink'
+          nullable: true
+        statsPlayerId:
+          type: string
+          nullable: true
+          description: 仅 linked / pending_confirmation 时给出
+        statsEntryPath:
+          type: string
+          nullable: true
+          description: 如 /players/{statsPlayerId}，unlinked 时为 null
+
+    PlayerIdentityLinkBatchResponse:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/PlayerIdentityLinkStatusItem'
+
+    AlignPlayerIdentityRequest:
+      type: object
+      properties:
+        statsPlayerId:
+          type: string
+          description: 可选，缩小到单名统计球员
+        careerPlayerId:
+          type: string
+          format: uuid
+          description: 可选，缩小到单名履历球员
+
+    AlignPlayerIdentityResult:
+      type: object
+      required: [runId, created, conflict, skipped, finishedAt]
+      properties:
+        runId:
+          type: string
+          format: uuid
+        created:
+          type: integer
+          minimum: 0
+        conflict:
+          type: integer
+          minimum: 0
+        skipped:
+          type: integer
+          minimum: 0
+        finishedAt:
+          type: string
+          format: date-time
+        notes:
+          type: string
+          nullable: true
+
+    JobAcceptedResponse:
+      type: object
+      required: [accepted]
+      properties:
+        accepted:
+          type: boolean
+        jobId:
+          type: string

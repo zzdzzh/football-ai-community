@@ -11,25 +11,42 @@ function formatTime(value: string) {
 }
 
 const isFanDiscussion = computed(() => props.item.type === 'fan_discussion');
+const isMatchReport = computed(
+  () => props.item.type === 'match_report' || props.item.type === 'brief_report',
+);
 
 const detailLink = computed(() => {
+  if (isMatchReport.value && props.item.matchId) {
+    return `/matches/${props.item.matchId}`;
+  }
   if (isFanDiscussion.value && props.item.body?.discussionId) {
     return `/discussions/${props.item.body.discussionId}`;
   }
   return `/feed/${props.item.id}`;
 });
 
-const detailLabel = computed(() => (isFanDiscussion.value ? '进入讨论' : '查看详情'));
+const detailLabel = computed(() => {
+  if (isMatchReport.value) return '查看战报';
+  if (isFanDiscussion.value) return '进入讨论';
+  return '查看详情';
+});
+
+const typeTag = computed(() => {
+  if (props.item.type === 'brief_report') return '简要战报';
+  if (props.item.type === 'match_report') return '赛后战报';
+  if (isFanDiscussion.value) return '球迷讨论';
+  return null;
+});
 </script>
 
 <template>
   <el-card class="feed-card" shadow="hover">
     <div class="feed-card__meta">
       <div class="feed-card__tags">
-        <el-tag size="small" :type="isFanDiscussion ? 'warning' : 'success'">
+        <el-tag size="small" :type="isFanDiscussion ? 'warning' : isMatchReport ? 'danger' : 'success'">
           {{ item.agentDisplayName || item.agentId }}
         </el-tag>
-        <el-tag v-if="isFanDiscussion" size="small" type="info">球迷讨论</el-tag>
+        <el-tag v-if="typeTag" size="small" type="info">{{ typeTag }}</el-tag>
       </div>
       <span class="feed-card__time">{{ formatTime(item.publishedAt) }}</span>
     </div>

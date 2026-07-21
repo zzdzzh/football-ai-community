@@ -4,6 +4,7 @@ import {
   listRecentMatchesByTeamId,
 } from '../db/repositories/match-repository.js';
 import { getAggregateMatchSyncStatus } from '../db/repositories/match-sync-meta-repository.js';
+import { findFeedItemByEventKey } from '../db/repositories/feed-item-repository.js';
 
 function toMatchSummary(match) {
   return {
@@ -16,6 +17,18 @@ function toMatchSummary(match) {
     homeScore: match.homeScore ?? null,
     awayScore: match.awayScore ?? null,
     dataCompleteness: match.dataCompleteness,
+  };
+}
+
+function toMatchReport(feedItem) {
+  if (!feedItem) return undefined;
+  return {
+    id: feedItem.id,
+    type: feedItem.type,
+    title: feedItem.title,
+    summary: feedItem.summary,
+    publishedAt: feedItem.publishedAt,
+    body: feedItem.body,
   };
 }
 
@@ -43,6 +56,11 @@ export function getMatchDetail(matchId) {
     stats: match.stats ?? [],
     events: match.events ?? [],
   };
+
+  const reportItem = findFeedItemByEventKey(`match_report:${matchId}`);
+  if (reportItem) {
+    detail.report = toMatchReport(reportItem);
+  }
 
   if (match.dataCompleteness === 'pending') {
     detail.syncMessage = '数据同步中';

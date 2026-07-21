@@ -28,3 +28,4 @@ scraper/_fbref_*.json
 scraper/_probe.py
 scraper/_sample_*.html
 scraper/_tm.html
+scraper/.tm_cookies.json

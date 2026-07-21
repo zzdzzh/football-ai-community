@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ref } from 'vue';
-import { useRouter } from 'vue-router';
+import { onMounted, ref } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { searchTeams } from '@/api/teams';
 import { createScoutConversation } from '@/api/conversations';
@@ -9,6 +9,7 @@ import type { LeagueCode } from '@/constants/leagues';
 import type { Team } from '@/types/stats';
 import type { ScoutContextType } from '@/types/scout';
 
+const route = useRoute();
 const router = useRouter();
 
 const activeTab = ref<ScoutContextType>('league');
@@ -75,6 +76,16 @@ async function startConversation() {
     creating.value = false;
   }
 }
+
+onMounted(() => {
+  const q = typeof route.query.q === 'string' ? route.query.q.trim() : '';
+  const hint = typeof route.query.hint === 'string' ? route.query.hint.trim() : '';
+  if (hint) {
+    initialQuestion.value = hint;
+  } else if (q) {
+    initialQuestion.value = `推荐与「${q}」风格或能力接近的球员`;
+  }
+});
 </script>
 
 <template>

@@ -14,6 +14,7 @@ import {
   updateFanDiscussion,
 } from '../db/repositories/fan-discussion-repository.js';
 import { publishFanDiscussionFeedItem } from './feed-service.js';
+import { assertAiRateLimit } from './ai-rate-limit.js';
 
 function mapPublicTurn(turn) {
   return {
@@ -82,6 +83,8 @@ export async function createUserFanDiscussion({ userId, topic, personaIds, match
   if (!topic || typeof topic !== 'string' || topic.trim().length === 0 || topic.length > 200) {
     throw new AppError(400, 'bad_request', '讨论主题无效');
   }
+
+  assertAiRateLimit({ userId, agentId: 'fan' });
 
   const agent = createFanAgent();
   const { personas, context, aiResult } = await agent.createInitialDiscussion({
@@ -155,6 +158,7 @@ export async function addUserFanDiscussionTurn({ discussionId, userId, content }
     throw new AppError(404, 'not_found', '讨论不存在');
   }
   assertDiscussionOwner(discussion, userId);
+  assertAiRateLimit({ userId, agentId: 'fan' });
 
   const personaIds = listDiscussionPersonaIds(discussionId);
   const personas = findFanPersonasByIds(personaIds);

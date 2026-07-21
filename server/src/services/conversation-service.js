@@ -17,6 +17,7 @@ import { createStatsAgent } from '../agents/stats-agent.js';
 import { createScoutAgent } from '../agents/scout-agent.js';
 import { createTacticalAgent } from '../agents/tactical-agent.js';
 import { ALLOWED_LEAGUES, getLeagueDisplayName } from '../constants/league-codes.js';
+import { assertAiRateLimit } from './ai-rate-limit.js';
 
 function buildStatsConversationTitle({ contextType, contextId }) {
   if (contextType === 'match') {
@@ -127,7 +128,7 @@ function formatMessageForApi(message, agentId) {
   return base;
 }
 
-export function listUserConversations({ userId, agentId = 'stats', page, pageSize }) {
+export function listUserConversations({ userId, agentId = null, page, pageSize }) {
   return listConversationsByUser({ userId, agentId, page, pageSize });
 }
 
@@ -227,6 +228,7 @@ export async function sendConversationMessage({
     throw new AppError(404, 'not_found', '对话不存在');
   }
   assertConversationOwner(conversation, userId);
+  assertAiRateLimit({ userId, agentId: conversation.agentId });
 
   const userMessage = createMessage({
     conversationId,

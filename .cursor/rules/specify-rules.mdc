@@ -7,13 +7,13 @@ alwaysApply: false
 
 # Football AI Community Development Guidelines
 
-Auto-generated from feature plans. Last updated: 2026-07-15
+Auto-generated from feature plans. Last updated: 2026-07-17
 
 ## Active Technologies
 
 - **后台**: Node.js 20 LTS, Express 4.x, better-sqlite3, Jest
 - **前台**: Vue 3.4+, TypeScript 5.x, Vite 5.x, Element Plus, Pinia, Vue Router
-- **AI**: OpenAI 兼容 API（统一抽象层 `server/src/ai/`）；005 MVP 不新增 LLM 解读
+- **AI**: OpenAI 兼容 API（统一抽象层 `server/src/ai/`）；007 关系叙事经 `AiRelationshipService` + 外置 Prompt
 - **外部数据**: football-data.org（比赛统计）, RSS（新闻）, Transfermarkt（005 履历按需采集）
 - **认证**: JWT Bearer + bcrypt, RBAC (user/moderator/admin)
 
@@ -28,7 +28,15 @@ specs/001-football-feed-mvp/           # MVP-1 Feed
 specs/002-football-stats-content/      # MVP-2（Stats + Content）
 specs/003-football-scout-tactical/     # MVP-3（Scout + Tactical）
 specs/004-football-fan-community/      # MVP-4（Fan Agent + 社区治理）
-specs/005-player-relationship-analysis/ # 球员关系分析（当前 Active Plan）
+specs/005-player-relationship-analysis/ # 球员关系分析
+  plan.md
+  contracts/
+  data-model.md
+specs/006-player-entity-alignment/     # 球员实体对齐
+  plan.md
+  contracts/
+  data-model.md
+specs/007-relationship-llm-narrative/  # 关系分析 LLM 叙事（当前 Active Plan）
   plan.md
   contracts/
   data-model.md
@@ -59,6 +67,8 @@ cd web; npm run dev
 
 ## Recent Changes
 
+- **007-relationship-llm-narrative** (2026-07-17): 基于 005 结构化结论的一次性 LLM 关系叙事 plan 完成
+- **006-player-entity-alignment** (2026-07-17): 统计域↔履历域球员身份映射（TM ID）plan 完成
 - **005-player-relationship-analysis** (2026-07-15): 球员关系分析（TM 履历、队友/路径、可视化）plan 完成
 - **004-football-fan-community** (2026-07-10): Fan Agent 模拟讨论 + 内容举报/管理员审核 plan 完成
 - **003-football-scout-tactical** (2026-07-10): Scout Agent 球员推荐 + Tactical Agent 战术分析 plan 完成
@@ -70,10 +80,10 @@ cd web; npm run dev
 ## Active Plan
 
 - **Vision**: [000-football-community-vision](../../specs/000-football-community-vision/spec.md)
-- **Feature**: [005-player-relationship-analysis](../../specs/005-player-relationship-analysis/plan.md)
-- **Spec**: [spec.md](../../specs/005-player-relationship-analysis/spec.md)
-- **Data Model**: [data-model.md](../../specs/005-player-relationship-analysis/data-model.md)
-- **Contracts**: [openapi.yaml](../../specs/005-player-relationship-analysis/contracts/openapi.yaml)
+- **Feature**: [007-relationship-llm-narrative](../../specs/007-relationship-llm-narrative/plan.md)
+- **Spec**: [spec.md](../../specs/007-relationship-llm-narrative/spec.md)
+- **Data Model**: [data-model.md](../../specs/007-relationship-llm-narrative/data-model.md)
+- **Contracts**: [openapi.yaml](../../specs/007-relationship-llm-narrative/contracts/openapi.yaml)
 <!-- SPECKIT END -->
 
 <!-- MANUAL ADDITIONS START -->

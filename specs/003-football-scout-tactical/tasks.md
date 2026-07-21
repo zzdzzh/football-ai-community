@@ -209,3 +209,15 @@ T026 TacticalStartView + TacticalPhasePanel + FormationBadge
 - SC-004（85% 满意率）标注 Deferrable: yes；T016 已预埋 feedback API 与 `message_feedback` 表，Sprint 内不要求仪表盘
 - 前台 bug 修正后停止等待人工验证；后台重启由用户手动执行
 - football-data.org 免费层限流：adapter 硬编码 8 req/min，球员同步须分批 cron，禁止 Scout 请求时实时全量拉 squad
+
+---
+
+## 跨模块增补（来自 006-player-entity-alignment，未计入上方 28 项）
+
+> **提示**：请切换到本模块（003）完成下列任务后再与 006 联调客户端可见的 TM ID 字段。006 **不得**在本目录静默修改 OpenAPI / data-model 正文。  
+> 背景：migration 008 已写入 `players.transfermarkt_id`，但契约与 `mapPlayerRow` 尚未对外暴露；006 对齐以内核只读列即可工作，以下任务强化可查性与契约一致性（对应 006 FR-009）。
+
+- [ ] T029 [P] Document `transfermarkt_id` / `fbref_id` / `sofascore_id` on Player in `specs/003-football-scout-tactical/data-model.md`（说明可空、索引、Consumed By 含 006）
+- [ ] T030 [P] Expose optional `transfermarktId` on OpenAPI `Player` / `PlayerDetail` in `specs/003-football-scout-tactical/contracts/openapi.yaml` and map it in `server/src/db/repositories/player-repository.js` `mapPlayerRow`
+- [ ] T031 Add `findPlayersByTransfermarktId(transfermarktId)` to `server/src/db/repositories/player-repository.js`（返回数组以支持冲突检测；拒绝 `"null"` / 空串）
+- [ ] T032 [P] Contract/unit tests for TM ID 暴露与按 TM ID 查询：`server/tests/contract/players-transfermarkt.test.js`（或扩展既有 players contract）

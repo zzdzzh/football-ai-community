@@ -237,3 +237,34 @@ export function findFinishedScraperMatchesMissingStats(limit = 10) {
   `).all(limit);
   return rows.map((row) => attachTeams(row));
 }
+
+/** 已完赛且尚无 match_report:{id} 战报的比赛（供 Content Job 扫描） */
+export function findFinishedMatchesWithoutReport({ matchId = null, limit = 20 } = {}) {
+  const db = getDb();
+  if (matchId) {
+    const row = db.prepare(`
+      SELECT m.*
+      FROM matches m
+      WHERE m.id = ?
+        AND m.status = 'FINISHED'
+        AND NOT EXISTS (
+          SELECT 1 FROM feed_items fi
+          WHERE fi.event_key = 'match_report:' || m.id
+        )
+    `).get(matchId);
+    return row ? [attachTeams(row)] : [];
+  }
+
+  const rows = db.prepare(`
+    SELECT m.*
+    FROM matches m
+    WHERE m.status = 'FINISHED'
+      AND NOT EXISTS (
+        SELECT 1 FROM feed_items fi
+        WHERE fi.event_key = 'match_report:' || m.id
+      )
+    ORDER BY m.utc_date DESC
+    LIMIT ?
+  `).all(limit);
+  return rows.map((row) => attachTeams(row));
+}

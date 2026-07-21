@@ -35,6 +35,25 @@ export interface MatchDetail extends MatchSummary {
   stats?: MatchStatItem[];
   events?: MatchEventItem[];
   syncMessage?: string;
+  report?: MatchReportFeedItem;
+}
+
+export interface MatchReportSection {
+  heading?: string;
+  content?: string;
+}
+
+export interface MatchReportFeedItem {
+  id: string;
+  type: 'match_report' | 'brief_report';
+  title: string;
+  summary?: string;
+  publishedAt: string;
+  body?: {
+    sections?: MatchReportSection[];
+    timeline?: MatchEventItem[];
+    missingFields?: string[];
+  };
 }
 
 export interface MatchStatItem {

@@ -241,3 +241,33 @@ export function hideFanDiscussionFeedItem(discussionId) {
   const eventKey = buildFanDiscussionEventKey(discussionId);
   return updateFeedItemVisibilityByEventKey(eventKey, 'hidden');
 }
+
+export function publishMatchReport(report) {
+  if (!report || report.skipped) {
+    return null;
+  }
+
+  const existing = findFeedItemByEventKey(report.eventKey);
+  if (existing) {
+    return existing;
+  }
+
+  return createFeedItem({
+    agentId: 'content',
+    type: report.type,
+    title: report.title,
+    summary: report.summary,
+    eventKey: report.eventKey,
+    matchId: report.matchId,
+    visibility: 'public',
+    body: report.body,
+    dataSources: report.dataSources,
+    keyPoints: report.missingFields?.length
+      ? report.missingFields.map((field) => `缺失: ${field}`)
+      : undefined,
+  });
+}
+
+export function getMatchReportFeedItem(matchId) {
+  return findFeedItemByEventKey(`match_report:${matchId}`);
+}

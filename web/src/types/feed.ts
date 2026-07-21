@@ -8,11 +8,12 @@ export interface FeedItem {
   id: string;
   agentId: string;
   agentDisplayName?: string;
-  type: 'news_summary' | 'fan_discussion';
+  type: 'news_summary' | 'fan_discussion' | 'match_report' | 'brief_report';
   title: string;
   summary?: string;
   publishedAt: string;
   eventKey?: string;
+  matchId?: string;
   body?: FeedItemBody;
 }
 

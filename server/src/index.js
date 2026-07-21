@@ -13,6 +13,7 @@ import {
   executePlayerSyncJob,
   getLeaguesNeedingPlayerSync,
 } from './jobs/player-sync.js';
+import { scheduleMatchReportCron } from './jobs/match-report-generate.js';
 import { dedupeFeedItemsBySourceUrl } from './services/feed-dedup-cleanup.js';
 import { dedupeMatchesByFixtureKey } from './services/match-dedup-cleanup.js';
 
@@ -40,6 +41,7 @@ if (!config.isTest) {
   scheduleNewsFetchCron();
   scheduleMatchSyncCron();
   schedulePlayerSyncCron();
+  scheduleMatchReportCron();
 
   if (config.footballData.apiKey || config.dataSource === 'scraper') {
     const matchCount = getDb().prepare('SELECT COUNT(*) AS count FROM matches').get().count;
