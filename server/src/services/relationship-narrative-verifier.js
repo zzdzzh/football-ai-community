@@ -27,19 +27,26 @@ export function buildAllowedFacts(result = {}) {
   const pathNodeNames = new Set();
   const clubmateKeys = new Set();
 
+  function addEntityName(...names) {
+    for (const name of names) {
+      if (name) clubNames.add(name);
+    }
+  }
+
   for (const detail of result.clubmateDetails ?? []) {
-    if (detail.clubName) clubNames.add(detail.clubName);
+    // 005 输出含 clubName；兼容 entityName
+    addEntityName(detail.clubName, detail.entityName);
     if (detail.clubId) clubNames.add(detail.clubId);
     clubmateKeys.add([
-      normalizeName(detail.clubName),
+      normalizeName(detail.clubName ?? detail.entityName),
       detail.overlapFrom ?? '',
       detail.overlapTo ?? '',
     ].join('|'));
   }
 
   for (const detail of result.nationalTeammateDetails ?? []) {
-    if (detail.nationName) clubNames.add(detail.nationName);
-    if (detail.clubName) clubNames.add(detail.clubName);
+    // 005 buildNationalDetail 使用 entityName；历史/测试可能用 nationName
+    addEntityName(detail.nationName, detail.entityName, detail.clubName);
   }
 
   for (const node of result.indirectPath?.nodes ?? []) {
@@ -125,9 +132,9 @@ function validateClaim(claim, facts) {
       return fail('不得升级 nationalTeammates 结论');
     }
     if (claim.status === 'established') {
-      const clubKey = normalizeName(claim.clubName);
+      const clubKey = normalizeName(claim.clubName ?? claim.nationName ?? claim.entityName);
       if (!clubKey || !facts.clubNameSet.has(clubKey)) {
-        return fail(`俱乐部名不在允许集合: ${claim.clubName}`);
+        return fail(`俱乐部名不在允许集合: ${claim.clubName ?? claim.nationName ?? claim.entityName}`);
       }
       if (type === 'clubmate') {
         const overlapKey = [

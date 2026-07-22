@@ -338,6 +338,38 @@ describe('relationship-narrative-verifier', () => {
       expect(facts.clubNames).toEqual(expect.arrayContaining(['Argentina']));
     });
 
+    it('includes 005 national entityName in allow-list and accepts nationmate claim', () => {
+      const facts = buildAllowedFacts(baseResult({
+        nationalTeammates: { status: 'established' },
+        nationalTeammateDetails: [{
+          entityId: 'portugal',
+          entityName: 'Portugal',
+          overlapFrom: '2018-01-01',
+          overlapTo: '2024-01-01',
+        }],
+      }));
+      expect(facts.clubNameSet.has('portugal')).toBe(true);
+
+      const out = verifyNarrativeOutput({
+        result: baseResult({
+          nationalTeammates: { status: 'established' },
+          nationalTeammateDetails: [{
+            entityId: 'portugal',
+            entityName: 'Portugal',
+            overlapFrom: '2018-01-01',
+            overlapTo: '2024-01-01',
+          }],
+        }),
+        narrative: '两人同为葡萄牙国家队队友。',
+        claims: [{
+          type: 'nationmate',
+          status: 'established',
+          clubName: 'Portugal',
+        }],
+      });
+      expect(out.ok).toBe(true);
+    });
+
     it('accepts trophy-like honor alias reject', () => {
       const out = verifyNarrativeOutput({
         result: baseResult(),
