@@ -40,7 +40,7 @@ function loadOpenApiSpec() {
   return yaml.parse(content);
 }
 
-export { createAiContentService } from './ai/factory.js';
+export { createAiContentService, createAiInteractiveContentService } from './ai/factory.js';
 
 export function createApp() {
   const app = express();

@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { createAiContentService } from './factory.js';
+import { createAiInteractiveContentService } from './factory.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -21,7 +21,7 @@ function parseRecommendJson(text) {
 
 export class AiScoutService {
   constructor({ aiContentService = null } = {}) {
-    this.aiContentService = aiContentService ?? createAiContentService();
+    this.aiContentService = aiContentService ?? createAiInteractiveContentService();
     this.systemPrompt = loadScoutRecommendPrompt();
   }
 

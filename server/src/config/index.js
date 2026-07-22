@@ -14,6 +14,11 @@ const envSchema = z.object({
   AI_API_KEY: z.string().default(''),
   AI_MODEL: z.string().default('gpt-4o-mini'),
   AI_TIMEOUT_MS: z.coerce.number().default(28000),
+  /** 交互式 AI（球员推荐 / 球迷对话 / Stats / Tactical / 关系叙事等用户触发） */
+  AI_INTERACTIVE_BASE_URL: z.string().url().optional(),
+  AI_INTERACTIVE_API_KEY: z.string().optional(),
+  AI_INTERACTIVE_MODEL: z.string().optional(),
+  AI_INTERACTIVE_TIMEOUT_MS: z.coerce.number().optional(),
   AI_MAX_RETRIES: z.coerce.number().default(4),
   AI_RETRY_DELAYS_MS: z.string().default('3000,5000,8000,12000'),
   NEWS_SUMMARY_DELAY_MS: z.coerce.number().default(1500),
@@ -60,6 +65,15 @@ export const config = {
     apiKey: env.AI_API_KEY,
     model: env.AI_MODEL,
     timeoutMs: env.AI_TIMEOUT_MS,
+    maxRetries: env.AI_MAX_RETRIES,
+    retryDelaysMs: env.AI_RETRY_DELAYS_MS.split(',').map((v) => Number(v.trim())).filter((v) => v > 0),
+  },
+  /** 用户输入触发的 AI；未单独配置时回退到 ai（自动内容：战报 / 新闻摘要） */
+  aiInteractive: {
+    baseUrl: env.AI_INTERACTIVE_BASE_URL ?? env.AI_BASE_URL,
+    apiKey: env.AI_INTERACTIVE_API_KEY ?? env.AI_API_KEY,
+    model: env.AI_INTERACTIVE_MODEL ?? env.AI_MODEL,
+    timeoutMs: env.AI_INTERACTIVE_TIMEOUT_MS ?? env.AI_TIMEOUT_MS,
     maxRetries: env.AI_MAX_RETRIES,
     retryDelaysMs: env.AI_RETRY_DELAYS_MS.split(',').map((v) => Number(v.trim())).filter((v) => v > 0),
   },

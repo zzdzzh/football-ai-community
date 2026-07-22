@@ -3,7 +3,7 @@ import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { randomUUID } from 'node:crypto';
 import { getDb } from '../db/connection.js';
-import { createAiContentService } from './factory.js';
+import { createAiInteractiveContentService } from './factory.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -23,7 +23,7 @@ function parseAnalysisJson(text) {
 
 export class AiAnalysisService {
   constructor({ aiContentService = null } = {}) {
-    this.aiContentService = aiContentService ?? createAiContentService();
+    this.aiContentService = aiContentService ?? createAiInteractiveContentService();
     this.systemPrompt = loadStatsInterpretPrompt();
   }
 
