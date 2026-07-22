@@ -52,6 +52,7 @@
 - [x] T007 [P] Implement time-normalize helpers (exact/month/year/season/open_ended/unparseable) in server/src/services/time-normalize.js
 - [x] T008 [P] Implement Transfermarkt career search/profile CLI in scraper/scraper/transfermarkt_career.py
 <!-- bugfix 2026-07-17: 搜索 URL 回退 + 人机验证识别 -->
+<!-- bugfix 2026-07-22: fetch_html 人机验证错误不再被 urllib 回退吞掉 -->
 - [x] T009 Implement CareerDataAdapter and extend scraper-runner career CLI spawn in server/src/adapters/career-data-adapter.js and server/src/adapters/scraper-runner.js
 - [x] T010 Implement CareerSyncService with TTL, per-player replace transaction and zero-fabricated fallback in server/src/services/career-sync-service.js
 
@@ -81,6 +82,7 @@
 - [x] T017 [US1] Implement career-players API (search/detail/sync) with requireAuth and mount routes in server/src/api/career-players.js and server/src/app.js
 <!-- bugfix 2026-07-17: 相关性排序 + 本地不足时合并远端候选（按 externalId 回传） -->
 - [x] T018 [US1] Implement player-pair-analyses API (GET reentry + POST retry) for direct relations, freshness and computing status in server/src/api/player-pair-analyses.js and server/src/app.js
+<!-- bugfix 2026-07-22: failed 响应透出 lastSyncError（如人机验证/刷新 Cookie 指引） -->
 - [x] T019 [P] [US1] Add web API clients for career-players and player-pair-analyses in web/src/api/career-players.ts and web/src/api/player-pair-analyses.ts
 - [x] T020 [US1] Implement RelationshipSearchView and PlayerPicker (label-on-top dual search, explicit disambiguation) in web/src/views/RelationshipSearchView.vue and web/src/components/relationship/PlayerPicker.vue
 <!-- bugfix 2026-07-17: 最小 2 字、英文名提示、防抖与空态文案 -->

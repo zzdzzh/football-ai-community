@@ -119,6 +119,9 @@ def fetch_html(url: str, *, timeout: int = 30, max_retries: int = 3) -> str:
             return text
         except RuntimeError as err:
             last_err = err
+            # 人机验证不会因 urllib 回退消失，直接抛出以便上层提示刷新 Cookie
+            if "人机验证" in str(err):
+                raise
             if "HTTP 5" in str(err) and attempt < max_retries - 1:
                 time.sleep(3 * (attempt + 1))
                 continue
@@ -131,7 +134,9 @@ def fetch_html(url: str, *, timeout: int = 30, max_retries: int = 3) -> str:
                 continue
             break
 
-    # 回退 urllib（少数环境 curl_cffi 异常时）
+    # 回退 urllib（少数环境 curl_cffi 异常时）；若已确认人机验证则不再回退
+    if last_err is not None and "人机验证" in str(last_err):
+        raise last_err
     _throttle()
     req = urllib.request.Request(url, headers=_tm_headers())
     try:

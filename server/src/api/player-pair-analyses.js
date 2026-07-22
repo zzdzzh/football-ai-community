@@ -264,12 +264,15 @@ async function analyzePair(playerIdA, playerIdB, { forceRecompute = false } = {}
   const gateB = getSyncGate(metaB, { force: forceRecompute });
 
   if (gateA === 'failed' || gateB === 'failed') {
+    const syncDetail = [metaA, metaB]
+      .map((p) => p?.lastSyncError)
+      .find((msg) => typeof msg === 'string' && msg.trim());
     return buildFailedResponse(
       playerIdA,
       playerIdB,
       metaA,
       metaB,
-      '球员履历同步失败且本地无可用效力段，请重试',
+      syncDetail || '球员履历同步失败且本地无可用效力段，请重试',
     );
   }
 
