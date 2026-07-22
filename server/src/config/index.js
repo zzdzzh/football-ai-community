@@ -1,10 +1,66 @@
 import { config as loadEnv } from 'dotenv';
-import { resolve, dirname } from 'node:path';
+import { existsSync } from 'node:fs';
+import { resolve, dirname, isAbsolute } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { platform } from 'node:os';
 import { z } from 'zod';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 loadEnv({ path: resolve(__dirname, '../../.env') });
+
+/**
+ * 解析可用的 scraper Python：配置路径不存在时回退到 scraper 目录下常见 venv / 系统 python。
+ * @param {string} configured
+ * @param {string} scraperDir
+ */
+function resolveScraperPythonPath(configured, scraperDir) {
+  const raw = String(configured ?? '').trim() || 'python';
+  const pathLike = /[\\/]/.test(raw) || /^[a-zA-Z]:/.test(raw);
+
+  /** @type {string[]} */
+  const fileCandidates = [];
+
+  if (pathLike) {
+    fileCandidates.push(isAbsolute(raw) ? raw : resolve(scraperDir, raw));
+    // 兼容写成相对 server 的 ../scraper/.venv-.../python.exe
+    fileCandidates.push(resolve(__dirname, '../..', raw));
+  }
+
+  fileCandidates.push(
+    resolve(scraperDir, '.venv-soccerdata', 'Scripts', 'python.exe'),
+    resolve(scraperDir, '.venv-soccerdata', 'bin', 'python'),
+    resolve(scraperDir, '.venv', 'Scripts', 'python.exe'),
+    resolve(scraperDir, '.venv', 'bin', 'python'),
+  );
+
+  for (const candidate of fileCandidates) {
+    if (existsSync(candidate)) {
+      if (candidate !== raw) {
+        console.log(JSON.stringify({
+          level: 'info',
+          type: 'scraper_python_resolved',
+          configured: raw,
+          resolved: candidate,
+        }));
+      }
+      return candidate;
+    }
+  }
+
+  if (!pathLike) {
+    return raw;
+  }
+
+  const fallback = platform() === 'win32' ? 'python' : 'python3';
+  console.warn(JSON.stringify({
+    level: 'warn',
+    type: 'scraper_python_fallback',
+    configured: raw,
+    resolved: fallback,
+    message: 'SCRAPER_PYTHON 路径不存在，已回退到 PATH 中的解释器',
+  }));
+  return fallback;
+}
 
 const envSchema = z.object({
   PORT: z.coerce.number().default(3000),
@@ -94,14 +150,17 @@ export const config = {
   matchReportCron: env.MATCH_REPORT_CRON,
   playerSyncCron: env.PLAYER_SYNC_CRON,
   dataSource: env.NODE_ENV === 'test' ? 'football-data' : env.DATA_SOURCE,
-  scraper: {
-    pythonPath: env.SCRAPER_PYTHON,
-    dir: resolve(__dirname, '../..', env.SCRAPER_DIR),
-    requestDelaySec: env.SCRAPER_REQUEST_DELAY_SEC,
-    useTransfermarkt: ['1', 'true', 'yes', 'on'].includes(
-      String(env.SCRAPER_USE_TRANSFERMARKT).toLowerCase(),
-    ),
-  },
+  scraper: (() => {
+    const dir = resolve(__dirname, '../..', env.SCRAPER_DIR);
+    return {
+      pythonPath: resolveScraperPythonPath(env.SCRAPER_PYTHON, dir),
+      dir,
+      requestDelaySec: env.SCRAPER_REQUEST_DELAY_SEC,
+      useTransfermarkt: ['1', 'true', 'yes', 'on'].includes(
+        String(env.SCRAPER_USE_TRANSFERMARKT).toLowerCase(),
+      ),
+    };
+  })(),
   fan: {
     continueTimeoutMs: env.FAN_CONTINUE_TIMEOUT_MS,
   },

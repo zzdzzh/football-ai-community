@@ -38,6 +38,13 @@ export function runScraperCli(args, { timeoutMs = 600000 } = {}) {
 
     proc.on('error', (err) => {
       clearTimeout(timer);
+      if (err?.code === 'ENOENT') {
+        reject(new Error(
+          `找不到 SCRAPER_PYTHON「${config.scraper.pythonPath}」（ENOENT）。`
+          + '请在运行后台的那台机器上改为真实存在的 Python 路径后重启',
+        ));
+        return;
+      }
       reject(err);
     });
 
