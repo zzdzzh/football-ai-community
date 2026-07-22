@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { computed, onMounted } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 
 const route = useRoute();
 const router = useRouter();
 const authStore = useAuthStore();
+const mobileMenuOpen = ref(false);
 
 const baseNavItems = [
   { label: '首页', path: '/' },
@@ -35,23 +36,54 @@ const navItems = computed(() => {
 
 const activePath = computed(() => route.path);
 
+function isNavActive(path: string) {
+  return (
+    activePath.value === path
+    || (path === '/fan'
+      && (activePath.value === '/fan' || activePath.value.startsWith('/discussions/')))
+    || (path === '/admin/reports' && activePath.value.startsWith('/admin/reports'))
+    || (path === '/stats' && activePath.value.startsWith('/stats'))
+    || (path === '/conversations'
+      && (activePath.value === '/conversations' || activePath.value.startsWith('/conversations/')))
+    || (path === '/scout'
+      && (activePath.value.startsWith('/scout')
+        || (activePath.value.startsWith('/conversations/') && route.query.from === 'scout')))
+    || (path === '/tactical'
+      && (activePath.value.startsWith('/tactical')
+        || activePath.value.startsWith('/matches/')
+        || (activePath.value.startsWith('/conversations/') && route.query.from === 'tactical')))
+    || (path === '/relationships' && activePath.value.startsWith('/relationships'))
+  );
+}
+
 function navigate(path: string) {
   const authPaths = ['/settings/preferences', '/stats', '/conversations', '/scout', '/tactical', '/fan', '/relationships', '/admin/reports'];
   if (authPaths.includes(path) && !authStore.isAuthenticated) {
+    mobileMenuOpen.value = false;
     router.push({ path: '/login', query: { redirect: path } });
     return;
   }
   if (path === '/admin/reports' && !['moderator', 'admin'].includes(authStore.user?.role ?? '')) {
+    mobileMenuOpen.value = false;
     router.push('/');
     return;
   }
+  mobileMenuOpen.value = false;
   router.push(path);
 }
 
 function handleLogout() {
   authStore.logout();
+  mobileMenuOpen.value = false;
   router.push('/');
 }
+
+watch(
+  () => route.fullPath,
+  () => {
+    mobileMenuOpen.value = false;
+  },
+);
 
 onMounted(() => {
   authStore.initialize();
@@ -68,48 +100,74 @@ onMounted(() => {
         </div>
 
         <div class="header-actions">
-          <nav class="main-nav">
+          <nav class="main-nav desktop-nav" aria-label="主导航">
             <button
               v-for="item in navItems"
               :key="item.path"
               type="button"
               class="nav-link"
-              :class="{
-                active:
-                  activePath === item.path
-                  || (item.path === '/fan'
-                    && (activePath === '/fan' || activePath.startsWith('/discussions/')))
-                  || (item.path === '/admin/reports'
-                    && activePath.startsWith('/admin/reports'))
-                  || (item.path === '/stats' && activePath.startsWith('/stats'))
-                  || (item.path === '/conversations'
-                    && (activePath === '/conversations'
-                      || activePath.startsWith('/conversations/')))
-                  || (item.path === '/scout'
-                    && (activePath.startsWith('/scout')
-                      || (activePath.startsWith('/conversations/')
-                        && route.query.from === 'scout')))
-                  || (item.path === '/tactical'
-                    && (activePath.startsWith('/tactical')
-                      || activePath.startsWith('/matches/')
-                      || (activePath.startsWith('/conversations/')
-                        && route.query.from === 'tactical')))
-                  || (item.path === '/relationships'
-                    && activePath.startsWith('/relationships')),
-              }"
+              :class="{ active: isNavActive(item.path) }"
               @click="navigate(item.path)"
             >
               {{ item.label }}
             </button>
           </nav>
 
-          <div v-if="authStore.isAuthenticated" class="user-panel">
+          <div v-if="authStore.isAuthenticated" class="user-panel desktop-only">
             <span class="user-name">{{ authStore.user?.nickname }}</span>
             <el-button size="small" text @click="handleLogout">退出</el-button>
           </div>
+
+          <button
+            type="button"
+            class="menu-toggle"
+            :aria-expanded="mobileMenuOpen"
+            aria-label="打开菜单"
+            @click="mobileMenuOpen = true"
+          >
+            <span class="menu-toggle__bar" />
+            <span class="menu-toggle__bar" />
+            <span class="menu-toggle__bar" />
+          </button>
         </div>
       </div>
     </header>
+
+    <el-drawer
+      v-model="mobileMenuOpen"
+      direction="rtl"
+      size="280px"
+      :with-header="false"
+      class="mobile-nav-drawer"
+    >
+      <div class="mobile-drawer">
+        <div class="mobile-drawer__header">
+          <span class="mobile-drawer__title">菜单</span>
+          <el-button text @click="mobileMenuOpen = false">关闭</el-button>
+        </div>
+
+        <div v-if="authStore.isAuthenticated" class="mobile-drawer__user">
+          <span class="user-name">{{ authStore.user?.nickname }}</span>
+        </div>
+
+        <nav class="mobile-nav" aria-label="移动端导航">
+          <button
+            v-for="item in navItems"
+            :key="item.path"
+            type="button"
+            class="mobile-nav__link"
+            :class="{ active: isNavActive(item.path) }"
+            @click="navigate(item.path)"
+          >
+            {{ item.label }}
+          </button>
+        </nav>
+
+        <div v-if="authStore.isAuthenticated" class="mobile-drawer__footer">
+          <el-button type="danger" plain @click="handleLogout">退出登录</el-button>
+        </div>
+      </div>
+    </el-drawer>
 
     <main class="app-main">
       <div class="page-container">
@@ -137,6 +195,9 @@ onMounted(() => {
   background: var(--color-header-bg);
   color: var(--color-header-text);
   box-shadow: var(--shadow-sm);
+  position: sticky;
+  top: 0;
+  z-index: 100;
 }
 
 .header-inner {
@@ -146,7 +207,7 @@ onMounted(() => {
   height: var(--header-height);
   padding-top: 0;
   padding-bottom: 0;
-  gap: 1rem;
+  gap: 0.75rem;
 }
 
 .brand {
@@ -156,6 +217,7 @@ onMounted(() => {
   cursor: pointer;
   user-select: none;
   flex-shrink: 0;
+  min-width: 0;
 }
 
 .brand-icon {
@@ -163,20 +225,23 @@ onMounted(() => {
 }
 
 .brand-name {
-  font-size: 1.1rem;
+  font-size: 1.05rem;
   font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .header-actions {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.5rem;
   min-width: 0;
 }
 
 .main-nav {
-  display: flex;
-  gap: 0.5rem;
+  display: none;
+  gap: 0.25rem;
   flex-wrap: wrap;
   justify-content: flex-end;
 }
@@ -185,10 +250,10 @@ onMounted(() => {
   border: none;
   background: transparent;
   color: var(--color-header-text);
-  padding: 0.4rem 0.75rem;
+  padding: 0.35rem 0.6rem;
   border-radius: var(--radius-md);
   cursor: pointer;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   white-space: nowrap;
 }
 
@@ -198,7 +263,7 @@ onMounted(() => {
 }
 
 .user-panel {
-  display: flex;
+  display: none;
   align-items: center;
   gap: 0.25rem;
   flex-shrink: 0;
@@ -212,9 +277,90 @@ onMounted(() => {
   white-space: nowrap;
 }
 
+.menu-toggle {
+  display: inline-flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  width: 40px;
+  height: 40px;
+  padding: 8px;
+  border: none;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.08);
+  cursor: pointer;
+}
+
+.menu-toggle:hover {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.menu-toggle__bar {
+  display: block;
+  width: 100%;
+  height: 2px;
+  background: var(--color-header-text);
+  border-radius: 1px;
+}
+
+.mobile-drawer {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  gap: 0.75rem;
+}
+
+.mobile-drawer__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.mobile-drawer__title {
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.mobile-drawer__user {
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+}
+
+.mobile-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.mobile-nav__link {
+  border: none;
+  background: transparent;
+  text-align: left;
+  padding: 0.75rem 0.85rem;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-size: 1rem;
+  color: var(--color-text);
+}
+
+.mobile-nav__link:hover,
+.mobile-nav__link.active {
+  background: rgba(26, 127, 55, 0.1);
+  color: var(--color-primary-dark);
+  font-weight: 600;
+}
+
+.mobile-drawer__footer {
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--color-border);
+}
+
 .app-main {
   flex: 1;
-  padding: 1.5rem 0;
+  padding: 1rem 0;
 }
 
 .app-footer {
@@ -227,5 +373,38 @@ onMounted(() => {
 .footer-inner {
   padding-top: 0.75rem;
   padding-bottom: 0.75rem;
+}
+
+@media (min-width: 960px) {
+  .main-nav {
+    display: flex;
+  }
+
+  .user-panel.desktop-only {
+    display: flex;
+  }
+
+  .menu-toggle {
+    display: none;
+  }
+
+  .app-main {
+    padding: 1.5rem 0;
+  }
+
+  .brand-name {
+    font-size: 1.1rem;
+  }
+
+  .nav-link {
+    padding: 0.4rem 0.75rem;
+    font-size: 0.95rem;
+  }
+}
+
+@media (max-width: 380px) {
+  .brand-name {
+    font-size: 0.95rem;
+  }
 }
 </style>

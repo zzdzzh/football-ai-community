@@ -14,6 +14,16 @@ import FeedList from '@/components/feed/FeedList.vue';
 .home-view {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 0.85rem;
+}
+
+@media (max-width: 640px) {
+  .home-view .page-title {
+    font-size: 1.25rem;
+  }
+
+  .home-view .page-subtitle {
+    font-size: 0.9rem;
+  }
 }
 </style>
