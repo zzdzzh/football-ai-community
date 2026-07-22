@@ -65,6 +65,7 @@
 - [x] T005 [P] [US1] Unit tests for claim verification (clubmate/transfer/path allow-list, unknown/not_established not upgraded, honor claims reject, contradictory narrative reject) with 100% branch coverage in `server/tests/unit/relationship-narrative-verifier.test.js`
 <!-- bugfix 2026-07-22: 覆盖 005 nationalTeammateDetails.entityName 允许集合 -->
 <!-- bugfix 2026-07-22: verdict aspect=transfer / nationmates 别名 -->
+<!-- bugfix 2026-07-22: type/aspect 归一化与 Prompt↔005 全量对齐用例 -->
 - [x] T006 [P] [US1] Unit tests for ready-gate, Mock AI success/timeout/upstream fail, verification failure path, and `assertAiRateLimit({ agentId: 'relationship' })` 429 with 100% branch coverage in `server/tests/unit/relationship-narrative-agent.test.js`
 - [x] T007 [P] [US1] Contract tests for `POST /player-pair-analyses/{playerIdA}/{playerIdB}/narrative` (401, 409 not ready, 200 structure with `aiGenerated`/`reused`, 422 verification_failed, 429, 408/503) in `server/tests/contract/relationship-narratives.test.js`
 
@@ -74,6 +75,7 @@
 - [x] T009 [P] [US1] Implement `relationship-narrative-verifier` (build allowed facts from 005 `result`, validate claims + conservative name check) in `server/src/services/relationship-narrative-verifier.js`
 <!-- bugfix 2026-07-22: nationalTeammateDetails 收录 entityName，避免 Portugal 等国家队名误拒 -->
 <!-- bugfix 2026-07-22: 支持 Prompt 的 verdict aspect=transfer / nationmates -->
+<!-- bugfix 2026-07-22: Prompt 字段对齐 005；verifier 归一化 type/aspect 别名 -->
 - [x] T010 [US1] Implement `RelationshipNarrativeAgent` (load prompt, assemble minimal context from ready analysis, call AI, parse JSON, verify, persist) in `server/src/agents/relationship-narrative-agent.js`
 - [x] T011 [US1] Implement `relationship-narrative-service` (authenticate caller context, ready check, rate-limit only on real generate, orchestrate agent) in `server/src/services/relationship-narrative-service.js`
 - [x] T012 [US1] Implement POST narrative route and mount in `server/src/api/relationship-narratives.js` and `server/src/app.js`（对齐 `specs/007-relationship-llm-narrative/contracts/openapi.yaml`）

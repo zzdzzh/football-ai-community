@@ -6,12 +6,13 @@
 
 用户消息附带结构化 JSON，常见字段：
 - `playerA` / `playerB`：双方姓名与履历球员 ID
-- `result`：005 结构化结论，通常含：
-  - `clubmates` / `nationmates`：`established` | `not_established` | `unknown`
-  - `clubmateDetails` / `nationmateDetails`：重叠俱乐部/国家队与时段（可能为空）
-  - `transfer`：转会关联证据（可能为空或不成立）
-  - `indirectPath` / `pathStatus`：`found` | `no_path` | `skipped`
-- `careerHints`（可选）：关键效力段摘要，仅供措辞参考，不得推出结论中不存在的关系
+- `result`：005 结构化结论，字段名以实际 JSON 为准：
+  - `clubmates` / `nationalTeammates`：`{ status: established|not_established|unknown }`
+  - `clubmateDetails`：重叠俱乐部；常用 `clubName` / `entityName`、`overlapFrom`、`overlapTo`
+  - `nationalTeammateDetails`：重叠国家队；常用 `entityName`（如 `Portugal`）、`entityId`、`overlapFrom`、`overlapTo`
+  - `transfer`：`{ directTransferLink, successiveSameClub, evidence[] }`（可能均不成立）
+  - `pathStatus`：`found` | `no_path` | `skipped`
+  - `indirectPath`：节点含 `id` / `name`（仅当 `pathStatus=found`）
 - `dataFreshness`（可选）：数据新鲜度说明；可提示可能滞后，不得据此臆造更新事实
 
 ## 输出格式
@@ -24,7 +25,7 @@
   "claims": [
     {
       "type": "clubmate|nationmate|transfer|path|verdict",
-      "aspect": "clubmates|nationmates|transfer|path|null",
+      "aspect": "clubmates|nationalTeammates|transfer|path|null",
       "status": "established|not_established|unknown|found|no_path|skipped",
       "clubName": "string|null",
       "overlapFrom": "string|null",
@@ -36,6 +37,18 @@
   ]
 }
 ```
+
+### claims 字段对齐说明（必须遵守）
+
+| type | aspect（仅 type=verdict 时填写） | status 取值 | 名称字段 |
+|------|----------------------------------|-------------|---------|
+| `verdict` | `clubmates` / `nationalTeammates` / `transfer` / `path` | 不得高于输入同维结论 | 可空 |
+| `clubmate` | `null` | `established` 时须与 `clubmateDetails` 一致 | `clubName` = 详情中的 `clubName` 或 `entityName` |
+| `nationmate` | `null` | `established` 时须与 `nationalTeammateDetails` 一致 | `clubName` = 详情中的 `entityName`（国家队名） |
+| `transfer` | `null` | 仅当 `directTransferLink` 或 `successiveSameClub` 或 `evidence` 非空时可 `established` | 可空 |
+| `path` | `null` | 仅当 `pathStatus=found` 时可 `found` | `nodeIds`/`nodeNames` 必须来自 `indirectPath.nodes` |
+
+禁止使用：`nationmates`（请写 `nationalTeammates`）、`nationmateDetails`（输入字段是 `nationalTeammateDetails`）。
 
 ## `narrative` 写作要求
 
@@ -51,7 +64,7 @@
 
 1. 列出叙事中用到的可核验主张；每条 claim 必须能映射到输入 `result` 的允许事实
 2. `type=verdict`：用于声明某维度结论状态；`status` **不得高于**输入同维度 verdict（禁止 `unknown`/`not_established` → `established`）
-3. `type=clubmate|nationmate`：仅当输入 details 中确有该俱乐部/国家队与重叠区间时可声明；字段须与输入一致
+3. `type=clubmate|nationmate`：仅当输入 details 中确有该俱乐部/国家队与重叠区间时可声明；名称字段须与输入一致
 4. `type=transfer`：仅当输入 transfer 证据支持时声明；禁止捏造买卖双方、费用或时间
 5. `type=path`：仅当 `pathStatus=found` 且节点出现在 `indirectPath` 时可声明；`nodeIds`/`nodeNames` 不得新增虚构节点
 6. **禁止**荣誉/夺冠/个人奖项/未给出的同场对决等 claim（本输入不含此类事实）

@@ -100,19 +100,58 @@ function hasTransferEvidence(transfer) {
   );
 }
 
-function resolveVerdictAllowed(aspect, facts) {
-  if (!aspect || aspect === 'null') return null;
-  if (aspect === 'path') return facts.verdicts.pathStatus;
-  if (aspect === 'clubmates') return facts.verdicts.clubmates;
-  // Prompt 用 nationmates；005 result 字段为 nationalTeammates
-  if (aspect === 'nationmates' || aspect === 'nationalTeammates') {
-    return facts.verdicts.nationalTeammates;
+/** 归一化 claim.type（兼容模型别名） */
+function normalizeClaimType(type) {
+  const raw = String(type ?? '').trim().toLowerCase();
+  if (!raw) return raw;
+  if (raw === 'clubmates' || raw === 'club_mate') return 'clubmate';
+  if (
+    raw === 'nationmates'
+    || raw === 'nationalmate'
+    || raw === 'national_teammate'
+    || raw === 'nationalteammate'
+  ) {
+    return 'nationmate';
   }
-  // Prompt 允许 aspect=transfer；由 transfer 证据推导允许状态
-  if (aspect === 'transfer') {
+  if (raw === 'transfers') return 'transfer';
+  if (raw === 'paths' || raw === 'indirect_path' || raw === 'indirectpath') return 'path';
+  if (raw === 'verdicts') return 'verdict';
+  return raw;
+}
+
+/** 归一化 verdict.aspect（对齐 Prompt + 005 字段名） */
+function normalizeVerdictAspect(aspect) {
+  if (aspect == null || aspect === 'null' || aspect === '') return null;
+  const raw = String(aspect).trim();
+  const key = raw.toLowerCase();
+  const map = {
+    clubmates: 'clubmates',
+    clubmate: 'clubmates',
+    nationalteammates: 'nationalTeammates',
+    nationmates: 'nationalTeammates',
+    national_teammates: 'nationalTeammates',
+    nationmate: 'nationalTeammates',
+    transfer: 'transfer',
+    transfers: 'transfer',
+    path: 'path',
+    pathstatus: 'path',
+    path_status: 'path',
+    indirectpath: 'path',
+    indirect_path: 'path',
+  };
+  return map[key] ?? raw;
+}
+
+function resolveVerdictAllowed(aspect, facts) {
+  const normalized = normalizeVerdictAspect(aspect);
+  if (!normalized) return null;
+  if (normalized === 'path') return facts.verdicts.pathStatus;
+  if (normalized === 'clubmates') return facts.verdicts.clubmates;
+  if (normalized === 'nationalTeammates') return facts.verdicts.nationalTeammates;
+  if (normalized === 'transfer') {
     return hasTransferEvidence(facts.transfer) ? 'established' : 'not_established';
   }
-  return facts.verdicts[aspect] ?? null;
+  return facts.verdicts[normalized] ?? null;
 }
 
 function validateClaim(claim, facts) {
@@ -120,16 +159,16 @@ function validateClaim(claim, facts) {
     return fail('claim 格式无效');
   }
 
-  const type = claim.type;
+  const type = normalizeClaimType(claim.type);
   if (HONOR_TYPES.has(type)) {
     return fail('禁止荣誉类主张');
   }
 
   if (type === 'verdict') {
-    const aspect = claim.aspect;
+    const aspect = normalizeVerdictAspect(claim.aspect);
     const allowed = resolveVerdictAllowed(aspect, facts);
     if (!allowed) {
-      return fail(`未知 verdict aspect: ${aspect}`);
+      return fail(`未知 verdict aspect: ${claim.aspect}`);
     }
     if (isStatusUpgrade(allowed, claim.status)) {
       return fail(`不得将 ${aspect} 从 ${allowed} 升级为 ${claim.status}`);
@@ -193,7 +232,7 @@ function validateClaim(claim, facts) {
     return null;
   }
 
-  return fail(`不支持的 claim type: ${type}`);
+  return fail(`不支持的 claim type: ${claim.type}`);
 }
 
 function narrativeContradictsNotEstablished(narrative, facts) {
