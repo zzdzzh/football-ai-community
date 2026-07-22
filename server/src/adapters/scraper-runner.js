@@ -1,6 +1,25 @@
 import { spawn } from 'node:child_process';
 import { config } from '../config/index.js';
 
+function scraperSpawnOptions(extra = {}) {
+  const pythonPath = config.scraper.pythonPath;
+  const pathLike = /[\\/]/.test(pythonPath) || /^[a-zA-Z]:/.test(pythonPath);
+  return {
+    cwd: config.scraper.dir,
+    env: {
+      ...process.env,
+      PYTHONIOENCODING: 'utf-8',
+      PYTHONUTF8: '1',
+      SCRAPER_USE_TRANSFERMARKT: config.scraper.useTransfermarkt ? '1' : '0',
+      FOOTBALL_DATA_WC_SEASON: String(config.footballData.wcSeason),
+    },
+    // 裸命令在 Windows 上无 shell 时常 ENOENT；已解析为绝对路径时不必开 shell
+    shell: !pathLike,
+    windowsHide: true,
+    ...extra,
+  };
+}
+
 export function runScraperCli(args, { timeoutMs = 600000 } = {}) {
   if (config.isTest) {
     throw new Error('测试环境不调用真实爬虫');
@@ -10,16 +29,7 @@ export function runScraperCli(args, { timeoutMs = 600000 } = {}) {
     const proc = spawn(
       config.scraper.pythonPath,
       ['-m', 'scraper', ...args],
-      {
-        cwd: config.scraper.dir,
-        env: {
-          ...process.env,
-          PYTHONIOENCODING: 'utf-8',
-          PYTHONUTF8: '1',
-          SCRAPER_USE_TRANSFERMARKT: config.scraper.useTransfermarkt ? '1' : '0',
-          FOOTBALL_DATA_WC_SEASON: String(config.footballData.wcSeason),
-        },
-      },
+      scraperSpawnOptions(),
     );
 
     let stdout = '';
@@ -146,16 +156,10 @@ export function triggerTmCookieRefresh(reason = '') {
   const proc = spawn(
     config.scraper.pythonPath,
     [scriptPath, '--auto', '--timeout-sec', timeoutSec],
-    {
-      cwd: config.scraper.dir,
-      env: {
-        ...process.env,
-        PYTHONIOENCODING: 'utf-8',
-        PYTHONUTF8: '1',
-      },
+    scraperSpawnOptions({
       windowsHide: false,
       stdio: ['ignore', 'pipe', 'pipe'],
-    },
+    }),
   );
   tmCookieRefreshProc = proc;
 

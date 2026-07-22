@@ -1,5 +1,6 @@
 import { config as loadEnv } from 'dotenv';
 import { existsSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
 import { resolve, dirname, isAbsolute } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { platform } from 'node:os';
@@ -8,30 +9,85 @@ import { z } from 'zod';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 loadEnv({ path: resolve(__dirname, '../../.env') });
 
+function isPathLike(value) {
+  return /[\\/]/.test(value) || /^[a-zA-Z]:/.test(value);
+}
+
+/** 在 PATH 中查找可执行文件，返回绝对路径或 null */
+function resolveCommandOnPath(cmd) {
+  try {
+    if (platform() === 'win32') {
+      const out = execFileSync('where.exe', [cmd], {
+        encoding: 'utf8',
+        windowsHide: true,
+      });
+      const first = out
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .find((line) => line && existsSync(line) && !line.toLowerCase().includes('\\windowsapps\\'));
+      return first || null;
+    }
+    const out = execFileSync('/bin/sh', ['-c', `command -v ${JSON.stringify(cmd)}`], {
+      encoding: 'utf8',
+    });
+    const first = out.trim();
+    return first && existsSync(first) ? first : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Windows py launcher → 真实 python.exe */
+function resolveViaPyLauncher() {
+  if (platform() !== 'win32') return null;
+  try {
+    const out = execFileSync('py', ['-3', '-c', 'import sys; print(sys.executable)'], {
+      encoding: 'utf8',
+      windowsHide: true,
+    });
+    const first = out.trim().split(/\r?\n/).find(Boolean);
+    return first && existsSync(first) ? first : null;
+  } catch {
+    return null;
+  }
+}
+
 /**
- * 解析可用的 scraper Python：配置路径不存在时回退到 scraper 目录下常见 venv / 系统 python。
+ * 解析可用的 scraper Python：配置路径不存在时回退到 scraper venv / PATH / py launcher。
  * @param {string} configured
  * @param {string} scraperDir
  */
 function resolveScraperPythonPath(configured, scraperDir) {
   const raw = String(configured ?? '').trim() || 'python';
-  const pathLike = /[\\/]/.test(raw) || /^[a-zA-Z]:/.test(raw);
+  const pathLike = isPathLike(raw);
 
   /** @type {string[]} */
   const fileCandidates = [];
 
   if (pathLike) {
     fileCandidates.push(isAbsolute(raw) ? raw : resolve(scraperDir, raw));
-    // 兼容写成相对 server 的 ../scraper/.venv-.../python.exe
     fileCandidates.push(resolve(__dirname, '../..', raw));
   }
 
   fileCandidates.push(
     resolve(scraperDir, '.venv-soccerdata', 'Scripts', 'python.exe'),
     resolve(scraperDir, '.venv-soccerdata', 'bin', 'python'),
+    resolve(scraperDir, '.venv-soccerdata', 'bin', 'python3'),
     resolve(scraperDir, '.venv', 'Scripts', 'python.exe'),
     resolve(scraperDir, '.venv', 'bin', 'python'),
+    resolve(scraperDir, '.venv', 'bin', 'python3'),
   );
+
+  // 常见系统安装位置
+  if (platform() === 'win32') {
+    fileCandidates.push(
+      'C:\\ProgramData\\anaconda3\\python.exe',
+      'C:\\Python311\\python.exe',
+      'C:\\Python312\\python.exe',
+    );
+  } else {
+    fileCandidates.push('/usr/bin/python3', '/usr/local/bin/python3', '/usr/bin/python');
+  }
 
   for (const candidate of fileCandidates) {
     if (existsSync(candidate)) {
@@ -47,19 +103,44 @@ function resolveScraperPythonPath(configured, scraperDir) {
     }
   }
 
-  if (!pathLike) {
-    return raw;
+  const pathCmds = pathLike
+    ? []
+    : [raw, raw === 'python' ? 'python3' : null, raw === 'python3' ? 'python' : null, 'python.exe']
+      .filter(Boolean);
+  for (const cmd of pathCmds) {
+    const found = resolveCommandOnPath(cmd);
+    if (found) {
+      console.log(JSON.stringify({
+        level: 'info',
+        type: 'scraper_python_resolved',
+        configured: raw,
+        resolved: found,
+        via: 'PATH',
+      }));
+      return found;
+    }
   }
 
-  const fallback = platform() === 'win32' ? 'python' : 'python3';
+  const viaPy = resolveViaPyLauncher();
+  if (viaPy) {
+    console.log(JSON.stringify({
+      level: 'info',
+      type: 'scraper_python_resolved',
+      configured: raw,
+      resolved: viaPy,
+      via: 'py_launcher',
+    }));
+    return viaPy;
+  }
+
   console.warn(JSON.stringify({
     level: 'warn',
-    type: 'scraper_python_fallback',
+    type: 'scraper_python_unresolved',
     configured: raw,
-    resolved: fallback,
-    message: 'SCRAPER_PYTHON 路径不存在，已回退到 PATH 中的解释器',
+    scraperDir,
+    message: '未找到可用 Python，将使用配置值原样 spawn（可能 ENOENT）',
   }));
-  return fallback;
+  return raw;
 }
 
 const envSchema = z.object({
