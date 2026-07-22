@@ -187,7 +187,7 @@ export function searchPlayersByTeamLeague(teamLeagueCode, { page = 1, pageSize =
  */
 export function searchPlayersForLeagueContext(leagueCode, {
   positionAny = null,
-  orderBy = 'name',
+  orderBy = 'goals',
   page = 1,
   pageSize = 20,
 } = {}) {

@@ -156,10 +156,12 @@ function resolveCandidateOrderBy(statFocus, userQuestion = '') {
   if (focuses.includes('attack') || /射手|金靴|进球榜|top\s*scorer/i.test(userQuestion)) {
     return 'goals';
   }
-  if (focuses.includes('playmaking') && /助攻/.test(userQuestion)) {
+  // 组织/助攻侧重：按助攻排序，避免按姓名截断候选池
+  if (focuses.includes('playmaking') || /助攻/.test(userQuestion)) {
     return 'assists';
   }
-  return 'name';
+  // 候选池有上限（CANDIDATE_CAP），禁止默认按姓名截断，否则 AI 只能看到 A 开头球员
+  return 'goals';
 }
 
 const POSITION_ALIASES = {
@@ -227,7 +229,7 @@ function filterCandidates(candidates, { maxAge = null, minAge = null, position =
   return filtered;
 }
 
-function searchLeagueCandidates(leagueCode, { position = null, orderBy = 'name' } = {}) {
+function searchLeagueCandidates(leagueCode, { position = null, orderBy = 'goals' } = {}) {
   return searchPlayersForLeagueContext(leagueCode, {
     positionAny: resolvePositionSqlLikeTerms(position),
     orderBy,

@@ -268,6 +268,43 @@ describe('ScoutContextBuilder', () => {
     expect(context.candidates.length).toBeLessThanOrEqual(CANDIDATE_CAP);
   });
 
+  it('does not truncate ordinary midfielder pools by name (avoids A-only recommendations)', () => {
+    const db = getDb();
+    const now = new Date().toISOString();
+    // 大量 A 开头、无统计的中场，若按姓名截断会占满候选池
+    for (let i = 0; i < 55; i += 1) {
+      db.prepare(`
+        INSERT OR REPLACE INTO players (
+          id, name, team_id, position, date_of_birth, league_code, updated_at
+        ) VALUES (?, ?, '57', 'Central Midfield', '2000-01-01', 'PL', ?)
+      `).run(`alpha-mf-${i}`, `Aaron Alpha Mid ${String(i).padStart(2, '0')}`, now);
+    }
+    db.prepare(`
+      INSERT OR REPLACE INTO players (
+        id, name, team_id, position, date_of_birth, league_code, updated_at
+      ) VALUES ('zeta-mf-star', 'Zinedine Zeta Mid', '57', 'Central Midfield', '2003-06-01', 'PL', ?)
+    `).run(now);
+    db.prepare(`
+      INSERT OR REPLACE INTO player_stats_snapshots (
+        id, player_id, league_code, season, goals, assists, penalties, appearances, minutes, synced_at
+      ) VALUES ('snap-zeta-mf', 'zeta-mf-star', 'PL', '25-26', 4, 12, 0, 28, 2400, ?)
+    `).run(now);
+
+    const context = buildScoutContext({
+      contextType: 'league',
+      contextId: 'PL',
+      userQuestion: '需要一名擅长压迫的中场，25岁以下',
+    });
+    expect(context.candidates.some((c) => c.id === 'zeta-mf-star')).toBe(true);
+    // 普通推荐按进球/统计排序，高数据者应排在无统计的 Aaron Alpha 之前
+    const zetaIdx = context.candidates.findIndex((c) => c.id === 'zeta-mf-star');
+    const alphaIdx = context.candidates.findIndex((c) => c.id?.startsWith('alpha-mf-'));
+    expect(zetaIdx).toBeGreaterThanOrEqual(0);
+    if (alphaIdx >= 0) {
+      expect(zetaIdx).toBeLessThan(alphaIdx);
+    }
+  });
+
   it('handles general context', () => {
     const context = buildScoutContext({
       contextType: 'general',

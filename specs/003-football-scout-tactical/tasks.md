@@ -67,12 +67,12 @@
 
 - [x] T010 [P] [US1] Contract tests for GET /players and POST /internal/jobs/player-sync in server/tests/contract/players.test.js and server/tests/contract/player-sync.test.js
 - [x] T011 [P] [US1] Contract tests for Scout conversations and message feedback in server/tests/contract/scout-conversations.test.js
-- [x] T012 [P] [US1] Unit tests for scout-context-builder and scout-agent with 100% branch coverage in server/tests/unit/scout-context-builder.test.js and server/tests/unit/scout-agent.test.js
+- [x] T012 [P] [US1] Unit tests for scout-context-builder and scout-agent with 100% branch coverage in server/tests/unit/scout-context-builder.test.js and server/tests/unit/scout-agent.test.js（BUG: 非射手类问题也须断言候选不按姓名截断）
 
 ### Implementation for User Story 1
 
 - [x] T013 [P] [US1] Create scout-recommend prompt and AiScoutService in server/prompts/scout-recommend.md and server/src/ai/ai-scout-service.js（BUG: keyStats 须按用户意图侧重，且保留基础数据；BUG: 「射手/金靴」类问题未识别为 attack 侧重；BUG: 候选 statsSeason 非当前赛季时须在文案中说明）
-- [x] T014 [US1] Implement scout-context-builder with league filter and candidate cap in server/src/services/scout-context-builder.js（BUG: 从问题解析 statFocus；BUG: 后卫 SQL 误用 Defender 与真实 Left-Back/Centre-Back 不匹配导致候选为空；年龄范围/岁以内/边后卫解析；BUG: 联赛快照过贫时未回退跨联赛富统计导致 keyStats 为空；BUG: 「最佳射手」按姓名取前 50 且未偏好联赛进球快照，导致姆巴佩等球星不在候选池；BUG: 候选须带 statsSeason，且进球排序优先当前赛季；BUG: Scout 排除 CL/WC，避免国家队/欧冠球队与俱乐部归属混乱）
+- [x] T014 [US1] Implement scout-context-builder with league filter and candidate cap in server/src/services/scout-context-builder.js（BUG: 从问题解析 statFocus；BUG: 后卫 SQL 误用 Defender 与真实 Left-Back/Centre-Back 不匹配导致候选为空；年龄范围/岁以内/边后卫解析；BUG: 联赛快照过贫时未回退跨联赛富统计导致 keyStats 为空；BUG: 「最佳射手」按姓名取前 50 且未偏好联赛进球快照，导致姆巴佩等球星不在候选池；BUG: 候选须带 statsSeason，且进球排序优先当前赛季；BUG: Scout 排除 CL/WC，避免国家队/欧冠球队与俱乐部归属混乱；BUG: 普通推荐默认按姓名截断前 50，导致推荐全是 A 开头球员）
 - [x] T015 [US1] Implement scout-agent orchestration with recommendations_json persistence in server/src/agents/scout-agent.js（BUG: 组装 keyStats 时强制保留基础项；BUG: 透传 statsSeason 并在赛季不一致时补说明）
 - [x] T016 [US1] Extend conversation-service and conversations API for agentId=scout and feedback endpoint in server/src/services/conversation-service.js and server/src/api/conversations.js
 - [x] T017 [P] [US1] Extend web API clients for players and scout conversations in web/src/api/players.ts and web/src/api/conversations.ts（BUG: 创建含 initialMessage 的对话超时 30s 不足，改为 120s）
