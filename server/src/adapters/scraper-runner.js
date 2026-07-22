@@ -110,3 +110,91 @@ export async function fetchCareerProfileFromScraper(tmId, { slug = '-', timeoutM
     { timeoutMs },
   );
 }
+
+/** @type {import('node:child_process').ChildProcess | null} */
+let tmCookieRefreshProc = null;
+
+export function isTmCaptchaError(message) {
+  return typeof message === 'string' && message.includes('人机验证');
+}
+
+/**
+ * 检测到 Transfermarkt 人机验证时，后台拉起有头 Playwright 刷新 Cookie。
+ * 仍需人工在弹出的浏览器里完成验证；脚本 --auto 会在验证消失后自动落盘。
+ * @returns {{ started: boolean, reason: string }}
+ */
+export function triggerTmCookieRefresh(reason = '') {
+  if (config.isTest) {
+    return { started: false, reason: 'test' };
+  }
+  if (!config.careerSync.autoRefreshTmCookies) {
+    return { started: false, reason: 'disabled' };
+  }
+  if (tmCookieRefreshProc && !tmCookieRefreshProc.killed) {
+    return { started: false, reason: 'already_running' };
+  }
+
+  const scriptPath = 'scripts/refresh_tm_cookies.py';
+  const timeoutSec = String(config.careerSync.tmCookieRefreshTimeoutSec ?? 300);
+  const proc = spawn(
+    config.scraper.pythonPath,
+    [scriptPath, '--auto', '--timeout-sec', timeoutSec],
+    {
+      cwd: config.scraper.dir,
+      env: {
+        ...process.env,
+        PYTHONIOENCODING: 'utf-8',
+        PYTHONUTF8: '1',
+      },
+      windowsHide: false,
+      stdio: ['ignore', 'pipe', 'pipe'],
+    },
+  );
+  tmCookieRefreshProc = proc;
+
+  console.log(JSON.stringify({
+    level: 'info',
+    type: 'tm_cookie_refresh_started',
+    reason: String(reason).slice(0, 200),
+    pid: proc.pid,
+  }));
+
+  proc.stdout?.on('data', (chunk) => {
+    const text = chunk.toString('utf8').trim();
+    if (text) {
+      console.log(JSON.stringify({
+        level: 'info',
+        type: 'tm_cookie_refresh_stdout',
+        message: text.slice(0, 500),
+      }));
+    }
+  });
+  proc.stderr?.on('data', (chunk) => {
+    const text = chunk.toString('utf8').trim();
+    if (text) {
+      console.log(JSON.stringify({
+        level: 'warn',
+        type: 'tm_cookie_refresh_stderr',
+        message: text.slice(0, 500),
+      }));
+    }
+  });
+  proc.on('error', (err) => {
+    console.error(JSON.stringify({
+      level: 'error',
+      type: 'tm_cookie_refresh_spawn_failed',
+      message: err?.message ?? String(err),
+    }));
+    if (tmCookieRefreshProc === proc) tmCookieRefreshProc = null;
+  });
+  proc.on('close', (code) => {
+    console.log(JSON.stringify({
+      level: 'info',
+      type: 'tm_cookie_refresh_finished',
+      code,
+    }));
+    if (tmCookieRefreshProc === proc) tmCookieRefreshProc = null;
+  });
+
+  return { started: true, reason: 'spawned' };
+}

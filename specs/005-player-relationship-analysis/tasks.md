@@ -53,6 +53,7 @@
 - [x] T008 [P] Implement Transfermarkt career search/profile CLI in scraper/scraper/transfermarkt_career.py
 <!-- bugfix 2026-07-17: 搜索 URL 回退 + 人机验证识别 -->
 <!-- bugfix 2026-07-22: fetch_html 人机验证错误不再被 urllib 回退吞掉 -->
+<!-- bugfix 2026-07-22: refresh_tm_cookies.py --auto；同步遇人机验证时自动拉起 -->
 - [x] T009 Implement CareerDataAdapter and extend scraper-runner career CLI spawn in server/src/adapters/career-data-adapter.js and server/src/adapters/scraper-runner.js
 - [x] T010 Implement CareerSyncService with TTL, per-player replace transaction and zero-fabricated fallback in server/src/services/career-sync-service.js
 

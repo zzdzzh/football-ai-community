@@ -18,6 +18,7 @@ import {
   insertNationalTeamStint,
 } from '../db/repositories/national-team-stint-repository.js';
 import { normalizeStintInterval } from './time-normalize.js';
+import { isTmCaptchaError, triggerTmCookieRefresh } from '../adapters/scraper-runner.js';
 
 function normalizeName(name) {
   return String(name ?? '')
@@ -88,7 +89,15 @@ export function createCareerSyncService(deps = {}) {
       try {
         profile = await adapter.fetchProfile(tmId, { slug: player?.slug ?? slug });
       } catch (err) {
-        const message = err?.message ?? String(err);
+        let message = err?.message ?? String(err);
+        if (isTmCaptchaError(message)) {
+          const refresh = triggerTmCookieRefresh(message);
+          if (refresh.started) {
+            message = `${message}；已自动打开浏览器刷新 Cookie，请完成人机验证后重试`;
+          } else if (refresh.reason === 'already_running') {
+            message = `${message}；Cookie 刷新已在进行中，请在弹出的浏览器完成验证后重试`;
+          }
+        }
         if (player) {
           // 失败零虚构：不删既有 stints，仅标记 failed
           updateCareerPlayerSyncStatus(player.id, {

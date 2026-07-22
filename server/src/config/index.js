@@ -41,6 +41,9 @@ const envSchema = z.object({
   CAREER_SYNC_TTL_DAYS: z.coerce.number().default(7),
   RELATIONSHIP_MAX_HOPS: z.coerce.number().default(6),
   CAREER_SYNC_TIMEOUT_MS: z.coerce.number().default(60000),
+  /** 履历同步遇 TM 人机验证时，是否自动拉起 refresh_tm_cookies.py --auto */
+  CAREER_AUTO_REFRESH_TM_COOKIES: z.enum(['0', '1', 'true', 'false', 'yes', 'no', 'on', 'off']).default('1'),
+  CAREER_TM_COOKIE_REFRESH_TIMEOUT_SEC: z.coerce.number().default(300),
   /** 同一用户对同一 Agent 每窗口最大 AI 提问次数；0=关闭。测试环境默认 0 */
   AI_RATE_LIMIT_MAX: z.coerce.number().optional(),
   AI_RATE_LIMIT_WINDOW_MS: z.coerce.number().default(60000),
@@ -108,6 +111,10 @@ export const config = {
   careerSync: {
     ttlDays: env.CAREER_SYNC_TTL_DAYS,
     timeoutMs: env.CAREER_SYNC_TIMEOUT_MS,
+    autoRefreshTmCookies: ['1', 'true', 'yes', 'on'].includes(
+      String(env.CAREER_AUTO_REFRESH_TM_COOKIES).toLowerCase(),
+    ),
+    tmCookieRefreshTimeoutSec: env.CAREER_TM_COOKIE_REFRESH_TIMEOUT_SEC,
   },
   relationship: {
     maxHops: env.RELATIONSHIP_MAX_HOPS,
