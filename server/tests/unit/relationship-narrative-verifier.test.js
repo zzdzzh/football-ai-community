@@ -96,6 +96,43 @@ describe('relationship-narrative-verifier', () => {
       expect(out.ok).toBe(true);
     });
 
+    it('accepts verdict aspect=transfer and nationmates aliases from prompt', () => {
+      const acceptTransfer = verifyNarrativeOutput({
+        result: baseResult({
+          transfer: {
+            directTransferLink: false,
+            successiveSameClub: false,
+            evidence: [],
+          },
+        }),
+        narrative: '未发现直接转会关联。',
+        claims: [{ type: 'verdict', aspect: 'transfer', status: 'not_established' }],
+      });
+      expect(acceptTransfer.ok).toBe(true);
+
+      const rejectUpgrade = verifyNarrativeOutput({
+        result: baseResult({
+          transfer: {
+            directTransferLink: false,
+            successiveSameClub: false,
+            evidence: [],
+          },
+        }),
+        narrative: '存在转会关联。',
+        claims: [{ type: 'verdict', aspect: 'transfer', status: 'established' }],
+      });
+      expect(rejectUpgrade.ok).toBe(false);
+
+      const nationAlias = verifyNarrativeOutput({
+        result: baseResult({
+          nationalTeammates: { status: 'not_established' },
+        }),
+        narrative: '非国家队队友。',
+        claims: [{ type: 'verdict', aspect: 'nationmates', status: 'not_established' }],
+      });
+      expect(nationAlias.ok).toBe(true);
+    });
+
     it('accepts path claim when pathStatus is found', () => {
       const result = baseResult({
         clubmates: { status: 'not_established' },

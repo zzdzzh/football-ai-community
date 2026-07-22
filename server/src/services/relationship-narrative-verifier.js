@@ -100,6 +100,21 @@ function hasTransferEvidence(transfer) {
   );
 }
 
+function resolveVerdictAllowed(aspect, facts) {
+  if (!aspect || aspect === 'null') return null;
+  if (aspect === 'path') return facts.verdicts.pathStatus;
+  if (aspect === 'clubmates') return facts.verdicts.clubmates;
+  // Prompt 用 nationmates；005 result 字段为 nationalTeammates
+  if (aspect === 'nationmates' || aspect === 'nationalTeammates') {
+    return facts.verdicts.nationalTeammates;
+  }
+  // Prompt 允许 aspect=transfer；由 transfer 证据推导允许状态
+  if (aspect === 'transfer') {
+    return hasTransferEvidence(facts.transfer) ? 'established' : 'not_established';
+  }
+  return facts.verdicts[aspect] ?? null;
+}
+
 function validateClaim(claim, facts) {
   if (!claim || typeof claim !== 'object') {
     return fail('claim 格式无效');
@@ -112,9 +127,7 @@ function validateClaim(claim, facts) {
 
   if (type === 'verdict') {
     const aspect = claim.aspect;
-    const allowed = aspect === 'path'
-      ? facts.verdicts.pathStatus
-      : facts.verdicts[aspect];
+    const allowed = resolveVerdictAllowed(aspect, facts);
     if (!allowed) {
       return fail(`未知 verdict aspect: ${aspect}`);
     }
