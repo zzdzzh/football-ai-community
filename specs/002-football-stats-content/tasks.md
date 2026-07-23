@@ -79,6 +79,7 @@
 - [x] T017 [US1] Implement conversation-service and conversations API with user_id isolation in server/src/services/conversation-service.js and server/src/api/conversations.js
 - [x] T018 [P] [US1] Implement web API clients in web/src/api/matches.ts, web/src/api/teams.ts and web/src/api/conversations.ts
 - [x] T019 [P] [US1] Implement StatsStartView, ConversationView and conversation components in web/src/views/StatsStartView.vue, web/src/views/ConversationView.vue and web/src/components/conversation/
+<!-- BUG 2026-07-23: Stats/Tactical 比赛列表 + ConversationsList 分页 -->
 - [x] T020 [US1] Register /stats and /conversations/:conversationId routes in web/src/router/index.ts
 
 **Checkpoint**: User Story 1 fully functional — Stats 对话闭环可独立验收（对齐 SC-002）

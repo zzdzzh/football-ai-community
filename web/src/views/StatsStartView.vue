@@ -5,8 +5,11 @@ import { ElMessage } from 'element-plus';
 import { fetchMatches } from '@/api/matches';
 import { searchTeams } from '@/api/teams';
 import { createConversation } from '@/api/conversations';
+import ListPagination from '@/components/common/ListPagination.vue';
 import type { ContextType, LeagueCode, MatchSummary, Team } from '@/types/stats';
 import { LEAGUE_OPTIONS_SHORT } from '@/constants/leagues';
+
+const PAGE_SIZE = 15;
 
 const router = useRouter();
 
@@ -18,6 +21,8 @@ const contextType = ref<ContextType>('match');
 const league = ref<LeagueCode>('PL');
 const matchStatus = ref<'FINISHED' | 'LIVE' | 'SCHEDULED' | ''>('FINISHED');
 const matches = ref<MatchSummary[]>([]);
+const matchTotal = ref(0);
+const matchPage = ref(1);
 const syncWarnings = ref<string[]>([]);
 
 const selectedTeamId = ref<string | null>(null);
@@ -61,27 +66,40 @@ async function onLeagueChange() {
   selectedTeamId.value = null;
   teamOptions.value = [];
   if (contextType.value === 'match') {
-    await loadMatches();
+    await loadMatches(true);
   }
 }
 
-async function loadMatches() {
+async function loadMatches(resetPage = false) {
+  if (resetPage) matchPage.value = 1;
   loading.value = true;
   try {
     const result = await fetchMatches({
       league: league.value,
       status: matchStatus.value || undefined,
       teamId: selectedTeamId.value || undefined,
-      pageSize: 30,
+      page: matchPage.value,
+      pageSize: PAGE_SIZE,
     });
     matches.value = result.items;
+    matchTotal.value = result.total;
     syncWarnings.value = result.warnings ?? [];
     selectedMatchId.value = result.items.length > 0 ? result.items[0].id : null;
+    const maxPage = Math.max(1, Math.ceil(result.total / PAGE_SIZE) || 1);
+    if (matchPage.value > maxPage) {
+      matchPage.value = maxPage;
+      await loadMatches();
+    }
   } catch {
     ElMessage.error('加载比赛列表失败');
   } finally {
     loading.value = false;
   }
+}
+
+function onMatchPageChange(nextPage: number) {
+  matchPage.value = nextPage;
+  loadMatches();
 }
 
 async function startConversation() {
@@ -170,7 +188,7 @@ onMounted(() => {
 
         <div v-if="contextType === 'match'" class="filter-field">
           <label class="field-label">状态</label>
-          <el-select v-model="matchStatus" @change="loadMatches">
+          <el-select v-model="matchStatus" @change="loadMatches(true)">
             <el-option label="已结束" value="FINISHED" />
             <el-option label="进行中" value="LIVE" />
             <el-option label="未开赛" value="SCHEDULED" />
@@ -192,8 +210,8 @@ onMounted(() => {
             placeholder="输入球队名"
             :remote-method="searchTeamOptions"
             :loading="teamSearching"
-            @change="contextType === 'match' ? loadMatches() : undefined"
-            @clear="contextType === 'match' ? loadMatches() : undefined"
+            @change="contextType === 'match' ? loadMatches(true) : undefined"
+            @clear="contextType === 'match' ? loadMatches(true) : undefined"
           >
             <el-option
               v-for="team in teamOptions"
@@ -205,7 +223,7 @@ onMounted(() => {
         </div>
 
         <div v-if="contextType === 'match'" class="filter-actions">
-          <el-button :loading="loading" @click="loadMatches">刷新</el-button>
+          <el-button :loading="loading" @click="loadMatches()">刷新</el-button>
         </div>
       </div>
 
@@ -237,6 +255,12 @@ onMounted(() => {
           </el-radio>
         </el-radio-group>
         <el-empty v-else description="暂无比赛数据" />
+        <ListPagination
+          :page="matchPage"
+          :page-size="PAGE_SIZE"
+          :total="matchTotal"
+          @update:page="onMatchPageChange"
+        />
       </div>
     </div>
 

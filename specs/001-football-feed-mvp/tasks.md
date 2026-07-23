@@ -78,7 +78,8 @@
 - [ ] T022 [US1] Implement feed API routes (list, detail) in server/src/api/feed.js
 - [x] T023 [US1] Implement news-fetch cron job and internal dev trigger in server/src/jobs/news-fetch.js
 <!-- BUG 2026-07-23 fixed: T019 Sky BST + fetch/UA；T023 启动 stale 补偿抓取 -->
-- [ ] T024 [P] [US1] Implement feed UI (FeedList, FeedCard, SourceStatusBanner, HomeView, FeedDetailView) in web/src/components/feed/ and web/src/views/HomeView.vue and web/src/views/FeedDetailView.vue
+- [x] T024 [P] [US1] Implement feed UI (FeedList, FeedCard, SourceStatusBanner, HomeView, FeedDetailView) in web/src/components/feed/ and web/src/views/HomeView.vue and web/src/views/FeedDetailView.vue
+<!-- BUG 2026-07-23: 列表分页 — FeedList 支持 page 翻页与 URL ?tab=&page= -->
 
 **Checkpoint**: User Story 1 fully functional
 

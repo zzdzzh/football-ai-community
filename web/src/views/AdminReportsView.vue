@@ -6,14 +6,19 @@ import {
   fetchAdminContentReports,
   hideContentReport,
 } from '@/api/content-reports';
+import ListPagination from '@/components/common/ListPagination.vue';
 import type { ContentReport } from '@/types/fan';
 
 type ReportStatus = 'pending' | 'hidden' | 'dismissed';
+
+const PAGE_SIZE = 20;
 
 const status = ref<ReportStatus>('pending');
 const items = ref<ContentReport[]>([]);
 const loading = ref(false);
 const actingReportId = ref<string | null>(null);
+const page = ref(1);
+const total = ref(0);
 
 const statusOptions: { value: ReportStatus; label: string }[] = [
   { value: 'pending', label: '待处理' },
@@ -35,11 +40,23 @@ function formatTargetType(value: ContentReport['targetType']) {
   return value === 'fan_discussion' ? '整段讨论' : '单条发言';
 }
 
-async function loadReports() {
+async function loadReports(resetPage = false) {
+  if (resetPage) page.value = 1;
   loading.value = true;
   try {
-    const result = await fetchAdminContentReports({ status: status.value, page: 1, pageSize: 50 });
+    const result = await fetchAdminContentReports({
+      status: status.value,
+      page: page.value,
+      pageSize: PAGE_SIZE,
+    });
     items.value = result.items;
+    total.value = result.total;
+    const maxPage = Math.max(1, Math.ceil(result.total / PAGE_SIZE) || 1);
+    if (page.value > maxPage) {
+      page.value = maxPage;
+      await loadReports();
+      return;
+    }
   } catch (err: unknown) {
     const response =
       err && typeof err === 'object' && 'response' in err
@@ -51,9 +68,15 @@ async function loadReports() {
       ElMessage.error(response?.data?.message || '加载举报列表失败');
     }
     items.value = [];
+    total.value = 0;
   } finally {
     loading.value = false;
   }
+}
+
+function onPageChange(nextPage: number) {
+  page.value = nextPage;
+  loadReports();
 }
 
 async function handleHide(report: ContentReport) {
@@ -102,8 +125,10 @@ async function handleDismiss(report: ContentReport) {
   }
 }
 
-watch(status, loadReports);
-onMounted(loadReports);
+watch(status, () => {
+  loadReports(true);
+});
+onMounted(() => loadReports());
 </script>
 
 <template>
@@ -163,6 +188,13 @@ onMounted(loadReports);
         </template>
       </el-table-column>
     </el-table>
+
+    <ListPagination
+      :page="page"
+      :page-size="PAGE_SIZE"
+      :total="total"
+      @update:page="onPageChange"
+    />
   </section>
 </template>
 

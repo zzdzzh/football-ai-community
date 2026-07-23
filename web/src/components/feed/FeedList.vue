@@ -5,45 +5,40 @@ import { fetchFeedList } from '@/api/feed';
 import type { FeedItem } from '@/types/feed';
 import FeedCard from './FeedCard.vue';
 import SourceStatusBanner from './SourceStatusBanner.vue';
+import ListPagination from '@/components/common/ListPagination.vue';
 
 type FeedCategory = 'news' | 'report' | 'community';
 
-const CATEGORIES: { key: FeedCategory; label: string }[] = [
-  { key: 'news', label: '新闻' },
-  { key: 'report', label: '战报' },
-  { key: 'community', label: '社区动态' },
+const CATEGORIES: { key: FeedCategory; label: string; agentId: string }[] = [
+  { key: 'news', label: '新闻', agentId: 'news' },
+  { key: 'report', label: '战报', agentId: 'content' },
+  { key: 'community', label: '社区动态', agentId: 'fan' },
 ];
+
+const PAGE_SIZE = 10;
 
 const route = useRoute();
 const router = useRouter();
 
-const newsItems = ref<FeedItem[]>([]);
-const reportItems = ref<FeedItem[]>([]);
-const communityItems = ref<FeedItem[]>([]);
+const items = ref<FeedItem[]>([]);
 const warnings = ref<string[]>([]);
 const loading = ref(true);
 const error = ref('');
+const page = ref(1);
+const total = ref(0);
+const categoryTotals = ref<Record<FeedCategory, number>>({
+  news: 0,
+  report: 0,
+  community: 0,
+});
 
 const activeCategory = ref<FeedCategory>('news');
 
-const isEmpty = computed(
-  () =>
-    newsItems.value.length === 0
-    && reportItems.value.length === 0
-    && communityItems.value.length === 0,
+const activeMeta = computed(
+  () => CATEGORIES.find((cat) => cat.key === activeCategory.value) ?? CATEGORIES[0],
 );
 
-const categoryCounts = computed(() => ({
-  news: newsItems.value.length,
-  report: reportItems.value.length,
-  community: communityItems.value.length,
-}));
-
-const activeItems = computed(() => {
-  if (activeCategory.value === 'report') return reportItems.value;
-  if (activeCategory.value === 'community') return communityItems.value;
-  return newsItems.value;
-});
+const isEmpty = computed(() => !loading.value && total.value === 0 && !error.value);
 
 const activeEmptyText = computed(() => {
   if (activeCategory.value === 'report') return '暂无赛后战报';
@@ -56,69 +51,120 @@ function parseCategory(value: unknown): FeedCategory | null {
   return null;
 }
 
-function syncCategoryFromRoute() {
+function parsePage(value: unknown): number {
+  const n = Number(value);
+  return Number.isFinite(n) && n >= 1 ? Math.floor(n) : 1;
+}
+
+function syncFromRoute() {
   const fromQuery = parseCategory(route.query.tab);
-  if (fromQuery) {
-    activeCategory.value = fromQuery;
-    return;
-  }
-  activeCategory.value = 'news';
+  activeCategory.value = fromQuery ?? 'news';
+  page.value = parsePage(route.query.page);
+}
+
+function replaceQuery(next: { tab?: FeedCategory; page?: number }) {
+  const tab = next.tab ?? activeCategory.value;
+  const nextPage = next.page ?? page.value;
+  router.replace({
+    path: route.path,
+    query: {
+      ...route.query,
+      tab,
+      page: String(nextPage),
+    },
+  });
 }
 
 function selectCategory(key: FeedCategory) {
   if (activeCategory.value === key) return;
   activeCategory.value = key;
-  router.replace({
-    path: route.path,
-    query: { ...route.query, tab: key },
-  });
+  page.value = 1;
+  replaceQuery({ tab: key, page: 1 });
+}
+
+function onPageChange(nextPage: number) {
+  if (nextPage === page.value) return;
+  page.value = nextPage;
+  replaceQuery({ page: nextPage });
+}
+
+async function refreshCategoryTotals() {
+  try {
+    const results = await Promise.all(
+      CATEGORIES.map((cat) => fetchFeedList({ page: 1, pageSize: 1, agentId: cat.agentId })),
+    );
+    const next = { ...categoryTotals.value };
+    CATEGORIES.forEach((cat, index) => {
+      next[cat.key] = results[index].total;
+    });
+    categoryTotals.value = next;
+    const mergedWarnings = results.flatMap((result) => result.warnings ?? []);
+    if (mergedWarnings.length > 0) {
+      warnings.value = [...new Set([...(warnings.value ?? []), ...mergedWarnings])];
+    }
+  } catch {
+    // 角标失败不影响主列表
+  }
 }
 
 async function loadFeed() {
   loading.value = true;
   error.value = '';
   try {
-    const [news, reports, community] = await Promise.all([
-      fetchFeedList({ page: 1, pageSize: 15, agentId: 'news' }),
-      fetchFeedList({ page: 1, pageSize: 10, agentId: 'content' }),
-      fetchFeedList({ page: 1, pageSize: 5, agentId: 'fan' }),
-    ]);
-    newsItems.value = news.items;
-    reportItems.value = reports.items;
-    communityItems.value = community.items;
-    warnings.value = [
-      ...new Set([
-        ...(news.warnings ?? []),
-        ...(reports.warnings ?? []),
-        ...(community.warnings ?? []),
-      ]),
-    ];
+    const result = await fetchFeedList({
+      page: page.value,
+      pageSize: PAGE_SIZE,
+      agentId: activeMeta.value.agentId,
+    });
+    items.value = result.items;
+    total.value = result.total;
+    categoryTotals.value = {
+      ...categoryTotals.value,
+      [activeCategory.value]: result.total,
+    };
+    warnings.value = [...new Set([...(result.warnings ?? [])])];
+
+    // 当前页超出总页数时回退到最后一页
+    const maxPage = Math.max(1, Math.ceil(result.total / PAGE_SIZE) || 1);
+    if (page.value > maxPage) {
+      page.value = maxPage;
+      replaceQuery({ page: maxPage });
+      return;
+    }
   } catch {
     error.value = '加载动态失败，请稍后重试';
+    items.value = [];
+    total.value = 0;
   } finally {
     loading.value = false;
   }
 }
 
 watch(
-  () => route.query.tab,
+  () => [route.query.tab, route.query.page],
   () => {
-    syncCategoryFromRoute();
+    syncFromRoute();
+    loadFeed();
   },
 );
 
-onMounted(() => {
-  syncCategoryFromRoute();
-  if (!parseCategory(route.query.tab)) {
-    router.replace({
-      path: route.path,
-      query: { ...route.query, tab: 'news' },
+onMounted(async () => {
+  syncFromRoute();
+  const needReplace = !parseCategory(route.query.tab) || route.query.page == null;
+  if (needReplace) {
+    replaceQuery({
+      tab: activeCategory.value,
+      page: page.value,
     });
+  } else {
+    await loadFeed();
   }
-  loadFeed();
+  await refreshCategoryTotals();
 });
 
-defineExpose({ reload: loadFeed });
+defineExpose({ reload: async () => {
+  await Promise.all([loadFeed(), refreshCategoryTotals()]);
+} });
 </script>
 
 <template>
@@ -135,7 +181,9 @@ defineExpose({ reload: loadFeed });
         @click="selectCategory(cat.key)"
       >
         <span>{{ cat.label }}</span>
-        <span v-if="!loading" class="feed-tabs__count">{{ categoryCounts[cat.key] }}</span>
+        <span v-if="!loading || categoryTotals[cat.key] > 0" class="feed-tabs__count">
+          {{ categoryTotals[cat.key] }}
+        </span>
       </button>
     </nav>
 
@@ -143,13 +191,19 @@ defineExpose({ reload: loadFeed });
 
     <el-alert v-else-if="error" type="error" :title="error" show-icon :closable="false" />
 
-    <el-empty v-else-if="isEmpty" description="暂无动态，请稍后刷新" />
+    <el-empty v-else-if="isEmpty" :description="activeEmptyText" />
 
-    <el-empty v-else-if="activeItems.length === 0" :description="activeEmptyText" />
-
-    <div v-else class="feed-list__items">
-      <FeedCard v-for="item in activeItems" :key="item.id" :item="item" />
-    </div>
+    <template v-else>
+      <div class="feed-list__items">
+        <FeedCard v-for="item in items" :key="item.id" :item="item" />
+      </div>
+      <ListPagination
+        :page="page"
+        :page-size="PAGE_SIZE"
+        :total="total"
+        @update:page="onPageChange"
+      />
+    </template>
   </section>
 </template>
 

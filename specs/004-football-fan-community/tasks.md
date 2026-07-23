@@ -84,6 +84,7 @@
 - [x] T023 [P] [US1] Implement FanStartView and PersonaPicker component in web/src/views/FanStartView.vue and web/src/components/fan/PersonaPicker.vue
 - [x] T024 [US1] Implement FanDiscussionView, TurnBubble, ReportDialog and register /fan and /discussions/:discussionId routes in web/src/views/FanDiscussionView.vue, web/src/components/fan/TurnBubble.vue, web/src/components/fan/ReportDialog.vue and web/src/router/index.ts
 - [x] T025 [US1] Implement AdminReportsView and register /admin/reports route in web/src/views/AdminReportsView.vue and web/src/router/index.ts
+<!-- BUG 2026-07-23: AdminReports 分页翻页 -->
 - [x] T026 [US1] Extend FeedCard for fan_discussion type navigation and add /fan entry in web/src/components/feed/FeedCard.vue and web/src/router/index.ts
 
 **Checkpoint**: User Story 1 fully functional — Fan 讨论 + 插话 + 内容过滤 + 举报审核闭环可独立验收（对齐 FR-019–022、FR-030）

@@ -3,13 +3,17 @@ import { onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { fetchConversations } from '@/api/conversations';
+import ListPagination from '@/components/common/ListPagination.vue';
 import type { AgentId, ConversationSummary } from '@/types/stats';
+
+const PAGE_SIZE = 20;
 
 const router = useRouter();
 
 const loading = ref(false);
 const items = ref<ConversationSummary[]>([]);
 const total = ref(0);
+const page = ref(1);
 const agentFilter = ref<AgentId | ''>('');
 
 const agentLabels: Record<AgentId, string> = {
@@ -22,21 +26,33 @@ function formatTime(value: string) {
   return new Date(value).toLocaleString('zh-CN');
 }
 
-async function loadList() {
+async function loadList(resetPage = false) {
+  if (resetPage) page.value = 1;
   loading.value = true;
   try {
     const result = await fetchConversations({
       agentId: agentFilter.value || undefined,
-      page: 1,
-      pageSize: 50,
+      page: page.value,
+      pageSize: PAGE_SIZE,
     });
     items.value = result.items;
     total.value = result.total;
+    const maxPage = Math.max(1, Math.ceil(result.total / PAGE_SIZE) || 1);
+    if (page.value > maxPage) {
+      page.value = maxPage;
+      await loadList();
+      return;
+    }
   } catch {
     ElMessage.error('加载对话列表失败');
   } finally {
     loading.value = false;
   }
+}
+
+function onPageChange(nextPage: number) {
+  page.value = nextPage;
+  loadList();
 }
 
 function openConversation(item: ConversationSummary) {
@@ -77,13 +93,13 @@ onMounted(() => {
         clearable
         placeholder="全部"
         style="width: 160px"
-        @change="loadList"
+        @change="loadList(true)"
       >
         <el-option label="数据解读" value="stats" />
         <el-option label="球员推荐" value="scout" />
         <el-option label="战术分析" value="tactical" />
       </el-select>
-      <el-button :loading="loading" @click="loadList">刷新</el-button>
+      <el-button :loading="loading" @click="loadList()">刷新</el-button>
     </div>
 
     <div v-loading="loading" class="list-panel">
@@ -101,7 +117,12 @@ onMounted(() => {
         </div>
         <span class="conv-item__time">{{ formatTime(item.updatedAt) }}</span>
       </button>
-      <p v-if="total > 0" class="list-meta">共 {{ total }} 条</p>
+      <ListPagination
+        :page="page"
+        :page-size="PAGE_SIZE"
+        :total="total"
+        @update:page="onPageChange"
+      />
     </div>
   </section>
 </template>
@@ -193,12 +214,6 @@ onMounted(() => {
 .conv-item__time {
   flex-shrink: 0;
   font-size: 0.82rem;
-  color: var(--color-text-muted);
-}
-
-.list-meta {
-  margin: 0.25rem 0 0;
-  font-size: 0.85rem;
   color: var(--color-text-muted);
 }
 </style>
