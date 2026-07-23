@@ -2,7 +2,11 @@ import { createApp } from './app.js';
 import { config } from './config/index.js';
 import { runMigrations } from './db/migrate.js';
 import { getDb } from './db/connection.js';
-import { scheduleNewsFetchCron } from './jobs/news-fetch.js';
+import {
+  scheduleNewsFetchCron,
+  executeNewsFetchJob,
+  isNewsFetchStale,
+} from './jobs/news-fetch.js';
 import {
   scheduleMatchSyncCron,
   executeMatchSyncJob,
@@ -42,6 +46,16 @@ if (!config.isTest) {
   scheduleMatchSyncCron();
   schedulePlayerSyncCron();
   scheduleMatchReportCron();
+
+  if (isNewsFetchStale()) {
+    executeNewsFetchJob().catch((err) => {
+      console.error(JSON.stringify({
+        level: 'error',
+        type: 'news_fetch_startup_failed',
+        message: err.message,
+      }));
+    });
+  }
 
   if (config.footballData.apiKey || config.dataSource === 'scraper') {
     const matchCount = getDb().prepare('SELECT COUNT(*) AS count FROM matches').get().count;

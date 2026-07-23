@@ -72,11 +72,12 @@
 ### Implementation for User Story 1
 
 - [ ] T018 [P] [US1] Implement FeedItem and NewsCacheMeta repositories in server/src/db/repositories/feed-item-repository.js and server/src/db/repositories/news-cache-meta-repository.js
-- [ ] T019 [US1] Implement news RSS adapter with multi-source fetch in server/src/adapters/news-rss-adapter.js
+- [x] T019 [US1] Implement news RSS adapter with multi-source fetch in server/src/adapters/news-rss-adapter.js
 - [ ] T020 [US1] Create news-summary prompt and news-agent with AgentInteractionLog in server/prompts/news-summary.md and server/src/agents/news-agent.js
 - [x] T021 [US1] Implement feed-service with dedup logic and unit tests in server/src/services/feed-service.js and server/tests/unit/news-dedup.test.js
 - [ ] T022 [US1] Implement feed API routes (list, detail) in server/src/api/feed.js
-- [ ] T023 [US1] Implement news-fetch cron job and internal dev trigger in server/src/jobs/news-fetch.js
+- [x] T023 [US1] Implement news-fetch cron job and internal dev trigger in server/src/jobs/news-fetch.js
+<!-- BUG 2026-07-23 fixed: T019 Sky BST + fetch/UA；T023 启动 stale 补偿抓取 -->
 - [ ] T024 [P] [US1] Implement feed UI (FeedList, FeedCard, SourceStatusBanner, HomeView, FeedDetailView) in web/src/components/feed/ and web/src/views/HomeView.vue and web/src/views/FeedDetailView.vue
 
 **Checkpoint**: User Story 1 fully functional

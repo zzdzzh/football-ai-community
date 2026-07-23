@@ -5,9 +5,21 @@ import { config } from '../config/index.js';
 import { AppError } from '../middleware/error.js';
 import { createAiContentService } from '../ai/factory.js';
 import { runNewsIngestion } from '../services/feed-service.js';
+import { getAggregateNewsStatus } from '../db/repositories/news-cache-meta-repository.js';
 
 let cronTask = null;
 let runningJob = null;
+
+const NEWS_FETCH_STALE_MINUTES = 30;
+
+/** 超过 maxAgeMinutes 未成功抓取（或尚无记录）视为需要补偿抓取 */
+export function isNewsFetchStale(maxAgeMinutes = NEWS_FETCH_STALE_MINUTES) {
+  const { lastNewsFetchAt } = getAggregateNewsStatus();
+  if (!lastNewsFetchAt) return true;
+  const ts = Date.parse(lastNewsFetchAt);
+  if (Number.isNaN(ts)) return true;
+  return Date.now() - ts > maxAgeMinutes * 60 * 1000;
+}
 
 export async function executeNewsFetchJob() {
   if (runningJob) {

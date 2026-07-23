@@ -44,11 +44,11 @@
 
 - [x] T017 [P] [US1] Contract tests for GET /feed and GET /feed/{feedId} in server/tests/contract/feed.test.js | L1:✅(4/4) L2:✅(10/10) |
 - [x] T018 [P] [US1] Implement FeedItem and NewsCacheMeta repositories in server/src/db/repositories/feed-item-repository.js and server/src/db/repositories/news-cache-meta-repository.js | L1:✅ L2:✅(10/10) |
-- [x] T019 [US1] Implement news RSS adapter with multi-source fetch in server/src/adapters/news-rss-adapter.js | L1:✅ L2:✅(10/10) |
+- [x] T019 [US1] Implement news RSS adapter with multi-source fetch in server/src/adapters/news-rss-adapter.js | L1:✅ L2:✅ | <!-- BUG 2026-07-23 fixed: Sky BST + fetch/UA -->
 - [x] T020 [US1] Create news-summary prompt and news-agent with AgentInteractionLog in server/prompts/news-summary.md and server/src/agents/news-agent.js | L1:✅ L2:✅(10/10) |
 - [x] T021 [US1] Implement feed-service with dedup logic and unit tests in server/src/services/feed-service.js and server/tests/unit/news-dedup.test.js | L1:✅(5/5) L2:✅(10/10) |
 - [x] T022 [US1] Implement feed API routes (list, detail) in server/src/api/feed.js | L1:✅ L2:✅(10/10) |
-- [x] T023 [US1] Implement news-fetch cron job and internal dev trigger in server/src/jobs/news-fetch.js | L1:✅ L2:✅(10/10) |
+- [x] T023 [US1] Implement news-fetch cron job and internal dev trigger in server/src/jobs/news-fetch.js | L1:✅ L2:✅ | <!-- BUG 2026-07-23 fixed: 启动 stale 补偿 -->
 - [x] 🚧 **批次2.1门禁: L1 Step4 (`[APP_START_COMMAND]` + news-fetch trigger + feed 契约测试通过 + GET /feed 返回数据)** | 结果: ✅ news-fetch:202, feed:1条, contract:4/4 |
 
 ---
