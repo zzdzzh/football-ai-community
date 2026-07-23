@@ -38,7 +38,7 @@
 
 - [x] T023 [US2] Implement match-report-generate job with event_key dedup and cron in server/src/jobs/match-report-generate.js | L1:✅ L2:✅
 
-- [x] T024 [US2] Extend GET /matches/:matchId with report + publishMatchReport in feed-service | L1:✅ L2:✅
+- [x] T024 [US2] Extend GET /matches/:matchId with report + publishMatchReport in feed-service | L1:✅ L2:✅ | <!-- BUG 2026-07-23: 战报按比赛时间排序 -->
 
 - [x] 🚧 **批次2.6门禁** | 结果: ✅ createAppOK · content-agent unit PASS · match-report router mounted
 
