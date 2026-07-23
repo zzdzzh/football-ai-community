@@ -17,11 +17,12 @@ import {
   getAllMatchSyncMeta,
 } from '../db/repositories/match-sync-meta-repository.js';
 import { getDb } from '../db/connection.js';
+import { executeMatchReportGenerateJob } from './match-report-generate.js';
 
 let cronTask = null;
 let runningJob = null;
 
-const MATCH_SYNC_STALE_HOURS = 24;
+const MATCH_SYNC_STALE_HOURS = 6;
 
 /** 任一联赛超过 maxAgeHours 未成功同步，或尚无 meta，视为需要同步 */
 export function isMatchSyncStale(maxAgeHours = MATCH_SYNC_STALE_HOURS) {
@@ -150,9 +151,26 @@ export async function executeMatchSyncJob({ league = null, adapter = null } = {}
           });
         } catch (err) {
           results.push({ leagueCode, error: err.message });
+          console.error(JSON.stringify({
+            level: 'error',
+            type: 'match_sync_league_failed',
+            leagueCode,
+            dataSource: 'scraper',
+            message: err.message,
+          }));
         }
       }
       const enriched = await enrichScraperFinishedMatches({ limit: 30 });
+      // 同步完成后立刻尝试生成战报，避免只等 report cron
+      if (!config.isTest) {
+        executeMatchReportGenerateJob().catch((err) => {
+          console.error(JSON.stringify({
+            level: 'error',
+            type: 'match_report_after_sync_failed',
+            message: err.message,
+          }));
+        });
+      }
       return { results, enriched };
     })().finally(() => {
       runningJob = null;
@@ -175,6 +193,15 @@ export async function executeMatchSyncJob({ league = null, adapter = null } = {}
       }
     }
     await enrichFinishedMatches(footballAdapter);
+    if (!config.isTest) {
+      executeMatchReportGenerateJob().catch((err) => {
+        console.error(JSON.stringify({
+          level: 'error',
+          type: 'match_report_after_sync_failed',
+          message: err.message,
+        }));
+      });
+    }
     return results;
   })().finally(() => {
     runningJob = null;
@@ -189,6 +216,12 @@ export function scheduleMatchSyncCron() {
   }
 
   cronTask = cron.schedule(config.matchSyncCron, () => {
+    console.log(JSON.stringify({
+      level: 'info',
+      type: 'match_sync_cron_tick',
+      cron: config.matchSyncCron,
+      dataSource: config.dataSource,
+    }));
     executeMatchSyncJob().catch((err) => {
       console.error(JSON.stringify({
         level: 'error',

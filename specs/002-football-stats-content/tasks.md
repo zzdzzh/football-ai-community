@@ -53,7 +53,7 @@
 - [x] T007 Implement FootballDataAdapter with 8 req/min rate limiter and ALLOWED_LEAGUES whitelist in server/src/adapters/football-data-adapter.js
 - [x] T008 [P] Implement match-service and team-service in server/src/services/match-service.js and server/src/services/team-service.js
 - [x] T009 [P] Implement AiAnalysisService and stats-interpret prompt in server/src/ai/ai-analysis-service.js and server/prompts/stats-interpret.md
-- [x] T010 Implement match-sync job and mount matches/teams API routes in server/src/jobs/match-sync.js, server/src/api/matches.js, server/src/api/teams.js and server/src/app.js（BUG: scraper 仅拉 SofaScore `events/last`，未拉 `events/next`，导致未开赛场次缺失；match-sync 默认带 FBref 过慢使 WC 无法及时刷新 — fixed: `fetch_league_matches` 同时拉 last+next；match-sync `includeFbref:false`；已补同步 WC）
+- [x] T010 Implement match-sync job and mount matches/teams API routes in server/src/jobs/match-sync.js, server/src/api/matches.js, server/src/api/teams.js and server/src/app.js（BUG: scraper 仅拉 SofaScore `events/last`，未拉 `events/next`，导致未开赛场次缺失；match-sync 默认带 FBref 过慢使 WC 无法及时刷新 — fixed: `fetch_league_matches` 同时拉 last+next；match-sync `includeFbref:false`；已补同步 WC）（BUG 2026-07-23 fixed: scraper 默认 cron 改为 */30；同步后触发战报；stale 阈值 6h）
 
 **Checkpoint**: Foundation ready — match data syncable, matches/teams API callable, user story implementation can now begin
 

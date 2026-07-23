@@ -227,7 +227,8 @@ export const config = {
     wcSeason: env.FOOTBALL_DATA_WC_SEASON,
   },
   matchSyncCron: env.MATCH_SYNC_CRON
-    ?? (env.DATA_SOURCE === 'scraper' ? '0 6 * * *' : '*/30 * * * *'),
+    // scraper 已关掉默认 FBref，与 football-data 一样按 30 分钟刷新完赛状态
+    ?? '*/30 * * * *',
   matchReportCron: env.MATCH_REPORT_CRON,
   playerSyncCron: env.PLAYER_SYNC_CRON,
   dataSource: env.NODE_ENV === 'test' ? 'football-data' : env.DATA_SOURCE,
