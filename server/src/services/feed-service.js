@@ -259,6 +259,7 @@ export function publishMatchReport(report) {
     summary: report.summary,
     eventKey: report.eventKey,
     matchId: report.matchId,
+    publishedAt: report.publishedAt,
     visibility: 'public',
     body: report.body,
     dataSources: report.dataSources,

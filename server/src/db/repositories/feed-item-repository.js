@@ -28,7 +28,8 @@ export function mapFeedItemRow(row) {
     type: row.type,
     title: row.title,
     summary: row.summary ?? undefined,
-    publishedAt: row.published_at,
+    // 有关联比赛时展示/排序用比赛时间（list 查询会注入 display_published_at）
+    publishedAt: row.display_published_at ?? row.published_at,
     sourceUrl: row.source_url ?? undefined,
     sourceName: row.source_name ?? undefined,
     keyPoints: parseKeyPoints(row.key_points),
@@ -182,11 +183,14 @@ export function listFeedItems({ page = 1, pageSize = 20, agentId = null } = {}) 
   `).get(...params).count;
 
   const rows = db.prepare(`
-    SELECT fi.*, ap.display_name AS agent_display_name
+    SELECT fi.*,
+           ap.display_name AS agent_display_name,
+           COALESCE(m.utc_date, fi.published_at) AS display_published_at
     FROM feed_items fi
     JOIN agent_profiles ap ON ap.id = fi.agent_id
+    LEFT JOIN matches m ON m.id = fi.match_id
     ${whereClause}
-    ORDER BY fi.published_at DESC
+    ORDER BY COALESCE(m.utc_date, fi.published_at) DESC
     LIMIT ? OFFSET ?
   `).all(...params, safePageSize, offset);
 

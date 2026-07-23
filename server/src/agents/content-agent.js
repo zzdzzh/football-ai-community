@@ -127,6 +127,7 @@ export class ContentAgent {
       type,
       eventKey,
       matchId: match.id,
+      publishedAt: match.utcDate ?? undefined,
       title: title.slice(0, 200),
       summary,
       body: {

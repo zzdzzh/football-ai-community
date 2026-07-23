@@ -49,6 +49,7 @@
 - [x] T004 [P] Implement team and match repositories in server/src/db/repositories/team-repository.js and server/src/db/repositories/match-repository.js
 - [x] T005 [P] Implement conversation, message and match-sync-meta repositories in server/src/db/repositories/conversation-repository.js, server/src/db/repositories/message-repository.js and server/src/db/repositories/match-sync-meta-repository.js
 - [x] T006 Extend feed-item-repository for match_id, body_json, data_sources_json and match_report/brief_report types in server/src/db/repositories/feed-item-repository.js
+<!-- BUG 2026-07-23 fixed: listFeedItems 按 matches.utc_date 排序并映射 publishedAt -->
 - [x] T007 Implement FootballDataAdapter with 8 req/min rate limiter and ALLOWED_LEAGUES whitelist in server/src/adapters/football-data-adapter.js
 - [x] T008 [P] Implement match-service and team-service in server/src/services/match-service.js and server/src/services/team-service.js
 - [x] T009 [P] Implement AiAnalysisService and stats-interpret prompt in server/src/ai/ai-analysis-service.js and server/prompts/stats-interpret.md
@@ -101,6 +102,7 @@
 - [x] T022 [US2] Create match-report prompt and implement content-agent with Stats data snapshot in server/prompts/match-report.md and server/src/agents/content-agent.js
 - [x] T023 [US2] Implement match-report-generate job with event_key dedup and cron registration in server/src/jobs/match-report-generate.js
 - [x] T024 [US2] Extend GET /matches/:matchId with report and feed-service for match_report/brief_report in server/src/api/matches.js and server/src/services/feed-service.js
+<!-- BUG 2026-07-23 fixed: publishMatchReport 写入比赛 utcDate 为 publishedAt -->
 - [x] T025 [P] [US2] Implement MatchDetailView and match components in web/src/views/MatchDetailView.vue and web/src/components/match/
 - [x] T026 [US2] Extend FeedCard for match_report/brief_report and navigation to /matches/:matchId in web/src/components/feed/FeedCard.vue and web/src/views/HomeView.vue
 
