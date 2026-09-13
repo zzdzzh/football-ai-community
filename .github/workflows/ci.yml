@@ -1,0 +1,88 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  server-test:
+    name: Server Tests
+    runs-on: ubuntu-latest
+    
+    defaults:
+      run:
+        working-directory: ./server
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: server/package-lock.json
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Run unit tests
+        run: npm test
+      
+      - name: Run contract tests
+        run: npm run test:contract
+
+  web-build:
+    name: Web Build & Typecheck
+    runs-on: ubuntu-latest
+    
+    defaults:
+      run:
+        working-directory: ./web
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: web/package-lock.json
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Typecheck
+        run: npm run typecheck
+      
+      - name: Build
+        run: npm run build
+
+  docker-build:
+    name: Docker Build Test
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Build server image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./server
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      
+      - name: Build web image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./web
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

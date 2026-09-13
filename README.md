@@ -45,13 +45,34 @@ football-ai-community/
 
 ## 快速开始
 
-### 环境要求
+### 🐳 Docker Compose（推荐）
+
+最简单的启动方式，5 分钟即可运行：
+
+```bash
+# 1. 配置环境变量
+cp .env.example .env
+# 编辑 .env，填入必要配置（见下方说明）
+
+# 2. 启动服务
+docker compose up -d
+
+# 3. 访问应用
+# 前台: http://localhost:8080
+# API: http://localhost:3000
+```
+
+详见 [QUICKSTART.md](./QUICKSTART.md) 和 [DEPLOY.md](./DEPLOY.md)。
+
+### 本地开发环境
+
+#### 环境要求
 
 - Node.js **≥ 20**
 - Python **3.10+**（使用默认 `DATA_SOURCE=scraper` 时）
 - Windows 开发推荐使用 PowerShell
 
-### 1. 后台
+#### 1. 后台
 
 ```powershell
 cd server
@@ -67,7 +88,7 @@ npm run dev
 API 文档：`http://localhost:3000/api/docs`  
 健康检查：`http://localhost:3000/api/health`
 
-### 2. 前台
+#### 2. 前台
 
 ```powershell
 cd web
@@ -77,7 +98,7 @@ npm run dev
 
 开发服务器监听 `0.0.0.0`，局域网设备也可访问（默认 Vite 端口，见终端输出）。
 
-### 3. 爬虫（可选，默认数据源）
+#### 3. 爬虫（可选，默认数据源）
 
 ```powershell
 cd scraper
@@ -150,6 +171,42 @@ cd web; npm run build
 - 后台测试在 `server/` 下运行；`node_modules` 不上库
 - 更细治理见 [`.specify/memory/constitution.md`](./.specify/memory/constitution.md)
 
+## 部署
+
+### Docker Compose（推荐）
+
+本项目提供 Docker Compose 配置，简化部署流程：
+
+```bash
+# 1. 复制环境变量模板
+cp .env.example .env
+
+# 2. 编辑 .env，填入必要的配置项：
+#    - JWT_SECRET
+#    - ADMIN_EMAIL / ADMIN_PASSWORD
+#    - AI_BASE_URL / AI_API_KEY（如需 AI 功能）
+#    - FOOTBALL_DATA_API_KEY（推荐使用 football-data 作为数据源）
+
+# 3. 启动服务
+docker compose up -d
+
+# 4. 查看日志
+docker compose logs -f
+
+# 5. 停止服务
+docker compose down
+```
+
+服务地址：
+- 前台：`http://localhost:8080`
+- 后台 API：`http://localhost:3000`
+- API 文档：`http://localhost:3000/api/docs`
+
+**注意**：
+- Docker 环境默认使用 `DATA_SOURCE=football-data`，避免复杂的 Python 爬虫依赖
+- 如需使用 Transfermarkt 爬虫功能，建议本地开发环境运行
+- 首次启动会自动执行数据库迁移和管理员账号初始化
+
 ## 许可证
 
-私有项目；未声明开源许可前，请勿擅自二次分发。
+本项目采用 [MIT License](./LICENSE) 开源协议。

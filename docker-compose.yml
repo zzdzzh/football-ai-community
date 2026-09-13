@@ -1,0 +1,61 @@
+version: '3.8'
+
+services:
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: football-ai-server
+    ports:
+      - "3000:3000"
+    environment:
+      PORT: 3000
+      JWT_SECRET: ${JWT_SECRET:-dev-jwt-secret-change-in-production}
+      DATABASE_PATH: /app/data/community.db
+      AI_BASE_URL: ${AI_BASE_URL:-}
+      AI_API_KEY: ${AI_API_KEY:-}
+      AI_MODEL: ${AI_MODEL:-glm-4.7-flash}
+      AI_TIMEOUT_MS: ${AI_TIMEOUT_MS:-120000}
+      AI_INTERACTIVE_API_KEY: ${AI_INTERACTIVE_API_KEY:-}
+      AI_INTERACTIVE_MODEL: ${AI_INTERACTIVE_MODEL:-glm-5.1}
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY:-dev-internal-key}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@example.com}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-changeme}
+      FOOTBALL_DATA_API_KEY: ${FOOTBALL_DATA_API_KEY:-}
+      FOOTBALL_DATA_BASE_URL: ${FOOTBALL_DATA_BASE_URL:-https://api.football-data.org/v4}
+      DATA_SOURCE: ${DATA_SOURCE:-football-data}
+      CAREER_SYNC_TTL_DAYS: ${CAREER_SYNC_TTL_DAYS:-7}
+      RELATIONSHIP_MAX_HOPS: ${RELATIONSHIP_MAX_HOPS:-6}
+      CAREER_SYNC_TIMEOUT_MS: ${CAREER_SYNC_TIMEOUT_MS:-60000}
+      CAREER_AUTO_REFRESH_TM_COOKIES: 0
+    volumes:
+      - ./server/data:/app/data
+      - ./server/config:/app/config
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    container_name: football-ai-web
+    ports:
+      - "8080:80"
+    depends_on:
+      server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
+volumes:
+  server-data:
