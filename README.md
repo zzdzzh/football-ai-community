@@ -45,13 +45,34 @@ football-ai-community/
 
 ## 快速开始
 
-### 环境要求
+### 🐳 Docker Compose（推荐）
+
+最简单的启动方式，5 分钟即可运行：
+
+```bash
+# 1. 配置环境变量
+cp .env.example .env
+# 编辑 .env，填入必要配置（见下方说明）
+
+# 2. 启动服务
+docker compose up -d
+
+# 3. 访问应用
+# 前台: http://localhost:8080
+# API: http://localhost:3000
+```
+
+详见 [QUICKSTART.md](./QUICKSTART.md) 和 [DEPLOY.md](./DEPLOY.md)。
+
+### 本地开发环境
+
+#### 环境要求
 
 - Node.js **≥ 20**
 - Python **3.10+**（使用默认 `DATA_SOURCE=scraper` 时）
 - Windows 开发推荐使用 PowerShell
 
-### 1. 后台
+#### 1. 后台
 
 ```powershell
 cd server
@@ -67,7 +88,7 @@ npm run dev
 API 文档：`http://localhost:3000/api/docs`  
 健康检查：`http://localhost:3000/api/health`
 
-### 2. 前台
+#### 2. 前台
 
 ```powershell
 cd web
@@ -77,7 +98,7 @@ npm run dev
 
 开发服务器监听 `0.0.0.0`，局域网设备也可访问（默认 Vite 端口，见终端输出）。
 
-### 3. 爬虫（可选，默认数据源）
+#### 3. 爬虫（可选，默认数据源）
 
 ```powershell
 cd scraper
